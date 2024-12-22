@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+body.dark {
+    @apply bg-gray-900 text-white;
+  }
+  
+  header.dark {
+    @apply bg-gray-900 text-white;
+  }
+  
+  aside.dark {
+    @apply bg-gray-800 text-white;
+  }
+  
+  nav.dark a {
+    @apply text-gray-300 hover:text-white;
+  }
