@@ -1,0 +1,32 @@
+{
+  "pdv": {
+    "caixa": {
+      "id_caixa": "",
+      "abertura_caixa": "",
+      "operador": {
+        "id": "",
+        "nome": "",
+        "cargo": "",
+        "pode_cancelar_itens": false
+      }
+    },
+    "venda": {
+      "id_venda": "",
+      "tipo": "", 
+      "status_venda": "",
+      "dados_cliente": {
+        "nome": "",
+        "cpf": "",
+        "endereco": null
+      },
+      "produtos": [],
+      "total_venda": 0,
+      "observacoes": "",
+      "mesa": null
+    },
+    "totais": {
+      "quantidade_itens": 0,
+      "valor_total": 0
+    }
+  }
+}
