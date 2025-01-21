@@ -26,3 +26,5 @@ package-lock.json
 
 # SRC
 src/templates
+
+.env

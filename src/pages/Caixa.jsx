@@ -12,6 +12,9 @@ const Caixa = () => {
   const [orders, setOrders] = useState([]);
   const [caixaAberto, setCaixaAberto] = useState(false);
   const [valorInicial, setValorInicial] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [managerPassword, setManagerPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
@@ -73,6 +76,7 @@ const Caixa = () => {
         price: product.preco_unitario,
         quantity: product.quantidade,
         subtotal: product.subtotal,
+        status: product.status
       });
     });
     setOrders(updatedOrders);
@@ -92,7 +96,18 @@ const Caixa = () => {
       prevOrders = updatedOrders;
     } else {
       // Produto não existe na lista, adicionar novo produto
-      prevOrders = [...prevOrders, { ...product, quantity: 1, subtotal: parseFloat(product.price) }];
+      prevOrders = [
+        ...prevOrders,
+        {
+          ...product,
+          quantity: 1,
+          subtotal: parseFloat(product.price),
+          status: {
+            impresso: false,
+            cancelado: false
+          }
+        }
+      ];
     }
     setOrders(prevOrders);
 
@@ -119,7 +134,7 @@ const Caixa = () => {
         subtotal: parseFloat(product.price),
         status: {
           impresso: false,
-          cancelado: false,
+          cancelado: false
         },
       });
     }
@@ -173,7 +188,37 @@ const Caixa = () => {
       });
       console.log('Venda cancelada');
     } else {
-      console.log('Usuário não tem permissão para cancelar a venda');
+      // Aqui vai um modal do tailwind com a mensagem de que o usuário não tem permissão para cancelar a venda.
+      setIsModalOpen(true);
+
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setManagerPassword('');
+    setErrorMessage('');
+  };
+
+  const handlePasswordChange = (e) => {
+    setManagerPassword(e.target.value);
+  };
+
+  const handlePasswordSubmit = () => {
+    if (managerPassword === '1234') {
+      setOrders([]);
+      setPdv((prevPdv) => {
+        const updatedPdv = { ...prevPdv };
+        updatedPdv.pdv.venda.produtos = [];
+        updatedPdv.pdv.venda.total_venda = 0;
+        updatedPdv.pdv.totais.quantidade_itens = 0;
+        updatedPdv.pdv.totais.valor_total = 0;
+        return updatedPdv;
+      });
+      console.log('Venda cancelada pelo gerente');
+      closeModal();
+    } else {
+      setErrorMessage('Senha incorreta. Tente novamente.');
     }
   };
 
@@ -190,6 +235,7 @@ const Caixa = () => {
       return updatedPdv;
     });
     console.log('Venda preparada');
+    window.location.reload();
   };
 
   return (
@@ -227,9 +273,9 @@ const Caixa = () => {
                 <ul className="mt-4">
                   {orders.map((order, index) => (
                     <li
-                    key={index}
-                    className={`border-b border-gray-300 py-2 ${order.status.impresso ? 'text-gray-500 italic' : ''}`}
-                  >
+                      key={index}
+                      className={`border-b border-gray-300 py-2 ${order.status.impresso ? 'text-gray-600 italic' : ''} `}
+                    >
                       {order.quantity}x - {order.name} - R$ {order.price} - R$ {order.subtotal.toFixed(2)}
                     </li>
                   ))}
@@ -267,6 +313,36 @@ const Caixa = () => {
           onPreparar={handlePreparar}
         />
       )}
+      {isModalOpen && (
+      <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
+        <div className="bg-black bg-opacity-50 absolute inset-0"></div>
+        <div className="bg-white p-6 rounded shadow-lg z-10">
+          <h2 className="text-xl font-bold mb-4">Permissão Negada</h2>
+          <p>Você não tem permissão para cancelar a venda.</p>
+          <input
+            type="password"
+            value={managerPassword}
+            onChange={handlePasswordChange}
+            className="mt-4 p-2 border rounded w-full"
+            placeholder="Senha do gerente"
+            autoFocus
+          />
+          {errorMessage && <p className="text-red-500 mt-2">{errorMessage}</p>}
+          <button
+            onClick={handlePasswordSubmit}
+            className="mt-4 bg-blue-500 text-white px-5 py-2 m-1 rounded"
+          >
+            Confirmar
+          </button>
+          <button
+            onClick={closeModal}
+            className="mt-4 bg-red-500 text-white px-5 py-2 m-1 rounded"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    )}
     </div>
   );
 };
