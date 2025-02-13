@@ -4,6 +4,7 @@ import { AuthProvider } from './services/AuthContext';
 import Header from './components/Header';
 import Home from './pages/Home';
 import Caixa from './pages/Caixa';
+import Cadastros from './pages/Cadastros';
 
 const App = () => {
   useEffect(() => {
@@ -17,6 +18,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/caixa" element={<Caixa />} />
+            <Route path="/cadastros" element={<Cadastros />} />
             {/* Adicione outras rotas aqui */}
           </Routes>
         </div>

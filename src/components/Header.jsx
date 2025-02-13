@@ -15,16 +15,10 @@ const Header = ({ categories, onSelectCategory }) => {
               <Link to="/" className="text-gray-300 hover:text-white">Home</Link>
             </li>
             <li>
-              <Link to="/about" className="text-gray-300 hover:text-white">Sobre</Link>
-            </li>
-            <li>
-              <Link to="/services" className="text-gray-300 hover:text-white">Serviços</Link>
-            </li>
-            <li>
-              <Link to="/contact" className="text-gray-300 hover:text-white">Contato</Link>
-            </li>
-            <li>
               <Link to="/caixa" className="text-gray-300 hover:text-white">Caixas</Link>
+            </li>
+            <li>
+              <Link to="/cadastros" className="text-gray-300 hover:text-white">Cadastros</Link>
             </li>
           </ul>
         </nav>
