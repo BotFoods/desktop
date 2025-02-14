@@ -272,7 +272,7 @@ const Caixa = () => {
                 type="number"
                 value={valorInicial}
                 onChange={(e) => setValorInicial(e.target.value)}
-                className="p-2 rounded bg-gray-800 text-white mb-4"
+                className="p-2 rounded bg-gray-800 text-black mb-4" // Alterado para texto preto
                 placeholder="Valor Inicial"
               />
               <button

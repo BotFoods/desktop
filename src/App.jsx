@@ -5,6 +5,8 @@ import Header from './components/Header';
 import Home from './pages/Home';
 import Caixa from './pages/Caixa';
 import Cadastros from './pages/Cadastros';
+import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App = () => {
   useEffect(() => {
@@ -16,9 +18,10 @@ const App = () => {
       <Router>
         <div className="bg-gray-900 text-white min-h-screen">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/caixa" element={<Caixa />} />
-            <Route path="/cadastros" element={<Cadastros />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<ProtectedRoute element={<Home />} />} />
+            <Route path="/caixa" element={<ProtectedRoute element={<Caixa />} />} />
+            <Route path="/cadastros" element={<ProtectedRoute element={<Cadastros />} />} />
             {/* Adicione outras rotas aqui */}
           </Routes>
         </div>

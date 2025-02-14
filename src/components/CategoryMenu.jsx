@@ -9,7 +9,7 @@ const CategoryMenu = ({ categories, onSelectCategory }) => {
     <aside className="fixed top-0 left-0 w-64 bg-gray-800 shadow-md z-20 h-full dark:bg-gray-800 dark:text-white">
       <nav className="px-4 py-6">
         <div className="text-2xl font-bold text-white mb-6">
-          <button onClick={() => onSelectCategory('')} className="text-gray-300 hover:text-white">Meu Projeto</button>
+          <button onClick={() => onSelectCategory('')} className="text-gray-300 hover:text-white">BotFoods</button>
         </div>
         <ul className="space-y-4">
           {isCadastrosRoute && (
