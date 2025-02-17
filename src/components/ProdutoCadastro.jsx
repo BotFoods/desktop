@@ -10,6 +10,7 @@ const ProdutoCadastro = () => {
     const [idCategoria, setIdCategoria] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [produtos, setProdutos] = useState({});
+    const [message, setMessage] = useState('');
 
     useEffect(() => {
         const fetchCategorias = async () => {
@@ -131,71 +132,89 @@ const ProdutoCadastro = () => {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto">
-            <form
-                onSubmit={(e) => {
-                    e.preventDefault();
-                    handleAddProduto();
-                }}
-                className="mb-4"
-            >
-                <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Nome do Produto"
-                    className="p-2 border border-gray-300 rounded w-full text-black mb-2"
-                />
-                <textarea
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    placeholder="Descrição do Produto"
-                    className="p-2 border border-gray-300 rounded w-full text-black mb-2"
-                />
-                <input
-                    type="number"
-                    value={preco}
-                    onChange={(e) => setPreco(e.target.value)}
-                    placeholder="Preço do Produto"
-                    className="p-2 border border-gray-300 rounded w-full text-black mb-2"
-                />
-                <select
-                    value={idCategoria}
-                    onChange={(e) => setIdCategoria(e.target.value)}
-                    className="p-2 border border-gray-300 rounded w-full text-black mb-2"
+        <>
+            <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md mx-auto">
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        handleAddProduto();
+                    }}
+                    className="space-y-4"
                 >
-                    <option value="">Selecione uma Categoria</option>
-                    {categorias.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.categoria}
-                        </option>
-                    ))}
-                </select>
-                <button type="submit" className="mt-2 p-2 bg-blue-500 text-white rounded w-full">
-                    Cadastrar
-                </button>
-            </form>
-            {Object.keys(produtos).map((category) => (
-                <div key={category}>
-                    <h3 className="text-xl font-bold mb-2">{category}</h3>
-                    <ul className="list-disc pl-5">
-                        {produtos[category].map((prod, index) => (
-                            <li key={prod.id} className="flex justify-between items-center mb-2">
-                                {prod.name} - R$ {prod.price}
-                                <div>
-                                    <button onClick={() => handleEditProduto(category, index)} className="mr-2">
-                                        <FaEdit />
-                                    </button>
-                                    <button onClick={() => handleDeleteProduto(category, prod.id)}>
-                                        <FaTrash />
-                                    </button>
-                                </div>
-                            </li>
+                    <input
+                        type="text"
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        placeholder="Nome do Produto"
+                        className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                    <textarea
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        placeholder="Descrição do Produto"
+                        className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                    <input
+                        type="number"
+                        value={preco}
+                        onChange={(e) => setPreco(e.target.value)}
+                        placeholder="Preço do Produto"
+                        className="w-full p-2 rounded bg-gray-700 text-white"
+                    />
+                    <select
+                        value={idCategoria}
+                        onChange={(e) => setIdCategoria(e.target.value)}
+                        className="w-full p-2 rounded bg-gray-700 text-white"
+                    >
+                        <option value="">Selecione uma Categoria</option>
+                        {categorias.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                                {cat.categoria}
+                            </option>
                         ))}
-                    </ul>
-                </div>
-            ))}
-        </div>
+                    </select>
+                    <button type="submit" className="w-full p-2 rounded bg-blue-600 text-white font-bold">
+                        Cadastrar
+                    </button>
+                </form>
+                {message && <p className="mt-4 text-green-500">{message}</p>}
+            </div>
+            <div className="w-full">
+                <hr className="my-8 border-gray-700" />
+                <h3 className="text-xl font-bold mb-4 text-center">Lista de Produtos</h3>
+                <table className="min-w-full bg-gray-800 text-white text-center">
+                    <thead>
+                        <tr>
+                            <th className="py-2 px-4 border-b border-gray-700">Nome</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Descrição</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Preço</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.keys(produtos).map((category) =>
+                            produtos[category].map((prod, index) => (
+                                <tr key={prod.id}>
+                                    <td className="py-2 px-4 border-b border-gray-700">{prod.name}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">{prod.descricao ? prod.descricao : '-'}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">R$ {prod.price}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">{category}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">
+                                        <button onClick={() => handleEditProduto(category, index)} className="mr-2">
+                                            <FaEdit />
+                                        </button>
+                                        <button onClick={() => handleDeleteProduto(category, prod.id)}>
+                                            <FaTrash />
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </>
     );
 };
 
