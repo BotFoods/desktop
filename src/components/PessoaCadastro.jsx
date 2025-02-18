@@ -37,6 +37,10 @@ const PessoaCadastro = () => {
         fetchUsuarios();
     }, [token]);
 
+    useEffect(() => {
+        document.getElementById('nome').focus();
+    }, []);
+
     const handleSubmit = (e) => {
         e.preventDefault();
 
@@ -114,12 +118,14 @@ const PessoaCadastro = () => {
             <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md mx-auto">
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input
+                        id="nome"
                         type="text"
                         placeholder="Nome"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         required
                         className="w-full p-2 rounded bg-gray-700 text-white"
+                        autoFocus
                     />
                     <input
                         type="email"

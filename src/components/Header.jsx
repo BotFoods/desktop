@@ -13,11 +13,11 @@ const Header = ({ categories, onSelectCategory }) => {
             <Link to="/">BotFoods</Link>
           </div>
           <ul className="flex space-x-6">
-            <li>
+            {/* <li>
               <Link to="/" className="text-gray-300 hover:text-white">Home</Link>
-            </li>
+            </li> */}
             <li>
-              <Link to="/caixa" className="text-gray-300 hover:text-white">Caixas</Link>
+              <Link to="/caixa" className="text-gray-300 hover:text-white">Caixa</Link>
             </li>
             <li>
               <Link to="/cadastros" className="text-gray-300 hover:text-white">Cadastros</Link>

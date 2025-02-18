@@ -29,6 +29,10 @@ const CategoriaCadastro = () => {
         fetchCategorias();
     }, [token]);
 
+    useEffect(() => {
+        document.getElementById('categoria').focus();
+    }, []);
+
     const handleAddCategoria = async () => {
         if (categoria.trim()) {
             const options = {
@@ -96,11 +100,13 @@ const CategoriaCadastro = () => {
                     className="space-y-4"
                 >
                     <input
+                        id="categoria"
                         type="text"
                         value={categoria}
                         onChange={(e) => setCategoria(e.target.value)}
                         placeholder="Nome da Categoria"
                         className="w-full p-2 rounded bg-gray-700 text-white"
+                        autoFocus
                     />
                     <button type="submit" className="w-full p-2 rounded bg-blue-600 text-white font-bold">
                         Cadastrar

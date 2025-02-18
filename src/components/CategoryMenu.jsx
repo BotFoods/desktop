@@ -1,9 +1,11 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../services/AuthContext';
 
 const CategoryMenu = ({ categories, onSelectCategory }) => {
   const location = useLocation();
   const isCadastrosRoute = location.pathname.startsWith('/cadastros');
+  const { user } = useAuth();
 
   return (
     <aside className="fixed top-0 left-0 w-64 bg-gray-800 shadow-md z-20 h-full dark:bg-gray-800 dark:text-white">
@@ -36,6 +38,9 @@ const CategoryMenu = ({ categories, onSelectCategory }) => {
             </li>
           ))}
         </ul>
+        <div className="bottom-0 flex fixed pb-4 text-gray-400">
+          <p>Conectado como: {user}</p>
+        </div>
       </nav>
     </aside>
   );

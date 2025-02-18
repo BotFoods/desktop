@@ -54,6 +54,10 @@ const ProdutoCadastro = () => {
         fetchProdutos();
     }, [token]);
 
+    useEffect(() => {
+        document.getElementById('nomeProduto').focus();
+    }, []);
+
     const handleAddProduto = async () => {
         if (nome.trim() && preco.trim() && idCategoria) {
             const options = {
@@ -142,11 +146,13 @@ const ProdutoCadastro = () => {
                     className="space-y-4"
                 >
                     <input
+                        id="nomeProduto"
                         type="text"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         placeholder="Nome do Produto"
                         className="w-full p-2 rounded bg-gray-700 text-white"
+                        autoFocus
                     />
                     <textarea
                         value={descricao}

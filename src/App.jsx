@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider } from './services/AuthContext';
 import Header from './components/Header';
 import Home from './pages/Home';
@@ -19,9 +19,10 @@ const App = () => {
         <div className="bg-gray-900 text-white min-h-screen">
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute element={<Home />} />} />
+            <Route path="/" element={<Navigate to="/caixa" />} />
             <Route path="/caixa" element={<ProtectedRoute element={<Caixa />} />} />
             <Route path="/cadastros" element={<ProtectedRoute element={<Cadastros />} />} />
+            <Route path="*" element={<Navigate to="/caixa" />} />
             {/* Adicione outras rotas aqui */}
           </Routes>
         </div>
