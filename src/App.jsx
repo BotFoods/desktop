@@ -7,6 +7,7 @@ import Caixa from './pages/Caixa';
 import Cadastros from './pages/Cadastros';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
 
 const App = () => {
   useEffect(() => {
@@ -22,6 +23,7 @@ const App = () => {
             <Route path="/" element={<Navigate to="/caixa" />} />
             <Route path="/caixa" element={<ProtectedRoute element={<Caixa />} />} />
             <Route path="/cadastros" element={<ProtectedRoute element={<Cadastros />} />} />
+            <Route path="/movimentacoes" element={<ProtectedRoute element={<MovimentacoesCaixa />} />} />
             <Route path="*" element={<Navigate to="/caixa" />} />
             {/* Adicione outras rotas aqui */}
           </Routes>

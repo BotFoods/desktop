@@ -2,9 +2,10 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 
-const CategoryMenu = ({ categories, onSelectCategory }) => {
+const CategoryMenu = ({ categories = [], onSelectCategory }) => {
   const location = useLocation();
   const isCadastrosRoute = location.pathname.startsWith('/cadastros');
+  const isMovimentacoesRoute = location.pathname.startsWith('/movimentacoes');
   const { user } = useAuth();
 
   return (
@@ -24,6 +25,16 @@ const CategoryMenu = ({ categories, onSelectCategory }) => {
               </li>
               <li>
                 <button onClick={() => onSelectCategory('Pessoas')} className="text-gray-300 hover:text-white">Pessoas</button>
+              </li>
+            </>
+          )}
+          {isMovimentacoesRoute && (
+            <>
+              <li>
+                <button onClick={() => onSelectCategory('Entrada')} className="text-gray-300 hover:text-white">Entrada</button>
+              </li>
+              <li>
+                <button onClick={() => onSelectCategory('Saída')} className="text-gray-300 hover:text-white">Saída</button>
               </li>
             </>
           )}

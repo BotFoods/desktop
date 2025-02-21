@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useAuth } from '../services/AuthContext';
 
 const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { token } = useAuth();
 
   const handleFinalizar = () => {
     setIsModalOpen(true);
@@ -11,12 +13,35 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     setIsModalOpen(false);
   };
 
-  const handleOptionClick = (option) => {
+  const handleOptionClick = async (option) => {
     console.log(`Finalizar venda com ${option}`);
     // Log the order with the user's choice
     console.log('Order:', pdv.pdv.venda.produtos);
     console.log('Total:', pdv.pdv.venda.total_venda);
     console.log('Payment Method:', option);
+
+    // Store the cash register movement
+    const options = {
+      method: 'POST',
+      headers: {
+        authorization: token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        caixa_id: pdv.pdv.caixa.id_caixa,
+        descricao: `Venda finalizada com ${option}`,
+        tipo: 'entrada',
+        valor: pdv.pdv.venda.total_venda.toFixed(2)
+      })
+    };
+
+    try {
+      const response = await fetch('http://localhost:8080/api/movimentacoes/cadastrar', options);
+      const result = await response.json();
+      console.log(result);
+    } catch (error) {
+      console.error('Erro ao cadastrar movimentação:', error);
+    }
 
     // Clear the order
     setOrders([]);

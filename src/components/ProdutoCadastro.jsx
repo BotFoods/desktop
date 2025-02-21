@@ -3,7 +3,7 @@ import { FaEdit, FaTrash } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const ProdutoCadastro = () => {
-    const { token } = useAuth();
+    const { token, setToken } = useAuth();
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
     const [preco, setPreco] = useState('');
@@ -11,6 +11,7 @@ const ProdutoCadastro = () => {
     const [categorias, setCategorias] = useState([]);
     const [produtos, setProdutos] = useState({});
     const [message, setMessage] = useState('');
+    const [activeTab, setActiveTab] = useState('');
 
     useEffect(() => {
         const fetchCategorias = async () => {
@@ -24,6 +25,9 @@ const ProdutoCadastro = () => {
             try {
                 const response = await fetch('http://localhost:8080/api/categorias/', options);
                 const data = await response.json();
+                if (data.auth === false) {
+                    setToken('');
+                }
                 setCategorias(data.categorias);
             } catch (error) {
                 console.error('Error fetching categories:', error);
@@ -57,6 +61,12 @@ const ProdutoCadastro = () => {
     useEffect(() => {
         document.getElementById('nomeProduto').focus();
     }, []);
+
+    useEffect(() => {
+        if (categorias.length > 0) {
+            setActiveTab(categorias[0].categoria);
+        }
+    }, [categorias]);
 
     const handleAddProduto = async () => {
         if (nome.trim() && preco.trim() && idCategoria) {
@@ -135,6 +145,10 @@ const ProdutoCadastro = () => {
         }
     };
 
+    const handleTabClick = (category) => {
+        setActiveTab(category);
+    };
+
     return (
         <>
             <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md mx-auto">
@@ -188,37 +202,50 @@ const ProdutoCadastro = () => {
             <div className="w-full">
                 <hr className="my-8 border-gray-700" />
                 <h3 className="text-xl font-bold mb-4 text-center">Lista de Produtos</h3>
-                <table className="min-w-full bg-gray-800 text-white text-center">
-                    <thead>
-                        <tr>
-                            <th className="py-2 px-4 border-b border-gray-700">Nome</th>
-                            <th className="py-2 px-4 border-b border-gray-700">Descrição</th>
-                            <th className="py-2 px-4 border-b border-gray-700">Preço</th>
-                            <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
-                            <th className="py-2 px-4 border-b border-gray-700">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.keys(produtos).map((category) =>
-                            produtos[category].map((prod, index) => (
-                                <tr key={prod.id}>
-                                    <td className="py-2 px-4 border-b border-gray-700">{prod.name}</td>
-                                    <td className="py-2 px-4 border-b border-gray-700">{prod.descricao ? prod.descricao : '-'}</td>
-                                    <td className="py-2 px-4 border-b border-gray-700">R$ {prod.price}</td>
-                                    <td className="py-2 px-4 border-b border-gray-700">{category}</td>
-                                    <td className="py-2 px-4 border-b border-gray-700">
-                                        <button onClick={() => handleEditProduto(category, index)} className="mr-2">
-                                            <FaEdit />
-                                        </button>
-                                        <button onClick={() => handleDeleteProduto(category, prod.id)}>
-                                            <FaTrash />
-                                        </button>
-                                    </td>
+                <div className="flex justify-center mb-4">
+                    {categorias.map((cat) => (
+                        <button
+                            key={cat.id}
+                            onClick={() => handleTabClick(cat.categoria)}
+                            className={`px-4 py-2 mx-2 rounded ${activeTab === cat.categoria ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
+                        >
+                            {cat.categoria}
+                        </button>
+                    ))}
+                </div>
+                {categorias.map((cat) => (
+                    <div key={cat.id} className={`${activeTab === cat.categoria ? 'block' : 'hidden'}`}>
+                        <table className="min-w-full bg-gray-800 text-white text-center">
+                            <thead>
+                                <tr>
+                                    <th className="py-2 px-4 border-b border-gray-700">Nome</th>
+                                    <th className="py-2 px-4 border-b border-gray-700">Descrição</th>
+                                    <th className="py-2 px-4 border-b border-gray-700">Preço</th>
+                                    <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
+                                    <th className="py-2 px-4 border-b border-gray-700">Ações</th>
                                 </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                {produtos[cat.categoria] && produtos[cat.categoria].map((prod, index) => (
+                                    <tr key={prod.id}>
+                                        <td className="py-2 px-4 border-b border-gray-700">{prod.name}</td>
+                                        <td className="py-2 px-4 border-b border-gray-700">{prod.descricao ? prod.descricao : '-'}</td>
+                                        <td className="py-2 px-4 border-b border-gray-700">R$ {prod.price}</td>
+                                        <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
+                                        <td className="py-2 px-4 border-b border-gray-700">
+                                            <button onClick={() => handleEditProduto(cat.categoria, index)} className="mr-2">
+                                                <FaEdit />
+                                            </button>
+                                            <button onClick={() => handleDeleteProduto(cat.categoria, prod.id)}>
+                                                <FaTrash />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ))}
             </div>
         </>
     );

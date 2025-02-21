@@ -11,12 +11,6 @@ const Cadastros = () => {
     const [selectedCategory, setSelectedCategory] = useState('Produtos'); // Set default category to 'Produtos'
     const [products, setProducts] = useState({});
 
-    useEffect(() => {
-        fetch('https://jsonplaceholder.typicode.com/users')
-            .then(response => response.json())
-            .then(data => setUsers(data));
-    }, []);
-
     const categories = Object.keys(products);
 
     const renderContent = () => {

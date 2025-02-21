@@ -2,15 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
-import { verificarCaixaAberto, abrirCaixa } from '../services/caixaService';
 import templatePdv from '../templates/templatePDV.json';
 import PrepararButton from '../components/PrepararButton';
 import CancelarButton from '../components/CancelarButton';
 import FinalizarButton from '../components/FinalizarButton';
 import { FaTrash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 
 const Caixa = () => {
-  const { token } = useAuth();
+  const { token, setToken } = useAuth();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
@@ -20,6 +20,7 @@ const Caixa = () => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
   });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -30,6 +31,11 @@ const Caixa = () => {
           },
         });
         const data = await response.json();
+        if (data.auth === false) {
+          console.error('Token inválido');
+          setToken('');
+          navigate('/login');
+        }
         setProducts(data);
       } catch (error) {
         console.error('Erro ao buscar produtos:', error);
@@ -37,7 +43,7 @@ const Caixa = () => {
     };
 
     fetchProducts();
-  }, [token]);
+  }, [token, navigate, setToken]);
 
   useEffect(() => {
     const verificarCaixa = async () => {
@@ -65,6 +71,42 @@ const Caixa = () => {
   useEffect(() => {
     localStorage.setItem('pdv', JSON.stringify(pdv));
   }, [pdv]);
+
+  const verificarCaixaAberto = async (userId, token) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/caixas/usuario/${userId}`, {
+        headers: {
+          Authorization: `${token}`,
+        },
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Erro ao verificar caixa aberto:', error);
+      return { success: false, caixas: [] };
+    }
+  };
+
+  const abrirCaixa = async (userId, valorInicial, token) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/caixas/abertura', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `${token}`,
+        },
+        body: JSON.stringify({
+          id_usuario: userId,
+          valor_inicial: valorInicial,
+        }),
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Erro ao abrir caixa:', error);
+      return { success: false };
+    }
+  };
 
   const categories = Object.keys(products);
 
@@ -202,14 +244,15 @@ const Caixa = () => {
     const data = await abrirCaixa(userId, valorInicial, token);
     if (data.success) {
       const updatedPdv = { ...pdv };
-      updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
-      updatedPdv.pdv.caixa.abertura_caixa = data.caixas[0].data_abertura;
-      updatedPdv.pdv.caixa.operador.id = data.caixas[0].id;
-      updatedPdv.pdv.caixa.operador.nome = data.caixas[0].nome;
-      updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
+      updatedPdv.pdv.caixa.id_caixa = userId; // Use the userId as the caixa ID
+      updatedPdv.pdv.caixa.abertura_caixa = new Date().toISOString(); // Use the current date as the abertura_caixa
+      updatedPdv.pdv.caixa.operador.id = userId;
+      updatedPdv.pdv.caixa.operador.nome = 'Operador'; // Use a placeholder name
+      updatedPdv.pdv.caixa.operador.cargo = 'Cargo'; // Use a placeholder cargo
       updatedPdv.pdv.caixa.operador.pode_cancelar_itens = true;
       setPdv(updatedPdv);
       setCaixaAberto(true);
+      navigate(0); // Reload the page
     } else {
       console.error('Erro ao abrir caixa');
     }
@@ -272,8 +315,9 @@ const Caixa = () => {
                 type="number"
                 value={valorInicial}
                 onChange={(e) => setValorInicial(e.target.value)}
-                className="p-2 rounded bg-gray-800 text-black mb-4" // Alterado para texto preto
+                className="p-2 rounded bg-gray-800 text-white mb-4" // Alterado para texto preto
                 placeholder="Valor Inicial"
+                autoFocus
               />
               <button
                 onClick={handleAbrirCaixa}

@@ -23,12 +23,14 @@ const Header = ({ categories, onSelectCategory }) => {
               <Link to="/cadastros" className="text-gray-300 hover:text-white">Cadastros</Link>
             </li>
             <li>
+              <Link to="/movimentacoes" className="text-gray-300 hover:text-white">Movimentações</Link>
+            </li>
+            <li>
               <button onClick={logout} className="text-gray-300 hover:text-white">Logout</button>
             </li>
           </ul>
         </nav>
       </header>
-
       <CategoryMenu categories={categories} onSelectCategory={onSelectCategory} />
     </>
   );
