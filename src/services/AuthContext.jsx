@@ -10,7 +10,6 @@ export const AuthProvider = ({ children }) => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       setToken(storedToken);
-      // Fetch user data from API or localStorage
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         setUser(storedUser);
@@ -21,7 +20,6 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       localStorage.setItem('token', token);
-      // Optionally, fetch user data from API
     } else {
       localStorage.removeItem('token');
       localStorage.removeItem('user');

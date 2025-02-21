@@ -31,10 +31,9 @@ const Login = () => {
       const data = await response.json();
       if (data.auth) {
         setToken(data.token);
-        const user = usuario;
-        setUser(user);
-        localStorage.setItem('token', data.token); // Persist token in localStorage
-        localStorage.setItem('user', usuario); // Persist user in localStorage
+        setUser(usuario);
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', usuario);
         navigate('/caixa');
       } else {
         setError('Login falhou. Por favor, verifique suas credenciais.');

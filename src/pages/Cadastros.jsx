@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import CategoriaCadastro from '../components/CategoriaCadastro';
 import ProdutoCadastro from '../components/ProdutoCadastro';
-import PessoaCadastro from '../components/PessoaCadastro'; // Import PessoaCadastro
+import PessoaCadastro from '../components/PessoaCadastro';
 
 const Cadastros = () => {
     const { user } = useAuth();
     const [users, setUsers] = useState([]);
-    const [selectedCategory, setSelectedCategory] = useState('Produtos'); // Set default category to 'Produtos'
+    const [selectedCategory, setSelectedCategory] = useState('Produtos');
     const [products, setProducts] = useState({});
 
     const categories = Object.keys(products);
@@ -20,7 +20,7 @@ const Cadastros = () => {
             case 'Produtos':
                 return <ProdutoCadastro />;
             case 'Pessoas':
-                return <PessoaCadastro />; // Use PessoaCadastro component
+                return <PessoaCadastro />;
             default:
                 return <ProdutoCadastro />;
         }

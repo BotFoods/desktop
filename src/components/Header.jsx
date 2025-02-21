@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import CategoryMenu from './CategoryMenu';
 import { useAuth } from '../services/AuthContext';
@@ -13,9 +13,6 @@ const Header = ({ categories, onSelectCategory }) => {
             <Link to="/">BotFoods</Link>
           </div>
           <ul className="flex space-x-6">
-            {/* <li>
-              <Link to="/" className="text-gray-300 hover:text-white">Home</Link>
-            </li> */}
             <li>
               <Link to="/caixa" className="text-gray-300 hover:text-white">Caixa</Link>
             </li>

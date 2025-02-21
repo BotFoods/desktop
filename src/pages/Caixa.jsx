@@ -3,9 +3,6 @@ import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import templatePdv from '../templates/templatePDV.json';
-import PrepararButton from '../components/PrepararButton';
-import CancelarButton from '../components/CancelarButton';
-import FinalizarButton from '../components/FinalizarButton';
 import { FaTrash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,7 +44,7 @@ const Caixa = () => {
 
   useEffect(() => {
     const verificarCaixa = async () => {
-      const userId = 1; // Substitua pelo ID do usuário logado
+      const userId = 1;
       const data = await verificarCaixaAberto(userId, token);
       if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
         const updatedPdv = { ...pdv };
@@ -240,19 +237,19 @@ const Caixa = () => {
   };
 
   const handleAbrirCaixa = async () => {
-    const userId = 1; // Substitua pelo ID do usuário logado
+    const userId = 1;
     const data = await abrirCaixa(userId, valorInicial, token);
     if (data.success) {
       const updatedPdv = { ...pdv };
-      updatedPdv.pdv.caixa.id_caixa = userId; // Use the userId as the caixa ID
-      updatedPdv.pdv.caixa.abertura_caixa = new Date().toISOString(); // Use the current date as the abertura_caixa
+      updatedPdv.pdv.caixa.id_caixa = userId;
+      updatedPdv.pdv.caixa.abertura_caixa = new Date().toISOString();
       updatedPdv.pdv.caixa.operador.id = userId;
-      updatedPdv.pdv.caixa.operador.nome = 'Operador'; // Use a placeholder name
-      updatedPdv.pdv.caixa.operador.cargo = 'Cargo'; // Use a placeholder cargo
+      updatedPdv.pdv.caixa.operador.nome = 'Operador';
+      updatedPdv.pdv.caixa.operador.cargo = 'Cargo';
       updatedPdv.pdv.caixa.operador.pode_cancelar_itens = true;
       setPdv(updatedPdv);
       setCaixaAberto(true);
-      navigate(0); // Reload the page
+      navigate(0);
     } else {
       console.error('Erro ao abrir caixa');
     }
@@ -315,7 +312,7 @@ const Caixa = () => {
                 type="number"
                 value={valorInicial}
                 onChange={(e) => setValorInicial(e.target.value)}
-                className="p-2 rounded bg-gray-800 text-white mb-4" // Alterado para texto preto
+                className="p-2 rounded bg-gray-800 text-white mb-4"
                 placeholder="Valor Inicial"
                 autoFocus
               />
