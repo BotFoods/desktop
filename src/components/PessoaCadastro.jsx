@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const PessoaCadastro = () => {
@@ -11,6 +11,8 @@ const PessoaCadastro = () => {
     const [funcao, setFuncao] = useState('1');
     const [message, setMessage] = useState('');
     const [usuarios, setUsuarios] = useState([]);
+    const [funcoes, setFuncoes] = useState([]);
+    const loggedUser = JSON.parse(localStorage.getItem('user'));
 
     useEffect(() => {
         const fetchUsuarios = async () => {
@@ -23,18 +25,42 @@ const PessoaCadastro = () => {
 
             try {
                 const response = await fetch('http://localhost:8080/api/usuarios', options);
-                const data = await response.json();
-                if (data.success) {
-                    setUsuarios(data.usuarios);
+                if (response.ok) {
+                    const data = await response.json();
+                    setUsuarios(data.usuarios.filter(user => user.id !== loggedUser.id));
                 } else {
-                    console.error('Error fetching users:', data.message);
+                    console.error('Error fetching users:', response.statusText);
                 }
             } catch (error) {
                 console.error('Error fetching users:', error);
             }
         };
 
-        fetchUsuarios();
+        const fetchFuncoes = async () => {
+            const options = {
+                method: 'GET',
+                headers: {
+                    authorization: `${token}`
+                }
+            };
+
+            try {
+                const response = await fetch('http://localhost:8080/api/funcoes', options);
+                if (response.ok) {
+                    const data = await response.json();
+                    setFuncoes(data);
+                } else {
+                    console.error('Error fetching roles:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error fetching roles:', error);
+            }
+        };
+
+        if (token) {
+            fetchUsuarios();
+            fetchFuncoes();
+        }
     }, [token]);
 
     useEffect(() => {
@@ -65,7 +91,7 @@ const PessoaCadastro = () => {
             .then(response => {
                 setMessage(response.message);
                 if (response.success) {
-                    setUsuarios([...usuarios, { id: response.id, nome, email, usuario, senha, funcao_id: funcao, loja_id: '1' }]);
+                    setUsuarios([...usuarios, { id: response.id, nome, email, usuario, senha, funcao_id: funcao, loja_id: '1', ativo: 1 }]);
                     setNome('');
                     setEmail('');
                     setUsuario('');
@@ -78,22 +104,43 @@ const PessoaCadastro = () => {
 
     const handleDeleteUsuario = async (id) => {
         const options = {
-            method: 'DELETE',
+            method: 'GET',
             headers: {
                 authorization: `${token}`
             }
         };
 
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/${id}`, options);
+            const response = await fetch(`http://localhost:8080/api/usuarios/desativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
-                setUsuarios((prevUsuarios) => prevUsuarios.filter(user => user.id !== id));
+                setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 0 } : user));
             } else {
                 console.error('Error deleting user:', data.message);
             }
         } catch (error) {
             console.error('Error deleting user:', error);
+        }
+    };
+
+    const handleActiveUsuario = async (id) => {
+        const options = {
+            method: 'GET',
+            headers: {
+                authorization: `${token}`
+            }
+        };
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/usuarios/ativar/${id}`, options);
+            const data = await response.json();
+            if (data.success) {
+                setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 1 } : user));
+            } else {
+                console.error('Error activating user:', data.message);
+            }
+        } catch (error) {
+            console.error('Error activating user:', error);
         }
     };
 
@@ -156,8 +203,9 @@ const PessoaCadastro = () => {
                         onChange={(e) => setFuncao(e.target.value)}
                         className="w-full p-2 rounded bg-gray-700 text-white"
                     >
-                        <option value="1">Administrador</option>
-                        <option value="2">Operador</option>
+                        {funcoes.map((funcao) => (
+                            <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
+                        ))}
                     </select>
                     <button type="submit" className="w-full p-2 rounded bg-blue-600 text-white font-bold">
                         Cadastrar
@@ -167,7 +215,7 @@ const PessoaCadastro = () => {
             </div>
             <div className="w-full">
                 <hr className="my-8 border-gray-700" />
-                <h3 className="text-xl font-bold mb-4 text-center">Lista de Pessoas</h3>
+                <h3 className="text-xl font-bold mb-4 text-center">Lista de Pessoas Ativas</h3>
                 <table className="min-w-full bg-gray-800 text-white text-center">
                     <thead>
                         <tr>
@@ -179,18 +227,46 @@ const PessoaCadastro = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {usuarios.map((user, index) => (
+                        {usuarios.filter(user => user.ativo === 1).map((user, index) => (
                             <tr key={user.id}>
                                 <td className="py-2 px-4 border-b border-gray-700">{user.nome}</td>
                                 <td className="py-2 px-4 border-b border-gray-700">{user.email}</td>
                                 <td className="py-2 px-4 border-b border-gray-700">{user.usuario}</td>
-                                <td className="py-2 px-4 border-b border-gray-700">{user.funcao_id === 1 ? 'Administrador' : 'Operador'}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">{funcoes.find(f => f.id === user.funcao_id)?.descricao}</td>
                                 <td className="py-2 px-4 border-b border-gray-700">
                                     <button onClick={() => handleEditUsuario(index)} className="mr-2">
                                         <FaEdit />
                                     </button>
                                     <button onClick={() => handleDeleteUsuario(user.id)}>
                                         <FaTrash />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <hr className="my-8 border-gray-700" />
+                <h3 className="text-xl font-bold mb-4 text-center">Lista de Pessoas Inativas</h3>
+                <table className="min-w-full bg-gray-800 text-white text-center">
+                    <thead>
+                        <tr>
+                            <th className="py-2 px-4 border-b border-gray-700">Nome</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Email</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Usuário</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Função</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {usuarios.filter(user => user.ativo === 0).map((user, index) => (
+                            <tr key={user.id} className="text-gray-500 italic">
+                                <td className="py-2 px-4 border-b border-gray-700">{user.nome}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">{user.email}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">{user.usuario}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">{funcoes.find(f => f.id === user.funcao_id)?.descricao}</td>
+                                <td className="py-2 px-4 border-b text-gray-100 border-gray-700">
+                                    <button onClick={() => handleActiveUsuario(user.id)} className="mr-2">
+                                        <FaUndo />
                                     </button>
                                 </td>
                             </tr>

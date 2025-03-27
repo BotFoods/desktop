@@ -14,38 +14,53 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
   };
 
   const handleOptionClick = async (option) => {
-    console.log(`Finalizar venda com ${option}`);
-    // Log the order with the user's choice
-    console.log('Order:', pdv.pdv.venda.produtos);
-    console.log('Total:', pdv.pdv.venda.total_venda);
-    console.log('Payment Method:', option);
-
-    // Store the cash register movement
-    const options = {
-      method: 'POST',
-      headers: {
-        authorization: token,
-        'Content-Type': 'application/json'
+    const userId = JSON.parse(localStorage.getItem('user')).id;
+    const vendaData = {
+      usuarioId: userId,
+      caixaId: pdv.pdv.caixa.id_caixa,
+      cupom: {
+        dataEmissao: new Date().toISOString().slice(0, 10),
+        valorTotal: pdv.pdv.venda.total_venda,
       },
-      body: JSON.stringify({
-        caixa_id: pdv.pdv.caixa.id_caixa,
-        descricao: `Venda finalizada com ${option}`,
+      itens: pdv.pdv.venda.produtos.map((produto) => ({
+        produtoId: produto.id_produto,
+        quantidade: produto.quantidade,
+        precoUnitario: produto.preco_unitario,
+        valorTotal: produto.subtotal,
+      })),
+      pagamentos: [
+        {
+          metodoPagamentoId: option === 'Crédito' ? 1 : option === 'Débito' ? 2 : 3, // Example IDs
+          valorPago: pdv.pdv.venda.total_venda,
+          troco: 0.0,
+          dataPagamento: new Date().toISOString().slice(0, 10),
+        },
+      ],
+      movimentacaoCaixa: {
+        descricao: `Venda no PDV com ${option}`,
         tipo: 'entrada',
-        valor: pdv.pdv.venda.total_venda.toFixed(2)
-      })
+        valor: pdv.pdv.venda.total_venda,
+        data: new Date().toISOString().slice(0, 10),
+      },
     };
-
+    
     try {
-      const response = await fetch('http://localhost:8080/api/movimentacoes/cadastrar', options);
+      const response = await fetch('http://localhost:8080/api/vendas/registrar', {
+        method: 'POST',
+        headers: {
+          authorization: token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(vendaData),
+      });
       const result = await response.json();
       console.log(result);
     } catch (error) {
-      console.error('Erro ao cadastrar movimentação:', error);
+      console.error('Erro ao registrar venda:', error);
     }
 
     // Clear the order
     setOrders([]);
-    
     setPdv((prevPdv) => {
       const updatedPdv = { ...prevPdv };
       updatedPdv.pdv.venda.produtos = [];
@@ -56,7 +71,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     });
 
     // Refresh the page
-    window.location.reload();
+    // window.location.reload();
   };
 
   return (

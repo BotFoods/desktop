@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const CategoriaCadastro = () => {
@@ -60,24 +60,47 @@ const CategoriaCadastro = () => {
         }
     };
 
-    const handleDeleteCategoria = async (id) => {
+    const handleDesativarCategoria = async (id) => {
         const options = {
-            method: 'DELETE',
+            method: 'GET',
             headers: {
                 authorization: `${token}`
             }
         };
 
         try {
-            const response = await fetch(`http://localhost:8080/api/categorias/${id}`, options);
+            const response = await fetch(`http://localhost:8080/api/categorias/desativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
-                setCategorias((prevCategorias) => prevCategorias.filter(cat => cat.id !== id));
+                const newCategorias = categorias.map(cat => (cat.id === id ? { ...cat, ativo: 0 } : cat));
+                setCategorias(newCategorias);
             } else {
                 console.error('Error deleting category:', data.message);
             }
         } catch (error) {
             console.error('Error deleting category:', error);
+        }
+    };
+
+    const handleAtivarCategoria = async (id) => {
+        const options = {
+            method: 'GET',
+            headers: {
+                authorization: `${token}`
+            }
+        };
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/categorias/ativar/${id}`, options);
+            const data = await response.json();
+            if (data.success) {
+                const newCategorias = categorias.map(cat => (cat.id === id ? { ...cat, ativo: 1 } : cat));
+                setCategorias(newCategorias);
+            } else {
+                console.error('Error activating category:', data.message);
+            }
+        } catch (error) {
+            console.error('Error activating category:', error);
         }
     };
 
@@ -125,15 +148,38 @@ const CategoriaCadastro = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {categorias.map((cat, index) => (
+                        {categorias.filter(cat => cat.ativo).map((cat, index) => (
                             <tr key={cat.id}>
                                 <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
                                 <td className="py-2 px-4 border-b border-gray-700">
                                     <button onClick={() => handleEditCategoria(index)} className="mr-2">
                                         <FaEdit />
                                     </button>
-                                    <button onClick={() => handleDeleteCategoria(cat.id)}>
+                                    <button onClick={() => handleDesativarCategoria(cat.id)}>
                                         <FaTrash />
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+            <div className="w-full mt-8">
+                <h3 className="text-xl font-bold mb-4 text-center">Categorias Desativadas</h3>
+                <table className="min-w-full bg-gray-800 text-white text-center">
+                    <thead>
+                        <tr>
+                            <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
+                            <th className="py-2 px-4 border-b border-gray-700">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {categorias.filter(cat => !cat.ativo).map((cat) => (
+                            <tr key={cat.id}>
+                                <td className="py-2 px-4 border-b border-gray-700 text-gray-500 italic">{cat.categoria}</td>
+                                <td className="py-2 px-4 border-b border-gray-700">
+                                    <button onClick={() => handleAtivarCategoria(cat.id)}>
+                                        <FaUndo />
                                     </button>
                                 </td>
                             </tr>

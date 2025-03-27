@@ -18,11 +18,12 @@ const Caixa = () => {
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
   });
   const navigate = useNavigate();
+  const loja_id = JSON.parse(localStorage.getItem('user')).loja_id;
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await fetch('http://localhost:8080/api/produtos?loja_id=1', {
+        const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${loja_id}`, {
           headers: {
             Authorization: `${token}`,
           },
@@ -44,7 +45,7 @@ const Caixa = () => {
 
   useEffect(() => {
     const verificarCaixa = async () => {
-      const userId = 1;
+      const userId = JSON.parse(localStorage.getItem('user')).id;
       const data = await verificarCaixaAberto(userId, token);
       if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
         const updatedPdv = { ...pdv };
@@ -237,7 +238,7 @@ const Caixa = () => {
   };
 
   const handleAbrirCaixa = async () => {
-    const userId = 1;
+    const userId = JSON.parse(localStorage.getItem('user')).id;
     const data = await abrirCaixa(userId, valorInicial, token);
     if (data.success) {
       const updatedPdv = { ...pdv };
@@ -268,7 +269,7 @@ const Caixa = () => {
                   {selectedCategory && (
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                        {products[selectedCategory]?.map((product) => (
+                        {products[selectedCategory]?.filter(product => product.disponibilidade === 1).map((product) => (
                           <div
                             key={product.id}
                             className="bg-gray-800 p-4 rounded shadow cursor-pointer"

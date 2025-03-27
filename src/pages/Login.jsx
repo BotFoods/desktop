@@ -33,7 +33,7 @@ const Login = () => {
         setToken(data.token);
         setUser(usuario);
         localStorage.setItem('token', data.token);
-        localStorage.setItem('user', usuario);
+        localStorage.setItem('user', JSON.stringify(data.user_data));
         navigate('/caixa');
       } else {
         setError('Login falhou. Por favor, verifique suas credenciais.');
