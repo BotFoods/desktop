@@ -6,7 +6,21 @@ const CategoryMenu = ({ categories = [], onSelectCategory }) => {
   const location = useLocation();
   const isCadastrosRoute = location.pathname.startsWith('/cadastros');
   const isMovimentacoesRoute = location.pathname.startsWith('/movimentacoes');
+  const isMesasRoute = location.pathname.startsWith('/mesas');
+  const isPdvMesasRoute = location.pathname.startsWith('/pdv/mesa');
   const { user } = useAuth();
+
+  // Shared category rendering logic
+  const categoryButtons = categories.map((category) => (
+    <li key={category}>
+      <button
+        onClick={() => onSelectCategory(category)}
+        className="text-gray-300 hover:text-white"
+      >
+        {category}
+      </button>
+    </li>
+  ));
 
   return (
     <aside className="fixed top-0 left-0 w-64 bg-gray-800 shadow-md z-20 h-full dark:bg-gray-800 dark:text-white">
@@ -38,16 +52,17 @@ const CategoryMenu = ({ categories = [], onSelectCategory }) => {
               </li>
             </>
           )}
-          {categories.map((category) => (
-            <li key={category}>
-              <button
-                onClick={() => onSelectCategory(category)}
-                className="text-gray-300 hover:text-white"
-              >
-                {category}
-              </button>
-            </li>
-          ))}
+          {isMesasRoute && (
+            <>
+              <li>
+                <button onClick={() => onSelectCategory('Nova Mesa')} className="text-gray-300 hover:text-white">Nova Mesa</button>
+              </li>
+              <li>
+                <button onClick={() => onSelectCategory('Reservas')} className="text-gray-300 hover:text-white">Reservas</button>
+              </li>
+            </>
+          )}
+          {(isPdvMesasRoute || categories.length > 0) && categoryButtons}
         </ul>
         <div className="bottom-0 flex fixed pb-4 text-gray-400">
           <p>Conectado como: {user}</p>

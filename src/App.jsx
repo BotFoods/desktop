@@ -8,6 +8,8 @@ import Cadastros from './pages/Cadastros';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
+import Mesas from './pages/Mesas';
+import PdvMesa from './pages/PdvMesa';
 
 const App = () => {
   useEffect(() => {
@@ -25,6 +27,8 @@ const App = () => {
             <Route path="/cadastros" element={<ProtectedRoute element={<Cadastros />} />} />
             <Route path="/movimentacoes" element={<ProtectedRoute element={<MovimentacoesCaixa />} />} />
             <Route path="*" element={<Navigate to="/caixa" />} />
+            <Route path="/mesas" element={<ProtectedRoute element={<Mesas />} />} />
+            <Route path="/pdv/mesa/:mesaId" element={<ProtectedRoute element={<PdvMesa />} />} />
           </Routes>
         </div>
       </Router>

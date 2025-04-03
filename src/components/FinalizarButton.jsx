@@ -43,7 +43,9 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
         data: new Date().toISOString().slice(0, 10),
       },
     };
-    
+
+    console.log(vendaData);
+
     try {
       const response = await fetch('http://localhost:8080/api/vendas/registrar', {
         method: 'POST',
@@ -71,7 +73,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     });
 
     // Refresh the page
-    // window.location.reload();
+    window.location.reload();
   };
 
   return (
