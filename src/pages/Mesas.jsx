@@ -15,6 +15,7 @@ const Mesas = () => {
         headers: {
           authorization: token,
         },
+        credentials: 'include',
       };
 
       try {

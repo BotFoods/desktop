@@ -3,10 +3,14 @@ import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const CategoriaCadastro = () => {
-    const { token } = useAuth();
+    const { token, validateSession } = useAuth();
     const [categoria, setCategoria] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [message, setMessage] = useState('');
+
+    useEffect(() => {
+        validateSession();
+    }, []);
 
     useEffect(() => {
         const fetchCategorias = async () => {
@@ -14,7 +18,8 @@ const CategoriaCadastro = () => {
                 method: 'GET',
                 headers: {
                     authorization: `${token}`
-                }
+                },
+                credentials: 'include',
             };
 
             try {
@@ -41,6 +46,7 @@ const CategoriaCadastro = () => {
                     'Content-Type': 'application/json',
                     authorization: `${token}`
                 },
+                credentials: 'include',
                 body: JSON.stringify({ categoria, id_loja: 1 })
             };
 
@@ -65,7 +71,8 @@ const CategoriaCadastro = () => {
             method: 'GET',
             headers: {
                 authorization: `${token}`
-            }
+            },
+            credentials: 'include',
         };
 
         try {
@@ -87,7 +94,8 @@ const CategoriaCadastro = () => {
             method: 'GET',
             headers: {
                 authorization: `${token}`
-            }
+            },
+            credentials: 'include',
         };
 
         try {
@@ -148,19 +156,21 @@ const CategoriaCadastro = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {categorias.filter(cat => cat.ativo).map((cat, index) => (
-                            <tr key={cat.id}>
-                                <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
-                                <td className="py-2 px-4 border-b border-gray-700">
-                                    <button onClick={() => handleEditCategoria(index)} className="mr-2">
-                                        <FaEdit />
-                                    </button>
-                                    <button onClick={() => handleDesativarCategoria(cat.id)}>
-                                        <FaTrash />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {categorias.filter(cat => cat.ativo).map((cat, index) => {
+                            return (
+                                <tr key={cat.id || `active-${index}`}> {/* Use cat.id or fallback */}
+                                    <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">
+                                        <button onClick={() => handleEditCategoria(index)} className="mr-2">
+                                            <FaEdit />
+                                        </button>
+                                        <button onClick={() => handleDesativarCategoria(cat.id)}>
+                                            <FaTrash />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -174,16 +184,18 @@ const CategoriaCadastro = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {categorias.filter(cat => !cat.ativo).map((cat) => (
-                            <tr key={cat.id}>
-                                <td className="py-2 px-4 border-b border-gray-700 text-gray-500 italic">{cat.categoria}</td>
-                                <td className="py-2 px-4 border-b border-gray-700">
-                                    <button onClick={() => handleAtivarCategoria(cat.id)}>
-                                        <FaUndo />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
+                        {categorias.filter(cat => !cat.ativo).map((cat, index) => {
+                            return (
+                                <tr key={cat.id || `inactive-${index}`}> {/* Use cat.id or fallback */}
+                                    <td className="py-2 px-4 border-b border-gray-700 text-gray-500 italic">{cat.categoria}</td>
+                                    <td className="py-2 px-4 border-b border-gray-700">
+                                        <button onClick={() => handleAtivarCategoria(cat.id)}>
+                                            <FaUndo />
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

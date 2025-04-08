@@ -53,6 +53,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
           authorization: token,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(vendaData),
       });
       const result = await response.json();

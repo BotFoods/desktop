@@ -1,9 +1,12 @@
+// services/CaixaService.js
+
 export const verificarCaixaAberto = async (userId, token) => {
     try {
       const response = await fetch(`http://localhost:8080/api/caixas/usuario/${userId}`, {
         headers: {
           Authorization: `${token}`,
         },
+        credentials: 'include',
       });
       const data = await response.json();
       return data;
@@ -12,7 +15,7 @@ export const verificarCaixaAberto = async (userId, token) => {
       return { success: false, caixas: [] };
     }
   };
-
+  
   export const abrirCaixa = async (userId, valorInicial, token) => {
     try {
       const response = await fetch('http://localhost:8080/api/caixas/abertura', {
@@ -21,6 +24,7 @@ export const verificarCaixaAberto = async (userId, token) => {
           'Content-Type': 'application/json',
           Authorization: `${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           id_usuario: userId,
           valor_inicial: valorInicial,

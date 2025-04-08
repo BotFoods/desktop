@@ -3,7 +3,7 @@ import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const ProdutoCadastro = () => {
-    const { token, setToken } = useAuth();
+    const { token, setToken, validateSession } = useAuth();
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
     const [preco, setPreco] = useState('');
@@ -16,12 +16,17 @@ const ProdutoCadastro = () => {
     const [editProduct, setEditProduct] = useState(null);
 
     useEffect(() => {
+      validateSession();
+    }, []);
+
+    useEffect(() => {
         const fetchCategorias = async () => {
             const options = {
                 method: 'GET',
                 headers: {
                     authorization: `${token}`
-                }
+                },
+                credentials: 'include',
             };
 
             try {
@@ -45,7 +50,8 @@ const ProdutoCadastro = () => {
                 method: 'GET',
                 headers: {
                     authorization: `${token}`
-                }
+                },
+                credentials: 'include',
             };
 
             try {
@@ -78,6 +84,7 @@ const ProdutoCadastro = () => {
                     'Content-Type': 'application/json',
                     authorization: `${token}`
                 },
+                credentials: 'include',
                 body: JSON.stringify({ nome, descricao, preco, disponibilidade: 1, id_categoria: idCategoria })
             };
 
@@ -135,6 +142,7 @@ const ProdutoCadastro = () => {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
             },
+            credentials: 'include',
             body: JSON.stringify({ disponibilidade })
         };
 

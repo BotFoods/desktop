@@ -3,7 +3,7 @@ import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 
 const PessoaCadastro = () => {
-    const { token } = useAuth();
+    const { validateSession, token, user } = useAuth();
     const [nome, setNome] = useState('');
     const [email, setEmail] = useState('');
     const [usuario, setUsuario] = useState('');
@@ -12,24 +12,34 @@ const PessoaCadastro = () => {
     const [message, setMessage] = useState('');
     const [usuarios, setUsuarios] = useState([]);
     const [funcoes, setFuncoes] = useState([]);
-    const loggedUser = JSON.parse(localStorage.getItem('user'));
+    const loggedUser = user;
+
+    useEffect(() => {
+        validateSession();
+    }, []);
 
     useEffect(() => {
         const fetchUsuarios = async () => {
+            if (!token) {
+                console.error('Token is missing or invalid.');
+                return;
+            }
+
             const options = {
                 method: 'GET',
                 headers: {
                     authorization: `${token}`
-                }
+                },
+                credentials: 'include'
             };
 
             try {
                 const response = await fetch('http://localhost:8080/api/usuarios', options);
                 if (response.ok) {
                     const data = await response.json();
-                    setUsuarios(data.usuarios.filter(user => user.id !== loggedUser.id));
+                    setUsuarios(data.usuarios.filter(usuario => usuario.id !== loggedUser.id));
                 } else {
-                    console.error('Error fetching users:', response.statusText);
+                    console.error(`Error fetching users: ${response.status} ${response.statusText}`);
                 }
             } catch (error) {
                 console.error('Error fetching users:', error);
@@ -37,11 +47,17 @@ const PessoaCadastro = () => {
         };
 
         const fetchFuncoes = async () => {
+            if (!token) {
+                console.error('Token is missing or invalid.');
+                return;
+            }
+
             const options = {
                 method: 'GET',
                 headers: {
                     authorization: `${token}`
-                }
+                },
+                credentials: 'include'
             };
 
             try {
@@ -50,7 +66,7 @@ const PessoaCadastro = () => {
                     const data = await response.json();
                     setFuncoes(data);
                 } else {
-                    console.error('Error fetching roles:', response.statusText);
+                    console.error(`Error fetching roles: ${response.status} ${response.statusText}`);
                 }
             } catch (error) {
                 console.error('Error fetching roles:', error);
@@ -60,8 +76,10 @@ const PessoaCadastro = () => {
         if (token) {
             fetchUsuarios();
             fetchFuncoes();
+        } else {
+            console.error('Token is not available. Please log in again.');
         }
-    }, [token]);
+    }, [token, loggedUser]);
 
     useEffect(() => {
         document.getElementById('nome').focus();
@@ -76,6 +94,7 @@ const PessoaCadastro = () => {
                 'authorization': `${token}`,
                 'content-type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({
                 nome,
                 email,
@@ -107,7 +126,8 @@ const PessoaCadastro = () => {
             method: 'GET',
             headers: {
                 authorization: `${token}`
-            }
+            },
+            credentials: 'include'
         };
 
         try {
@@ -128,7 +148,8 @@ const PessoaCadastro = () => {
             method: 'GET',
             headers: {
                 authorization: `${token}`
-            }
+            },
+            credentials: 'include'
         };
 
         try {

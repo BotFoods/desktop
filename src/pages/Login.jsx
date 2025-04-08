@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,40 +7,30 @@ const Login = () => {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
-  const { token, setToken, setUser } = useAuth();
+  const { setUser } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (token) {
-      navigate('/caixa');
-    }
-  }, [token, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const options = {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ loja, usuario, senha })
-    };
-
     try {
-      const response = await fetch('http://localhost:8080/api/login', options);
-      const data = await response.json();
-      if (data.auth) {
-        setToken(data.token);
-        setUser(usuario);
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user_data));
+      const response = await fetch('http://localhost:8080/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ loja, usuario, senha }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        sessionStorage.setItem('token', data.token); // Armazena o token no sessionStorage
+        setUser(data.user_data); // Atualiza os dados do usuário no contexto
         navigate('/caixa');
       } else {
         setError('Login falhou. Por favor, verifique suas credenciais.');
       }
     } catch (err) {
       console.error(err);
-      setError('An error occurred. Please try again.');
+      setError('Ocorreu um erro. Tente novamente.');
     }
   };
 

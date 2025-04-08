@@ -4,10 +4,11 @@ import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import templatePdv from '../templates/templatePDV.json';
 import { FaTrash } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { verificarCaixaAberto, abrirCaixa } from '../services/CaixaService';
 
 const Caixa = () => {
-  const { token, setToken } = useAuth();
+  const { validateSession, token, setToken, user } = useAuth(); 
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
@@ -17,36 +18,41 @@ const Caixa = () => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
   });
+  
   const navigate = useNavigate();
-  const loja_id = JSON.parse(localStorage.getItem('user')).loja_id;
+  useEffect(() => {
+    validateSession();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      try {
-        const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${loja_id}`, {
-          headers: {
-            Authorization: `${token}`,
-          },
-        });
-        const data = await response.json();
-        if (data.auth === false) {
-          console.error('Token inválido');
-          setToken('');
-          navigate('/login');
+      if (!user || !token) return;
+        try {
+          const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${user.loja_id}`, {
+            headers: {
+              Authorization: `${token}`,
+            },
+            credentials: 'include',
+          });
+          const data = await response.json();
+          if (data.auth === false) {
+            console.error('Token inválido');
+            setToken(null);
+            navigate('/login');
+          }
+          setProducts(data);
+        } catch (error) {
+          console.error('Erro ao buscar produtos:', error);
         }
-        setProducts(data);
-      } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
-      }
     };
 
     fetchProducts();
-  }, [token, navigate, setToken]);
+  }, [token, navigate, setToken, user]);
 
   useEffect(() => {
     const verificarCaixa = async () => {
-      const userId = JSON.parse(localStorage.getItem('user')).id;
-      const data = await verificarCaixaAberto(userId, token);
+      if (!user || !token) return;
+      const data = await verificarCaixaAberto(user.id, token);
       if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
         const updatedPdv = { ...pdv };
         updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
@@ -64,47 +70,11 @@ const Caixa = () => {
     };
 
     verificarCaixa();
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     localStorage.setItem('pdv', JSON.stringify(pdv));
   }, [pdv]);
-
-  const verificarCaixaAberto = async (userId, token) => {
-    try {
-      const response = await fetch(`http://localhost:8080/api/caixas/usuario/${userId}`, {
-        headers: {
-          Authorization: `${token}`,
-        },
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Erro ao verificar caixa aberto:', error);
-      return { success: false, caixas: [] };
-    }
-  };
-
-  const abrirCaixa = async (userId, valorInicial, token) => {
-    try {
-      const response = await fetch('http://localhost:8080/api/caixas/abertura', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `${token}`,
-        },
-        body: JSON.stringify({
-          id_usuario: userId,
-          valor_inicial: valorInicial,
-        }),
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Erro ao abrir caixa:', error);
-      return { success: false };
-    }
-  };
 
   const categories = Object.keys(products);
 
@@ -238,13 +208,12 @@ const Caixa = () => {
   };
 
   const handleAbrirCaixa = async () => {
-    const userId = JSON.parse(localStorage.getItem('user')).id;
-    const data = await abrirCaixa(userId, valorInicial, token);
+    const data = await abrirCaixa(user.id, valorInicial, token);
     if (data.success) {
       const updatedPdv = { ...pdv };
-      updatedPdv.pdv.caixa.id_caixa = userId;
+      updatedPdv.pdv.caixa.id_caixa = user.id;
       updatedPdv.pdv.caixa.abertura_caixa = new Date().toISOString();
-      updatedPdv.pdv.caixa.operador.id = userId;
+      updatedPdv.pdv.caixa.operador.id = user.id;
       updatedPdv.pdv.caixa.operador.nome = 'Operador';
       updatedPdv.pdv.caixa.operador.cargo = 'Cargo';
       updatedPdv.pdv.caixa.operador.pode_cancelar_itens = true;

@@ -15,6 +15,7 @@ const FecharCaixaButton = ({ pdv }) => {
                 authorization: token,
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({ valor_final: closementValue })
         };
 

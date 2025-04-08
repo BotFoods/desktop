@@ -59,6 +59,7 @@ const PdvMesa = () => {
           headers: {
             Authorization: `${token}`,
           },
+          credentials: 'include',
         });
         const data = await response.json();
         if (data) {
@@ -76,6 +77,7 @@ const PdvMesa = () => {
           headers: {
             Authorization: `${token}`,
           },
+          credentials: 'include',
         });
         const data = await response.json();
         if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {

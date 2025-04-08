@@ -65,7 +65,7 @@ const CategoryMenu = ({ categories = [], onSelectCategory }) => {
           {(isPdvMesasRoute || categories.length > 0) && categoryButtons}
         </ul>
         <div className="bottom-0 flex fixed pb-4 text-gray-400">
-          <p>Conectado como: {user}</p>
+          <p>Conectado como: { user && user.nome }</p>
         </div>
       </nav>
     </aside>
