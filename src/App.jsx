@@ -10,7 +10,9 @@ import PrivateRoute from './routes/PrivateRoute';
 import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
 import Mesas from './pages/Mesas';
 import PdvMesa from './pages/PdvMesa';
-import Teste from './pages/Teste';
+import Cardapio from './pages/Cardapio';
+import Delivery from './pages/Delivery';
+import Configuracoes from './pages/Configuracoes';
 
 const AppRoutes = () => {
   const navigate = useNavigate();
@@ -57,9 +59,21 @@ const AppRoutes = () => {
             }
           />
           <Route
-            path="/teste"
+            path="/cardapio/:id/:wid"
             element={
-                <Teste />
+                <Cardapio />
+            }
+          />
+          <Route
+            path="/delivery"
+            element={
+                <Delivery />
+            }
+          />
+          <Route
+            path="/configuracoes"
+            element={
+                <Configuracoes />
             }
           />
         </Routes>

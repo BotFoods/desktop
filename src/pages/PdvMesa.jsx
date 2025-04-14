@@ -1,61 +1,66 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, redirect } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import { FaTrash } from 'react-icons/fa';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
+import { verificarCaixaAberto } from '../services/CaixaService';
 
 const PdvMesa = () => {
-  const { token } = useAuth();
+  const { validateSession, token, user } = useAuth();
   const { mesaId } = useParams();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
+  const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
     return pdv_salvo
       ? JSON.parse(pdv_salvo)
       : {
-          pdv: {
-            caixa: {
-              id_caixa: null,
-              abertura_caixa: null,
-              operador: {
-                id: null,
-                nome: '',
-                cargo: '',
-                pode_cancelar_itens: false,
-              },
-            },
-            venda: {
-              id_venda: '',
-              tipo: '',
-              status_venda: '',
-              dados_cliente: {
-                nome: '',
-                cpf: '',
-                endereco: null,
-              },
-              produtos: [],
-              total_venda: 0,
-              observacoes: '',
-              mesa: mesaId,
-            },
-            totais: {
-              quantidade_itens: 0,
-              valor_total: 0,
+        pdv: {
+          caixa: {
+            id_caixa: null,
+            abertura_caixa: null,
+            operador: {
+              id: null,
+              nome: '',
+              cargo: '',
+              pode_cancelar_itens: false,
             },
           },
-        };
+          venda: {
+            id_venda: '',
+            tipo: '',
+            status_venda: '',
+            dados_cliente: {
+              nome: '',
+              cpf: '',
+              endereco: null,
+            },
+            produtos: [],
+            total_venda: 0,
+            observacoes: '',
+            mesa: mesaId,
+          },
+          totais: {
+            quantidade_itens: 0,
+            valor_total: 0,
+          },
+        },
+      };
   });
-  const navigate = useNavigate();
-  const loja_id = JSON.parse(localStorage.getItem('user')).loja_id;
+
+  useEffect(() => {
+    validateSession();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
+      if (!user || !token) return;
       try {
-        const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${loja_id}`, {
+        const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${user.loja_id}`, {
           headers: {
             Authorization: `${token}`,
           },
@@ -71,15 +76,9 @@ const PdvMesa = () => {
     };
 
     const verificarCaixa = async () => {
-      const userId = JSON.parse(localStorage.getItem('user')).id;
+      if (!user || !token) return;
       try {
-        const response = await fetch(`http://localhost:8080/api/caixas/usuario/${userId}`, {
-          headers: {
-            Authorization: `${token}`,
-          },
-          credentials: 'include',
-        });
-        const data = await response.json();
+        const data = await verificarCaixaAberto(user.id, token);
         if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
           const updatedPdv = { ...pdv };
           updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
@@ -91,6 +90,7 @@ const PdvMesa = () => {
           setPdv(updatedPdv);
         } else {
           console.warn('Nenhum caixa aberto encontrado.');
+          navigate('/caixa');
         }
       } catch (error) {
         console.error('Erro ao verificar caixa aberto:', error);
@@ -100,13 +100,13 @@ const PdvMesa = () => {
     fetchProducts();
     verificarCaixa();
     loadOrders();
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     localStorage.setItem(`pdv_mesa_${mesaId}`, JSON.stringify(pdv));
   }, [pdv, mesaId]);
 
-  
+
 
   const addToOrder = (product) => {
     let prevOrders = [...orders];

@@ -3,7 +3,7 @@ import { useAuth } from '../services/AuthContext';
 
 const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { token } = useAuth();
+  const { user, token } = useAuth();
 
   const handleFinalizar = () => {
     setIsModalOpen(true);
@@ -14,7 +14,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
   };
 
   const handleOptionClick = async (option) => {
-    const userId = JSON.parse(localStorage.getItem('user')).id;
+    const userId = user.id;
     const vendaData = {
       usuarioId: userId,
       caixaId: pdv.pdv.caixa.id_caixa,
@@ -42,6 +42,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
         valor: pdv.pdv.venda.total_venda,
         data: new Date().toISOString().slice(0, 10),
       },
+      origem_venda: 1, // 1 for PDV
     };
 
     console.log(vendaData);

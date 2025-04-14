@@ -2,12 +2,13 @@ import React from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 
-const CategoryMenu = ({ categories = [], onSelectCategory }) => {
+const CategoryMenu = ({ categories = [], onSelectCategory = () => {} }) => {
   const location = useLocation();
   const isCadastrosRoute = location.pathname.startsWith('/cadastros');
   const isMovimentacoesRoute = location.pathname.startsWith('/movimentacoes');
   const isMesasRoute = location.pathname.startsWith('/mesas');
   const isPdvMesasRoute = location.pathname.startsWith('/pdv/mesa');
+  const isConfiguracoesRoute = location.pathname.startsWith('/configuracoes');
   const { user } = useAuth();
 
   // Shared category rendering logic
@@ -59,6 +60,16 @@ const CategoryMenu = ({ categories = [], onSelectCategory }) => {
               </li>
               <li>
                 <button onClick={() => onSelectCategory('Reservas')} className="text-gray-300 hover:text-white">Reservas</button>
+              </li>
+            </>
+          )}
+          {isConfiguracoesRoute && (
+            <>
+              <li>
+                <button onClick={() => onSelectCategory('WhatsApp')} className="text-gray-300 hover:text-white">WhatsApp</button>
+              </li>
+              <li>
+                <button onClick={() => onSelectCategory('Email')} className="text-gray-300 hover:text-white">Email</button>
               </li>
             </>
           )}

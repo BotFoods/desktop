@@ -26,6 +26,12 @@ const Header = ({ categories, onSelectCategory }) => {
               <Link to="/movimentacoes" className="text-gray-300 hover:text-white">Movimentações</Link>
             </li>
             <li>
+              <Link to="/delivery" className="text-gray-300 hover:text-white">Delivery</Link>
+            </li>
+            <li>
+              <Link to="/configuracoes" className="text-gray-300 hover:text-white">Configurações</Link>
+            </li>
+            <li>
               <button onClick={logout} className="text-gray-300 hover:text-white">Logout</button>
             </li>
           </ul>
