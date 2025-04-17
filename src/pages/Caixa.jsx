@@ -298,7 +298,7 @@ const Caixa = () => {
       </div>
       {caixaAberto && (
         <PdvActions
-          pdv={pdv}
+          pdv={pdv} // Pass the pdv state here
           setPdv={setPdv}
           setOrders={setOrders}
         />
