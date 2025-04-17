@@ -2,46 +2,57 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
-import { verificarCaixaAberto, abrirCaixa } from '../services/caixaService';
 import templatePdv from '../templates/templatePDV.json';
+import { FaTrash } from 'react-icons/fa';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { verificarCaixaAberto, abrirCaixa } from '../services/CaixaService';
 
 const Caixa = () => {
-  const { token } = useAuth();
+  const { validateSession, token, setToken, user } = useAuth(); 
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
   const [caixaAberto, setCaixaAberto] = useState(false);
   const [valorInicial, setValorInicial] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [managerPassword, setManagerPassword] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
   });
+  
+  const navigate = useNavigate();
+  useEffect(() => {
+    validateSession();
+  }, []);
 
   useEffect(() => {
     const fetchProducts = async () => {
-      try {
-        const response = await fetch('http://localhost:8080/api/produtos?loja_id=1', {
-          headers: {
-            Authorization: `${token}`,
-          },
-        });
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
-      }
+      if (!user || !token) return;
+        try {
+          const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${user.loja_id}`, {
+            headers: {
+              Authorization: `${token}`,
+            },
+            credentials: 'include',
+          });
+          const data = await response.json();
+          if (data.auth === false) {
+            console.error('Token inválido');
+            setToken(null);
+            navigate('/login');
+          }
+          setProducts(data);
+        } catch (error) {
+          console.error('Erro ao buscar produtos:', error);
+        }
     };
 
     fetchProducts();
-  }, [token]);
+  }, [token, navigate, setToken, user]);
 
   useEffect(() => {
     const verificarCaixa = async () => {
-      const userId = 1; // Substitua pelo ID do usuário logado
-      const data = await verificarCaixaAberto(userId, token);
+      if (!user || !token) return;
+      const data = await verificarCaixaAberto(user.id, token);
       if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
         const updatedPdv = { ...pdv };
         updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
@@ -49,7 +60,7 @@ const Caixa = () => {
         updatedPdv.pdv.caixa.operador.id = data.caixas[0].id;
         updatedPdv.pdv.caixa.operador.nome = data.caixas[0].nome;
         updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
-        updatedPdv.pdv.caixa.operador.pode_cancelar_itens = true;
+        updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
         setPdv(updatedPdv);
         loadOrders();
         setCaixaAberto(true);
@@ -59,7 +70,7 @@ const Caixa = () => {
     };
 
     verificarCaixa();
-  }, [token]);
+  }, [token, user]);
 
   useEffect(() => {
     localStorage.setItem('pdv', JSON.stringify(pdv));
@@ -82,20 +93,19 @@ const Caixa = () => {
     setOrders(updatedOrders);
   };
 
-
   const addToOrder = (product) => {
     let prevOrders = [...orders];
-    const existingProductIndexOrder = prevOrders.findIndex((order) => order.id === product.id);
+    const existingProductIndexOrder = prevOrders.findIndex(
+      (order) => order.id === product.id && !order.status.impresso
+    );
 
     if (existingProductIndexOrder !== -1) {
-      // Produto já existe na lista, aumentar a quantidade
       const updatedOrders = [...prevOrders];
       const existingProductOrder = updatedOrders[existingProductIndexOrder];
       existingProductOrder.quantity = (existingProductOrder.quantity || 1) + 1;
       existingProductOrder.subtotal = existingProductOrder.quantity * parseFloat(existingProductOrder.price);
       prevOrders = updatedOrders;
     } else {
-      // Produto não existe na lista, adicionar novo produto
       prevOrders = [
         ...prevOrders,
         {
@@ -116,16 +126,14 @@ const Caixa = () => {
       updatedPdv.pdv.venda.produtos = [];
     }
     const existingProductIndex = updatedPdv.pdv.venda.produtos.findIndex(
-      (order) => order.id_produto === product.id
+      (order) => order.id_produto === product.id && !order.status.impresso
     );
 
     if (existingProductIndex !== -1) {
-      // Produto já existe na lista, aumentar a quantidade
       const existingProduct = updatedPdv.pdv.venda.produtos[existingProductIndex];
       existingProduct.quantidade += 1;
       existingProduct.subtotal = existingProduct.quantidade * parseFloat(existingProduct.preco_unitario);
     } else {
-      // Produto não existe na lista, adicionar novo produto
       updatedPdv.pdv.venda.produtos.push({
         id_produto: product.id,
         nome: product.name,
@@ -152,108 +160,85 @@ const Caixa = () => {
     setPdv(updatedPdv);
   };
 
+  const removeFromOrder = (productId) => {
+    let prevOrders = [...orders];
+    const existingProductIndexOrder = prevOrders.findIndex(
+      (order) => order.id === productId && !order.status.impresso
+    );
+
+    if (existingProductIndexOrder !== -1) {
+      const updatedOrders = [...prevOrders];
+      const existingProductOrder = updatedOrders[existingProductIndexOrder];
+      if (existingProductOrder.quantity > 1) {
+        existingProductOrder.quantity -= 1;
+        existingProductOrder.subtotal = existingProductOrder.quantity * parseFloat(existingProductOrder.price);
+      } else {
+        updatedOrders.splice(existingProductIndexOrder, 1);
+      }
+      prevOrders = updatedOrders;
+    }
+    setOrders(prevOrders);
+
+    const updatedPdv = { ...pdv };
+    const existingProductIndex = updatedPdv.pdv.venda.produtos.findIndex(
+      (order) => order.id_produto === productId && !order.status.impresso
+    );
+
+    if (existingProductIndex !== -1) {
+      const existingProduct = updatedPdv.pdv.venda.produtos[existingProductIndex];
+      if (existingProduct.quantidade > 1) {
+        existingProduct.quantidade -= 1;
+        existingProduct.subtotal = existingProduct.quantidade * parseFloat(existingProduct.preco_unitario);
+      } else {
+        updatedPdv.pdv.venda.produtos.splice(existingProductIndex, 1);
+      }
+    }
+
+    updatedPdv.pdv.venda.total_venda = updatedPdv.pdv.venda.produtos.reduce(
+      (total, item) => total + item.subtotal,
+      0
+    );
+    updatedPdv.pdv.totais.quantidade_itens = updatedPdv.pdv.venda.produtos.reduce(
+      (total, item) => total + item.quantidade,
+      0
+    );
+    updatedPdv.pdv.totais.valor_total = updatedPdv.pdv.venda.total_venda;
+
+    setPdv(updatedPdv);
+  };
+
   const handleAbrirCaixa = async () => {
-    const userId = 1; // Substitua pelo ID do usuário logado
-    const data = await abrirCaixa(userId, valorInicial, token);
+    const data = await abrirCaixa(user.id, valorInicial, token);
     if (data.success) {
       const updatedPdv = { ...pdv };
-      updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
-      updatedPdv.pdv.caixa.abertura_caixa = data.caixas[0].data_abertura;
-      updatedPdv.pdv.caixa.operador.id = data.caixas[0].id;
-      updatedPdv.pdv.caixa.operador.nome = data.caixas[0].nome;
-      updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
+      updatedPdv.pdv.caixa.id_caixa = user.id;
+      updatedPdv.pdv.caixa.abertura_caixa = new Date().toISOString();
+      updatedPdv.pdv.caixa.operador.id = user.id;
+      updatedPdv.pdv.caixa.operador.nome = 'Operador';
+      updatedPdv.pdv.caixa.operador.cargo = 'Cargo';
       updatedPdv.pdv.caixa.operador.pode_cancelar_itens = true;
       setPdv(updatedPdv);
       setCaixaAberto(true);
+      navigate(0);
     } else {
       console.error('Erro ao abrir caixa');
     }
-  };
-
-  const handleFinalizar = () => {
-    console.log('Finalizar venda');
-    // Lógica para finalizar a venda
-  };
-
-  const handleCancelar = () => {
-    if (pdv.pdv.caixa.operador.pode_cancelar_itens) {
-      setOrders([]);
-      setPdv((prevPdv) => {
-        const updatedPdv = { ...prevPdv };
-        updatedPdv.pdv.venda.produtos = [];
-        updatedPdv.pdv.venda.total_venda = 0;
-        updatedPdv.pdv.totais.quantidade_itens = 0;
-        updatedPdv.pdv.totais.valor_total = 0;
-        return updatedPdv;
-      });
-      console.log('Venda cancelada');
-    } else {
-      // Aqui vai um modal do tailwind com a mensagem de que o usuário não tem permissão para cancelar a venda.
-      setIsModalOpen(true);
-
-    }
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setManagerPassword('');
-    setErrorMessage('');
-  };
-
-  const handlePasswordChange = (e) => {
-    setManagerPassword(e.target.value);
-  };
-
-  const handlePasswordSubmit = () => {
-    if (managerPassword === '1234') {
-      setOrders([]);
-      setPdv((prevPdv) => {
-        const updatedPdv = { ...prevPdv };
-        updatedPdv.pdv.venda.produtos = [];
-        updatedPdv.pdv.venda.total_venda = 0;
-        updatedPdv.pdv.totais.quantidade_itens = 0;
-        updatedPdv.pdv.totais.valor_total = 0;
-        return updatedPdv;
-      });
-      console.log('Venda cancelada pelo gerente');
-      closeModal();
-    } else {
-      setErrorMessage('Senha incorreta. Tente novamente.');
-    }
-  };
-
-  const handlePreparar = () => {
-    setPdv((prevPdv) => {
-      const updatedPdv = { ...prevPdv };
-      updatedPdv.pdv.venda.produtos = updatedPdv.pdv.venda.produtos.map((produto) => ({
-        ...produto,
-        status: {
-          ...produto.status,
-          impresso: true,
-        },
-      }));
-      return updatedPdv;
-    });
-    console.log('Venda preparada');
-    window.location.reload();
   };
 
   return (
     <div className="bg-gray-900 text-white flex flex-col">
       <Header categories={categories} onSelectCategory={setSelectedCategory} />
       <div className="flex-grow flex">
-
         <div className="ml-64 pt-16 p-4 flex-grow flex">
           {caixaAberto ? (
             <>
               <div className="w-3/4 pr-4">
                 <h1 className="text-3xl text-center font-bold">Caixa</h1>
-
                 <div className="mt-8">
                   {selectedCategory && (
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
-                        {products[selectedCategory]?.map((product) => (
+                        {products[selectedCategory]?.filter(product => product.disponibilidade === 1).map((product) => (
                           <div
                             key={product.id}
                             className="bg-gray-800 p-4 rounded shadow cursor-pointer"
@@ -274,9 +259,13 @@ const Caixa = () => {
                   {orders.map((order, index) => (
                     <li
                       key={index}
-                      className={`border-b border-gray-300 py-2 ${order.status.impresso ? 'text-gray-600 italic' : ''} `}
+                      className={`border-b border-gray-300 py-2 ${order.status.impresso ? 'text-gray-600 italic' : ''} flex justify-between items-center`}
                     >
-                      {order.quantity}x - {order.name} - R$ {order.price} - R$ {order.subtotal.toFixed(2)}
+                      <span>{order.quantity}x - {order.name} - R$ {order.price} - R$ {order.subtotal.toFixed(2)}</span>
+                      <FaTrash
+                        className="text-red-500 cursor-pointer"
+                        onClick={() => removeFromOrder(order.id)}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -295,6 +284,7 @@ const Caixa = () => {
                 onChange={(e) => setValorInicial(e.target.value)}
                 className="p-2 rounded bg-gray-800 text-white mb-4"
                 placeholder="Valor Inicial"
+                autoFocus
               />
               <button
                 onClick={handleAbrirCaixa}
@@ -308,41 +298,11 @@ const Caixa = () => {
       </div>
       {caixaAberto && (
         <PdvActions
-          onFinalizar={handleFinalizar}
-          onCancelar={handleCancelar}
-          onPreparar={handlePreparar}
+          pdv={pdv} // Pass the pdv state here
+          setPdv={setPdv}
+          setOrders={setOrders}
         />
       )}
-      {isModalOpen && (
-      <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
-        <div className="bg-black bg-opacity-50 absolute inset-0"></div>
-        <div className="bg-white p-6 rounded shadow-lg z-10">
-          <h2 className="text-xl font-bold mb-4">Permissão Negada</h2>
-          <p>Você não tem permissão para cancelar a venda.</p>
-          <input
-            type="password"
-            value={managerPassword}
-            onChange={handlePasswordChange}
-            className="mt-4 p-2 border rounded w-full"
-            placeholder="Senha do gerente"
-            autoFocus
-          />
-          {errorMessage && <p className="text-red-500 mt-2">{errorMessage}</p>}
-          <button
-            onClick={handlePasswordSubmit}
-            className="mt-4 bg-blue-500 text-white px-5 py-2 m-1 rounded"
-          >
-            Confirmar
-          </button>
-          <button
-            onClick={closeModal}
-            className="mt-4 bg-red-500 text-white px-5 py-2 m-1 rounded"
-          >
-            Fechar
-          </button>
-        </div>
-      </div>
-    )}
     </div>
   );
 };
