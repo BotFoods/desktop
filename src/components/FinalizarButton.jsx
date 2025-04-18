@@ -60,7 +60,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
       const result = await response.json();
       console.log('Resultado Registro Venda:', result);
 
-      if (response.ok && result.success) {
+      if (response.ok) {
         // Construct receipt text
         const now = new Date();
         let receiptText = `        Comprovante de Venda\n`;
