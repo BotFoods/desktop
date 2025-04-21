@@ -54,7 +54,7 @@ jobs:
         with:
           # Pasta que contém os arquivos estáticos após o 'npm run build'
           # Verifique se seu projeto usa 'build' ou 'dist'
-          path: "./build"
+          path: "./dist"
 
   # Job de deploy
   deploy:
