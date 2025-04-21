@@ -44,6 +44,7 @@ jobs:
           # Define variáveis de ambiente necessárias para o build de DEV
           # Pegue o valor de um Secret do GitHub chamado REACT_APP_API_URL
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL_DEV }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PROD }}
           # Adicione outras variáveis de ambiente se necessário
 
       - name: Setup Pages

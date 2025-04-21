@@ -7,6 +7,7 @@ const FecharCaixaButton = ({ pdv }) => {
     const [closementValue, setClosementValue] = useState('');
     const { token } = useAuth();
     const navigate = useNavigate();
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     const handleCloseCaixa = () => {
         const options = {
@@ -19,7 +20,7 @@ const FecharCaixaButton = ({ pdv }) => {
             body: JSON.stringify({ valor_final: closementValue })
         };
 
-        fetch(`http://localhost:8080/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}`, options)
+        fetch(`${API_BASE_URL}/caixas/fechamento/${pdv.pdv.caixa.id_caixa}`, options)
             .then(response => response.json())
             .then(response => {
                 console.log(response);

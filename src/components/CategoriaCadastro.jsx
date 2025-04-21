@@ -7,6 +7,7 @@ const CategoriaCadastro = () => {
     const [categoria, setCategoria] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [message, setMessage] = useState('');
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
         validateSession();
@@ -23,7 +24,7 @@ const CategoriaCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/categorias/', options);
+                const response = await fetch(`${API_BASE_URL}/categorias/`, options);
                 const data = await response.json();
                 setCategorias(data.categorias);
             } catch (error) {
