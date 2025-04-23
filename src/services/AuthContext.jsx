@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/validate`, {
+      const response = await fetch(`${API_BASE_URL}/api/validate`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
