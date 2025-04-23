@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "web": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173\"",
-    "build": "vite build && electron-builder --publish never",
+    "build": "vite build",
     "start": "electron .",
     "lint": "eslint .",
     "preview": "vite preview"
