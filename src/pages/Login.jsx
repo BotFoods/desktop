@@ -7,7 +7,7 @@ const Login = () => {
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
-  const { setUser } = useAuth();
+  const { setUser, setToken } = useAuth();
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -25,6 +25,7 @@ const Login = () => {
         const data = await response.json();
         sessionStorage.setItem('token', data.token); // Armazena o token no sessionStorage
         setUser(data.user_data); // Atualiza os dados do usuário no contexto
+        setToken(data.token); // Atualiza o token no contexto
         navigate('/caixa');
       } else {
         setError('Login falhou. Por favor, verifique suas credenciais.');

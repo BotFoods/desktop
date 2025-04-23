@@ -21,6 +21,7 @@ const Caixa = () => {
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   
   const navigate = useNavigate();
+  
   useEffect(() => {
     validateSession();
   }, []);
@@ -30,8 +31,9 @@ const Caixa = () => {
       if (!user || !token) return;
         try {
           const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
+            method: 'GET',
             headers: {
-              Authorization: `${token}`,
+              'Authorization': `${token}`,
             },
             credentials: 'include',
           });

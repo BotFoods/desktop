@@ -27,8 +27,7 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch(`${API_BASE_URL}/api/validate`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          authorization: `${storedToken}`,
+          'Authorization': `${storedToken}`,
         },
         credentials: 'include',
       });
@@ -38,6 +37,7 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user_data);
         setToken(storedToken);
       } else {
+        console.log(response);
         logout();
       }
     } catch (err) {

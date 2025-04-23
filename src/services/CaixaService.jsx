@@ -4,8 +4,9 @@ export const verificarCaixaAberto = async (userId, token) => {
   const API_BASE_URL = import.meta.env.VITE_API_URL;
     try {
       const response = await fetch(`${API_BASE_URL}/api/caixas/usuario/${userId}`, {
+        method: 'GET',
         headers: {
-          Authorization: `${token}`,
+          'Authorization': `${token}`,
         },
         credentials: 'include',
       });
@@ -23,7 +24,7 @@ export const verificarCaixaAberto = async (userId, token) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `${token}`,
+          'Authorization': `${token}`,
         },
         credentials: 'include',
         body: JSON.stringify({
