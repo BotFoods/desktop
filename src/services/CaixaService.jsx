@@ -1,8 +1,9 @@
 // services/CaixaService.js
 
 export const verificarCaixaAberto = async (userId, token) => {
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
     try {
-      const response = await fetch(`http://localhost:8080/api/caixas/usuario/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/caixas/usuario/${userId}`, {
         headers: {
           Authorization: `${token}`,
         },
@@ -18,7 +19,7 @@ export const verificarCaixaAberto = async (userId, token) => {
   
   export const abrirCaixa = async (userId, valorInicial, token) => {
     try {
-      const response = await fetch('http://localhost:8080/api/caixas/abertura', {
+      const response = await fetch(`${API_BASE_URL}/caixas/abertura`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

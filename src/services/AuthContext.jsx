@@ -9,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(sessionStorage.getItem('token') || null);
   const navigate = useNavigate();
   const location = useLocation();
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const validateSession = async () => {
     // Allow access to /cardapio without validation
@@ -23,7 +24,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/validate', {
+      const response = await fetch(`${API_BASE_URL}/validate`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

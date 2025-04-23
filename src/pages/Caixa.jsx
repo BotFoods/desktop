@@ -18,6 +18,7 @@ const Caixa = () => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
   });
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
   
   const navigate = useNavigate();
   useEffect(() => {
@@ -28,7 +29,7 @@ const Caixa = () => {
     const fetchProducts = async () => {
       if (!user || !token) return;
         try {
-          const response = await fetch(`http://localhost:8080/api/produtos?loja_id=${user.loja_id}`, {
+          const response = await fetch(`${API_BASE_URL}/produtos?loja_id=${user.loja_id}`, {
             headers: {
               Authorization: `${token}`,
             },
