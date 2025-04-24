@@ -8,6 +8,7 @@ const Configuracoes = () => {
     const [loading, setLoading] = useState(false);
     const [statusMessage, setStatusMessage] = useState(null);
     const { token, user, validateSession } = useAuth();
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
     useEffect(() => {
         validateSession();
@@ -34,7 +35,7 @@ const Configuracoes = () => {
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
                 const qrCodeResponse = await fetch(
-                    `http://localhost:8080/api/get-qrcode/${qrCodeId}`,
+                    `${API_BASE_URL}/api/get-qrcode/${qrCodeId}`,
                     qrCodeOptions
                 );
                 const qrCodeData = await qrCodeResponse.json();
@@ -68,7 +69,7 @@ const Configuracoes = () => {
                 body: JSON.stringify({ id: user.contato_loja }),
             };
 
-            const startResponse = await fetch('http://localhost:8080/api/start', startOptions);
+            const startResponse = await fetch(`${API_BASE_URL}/api/start`, startOptions);
             const startData = await startResponse.json();
 
             if (startData.qrCodeId) {
@@ -104,7 +105,7 @@ const Configuracoes = () => {
                 body: JSON.stringify({ id: user.contato_loja }),
             };
 
-            const stopResponse = await fetch('http://localhost:8080/api/stop', stopOptions);
+            const stopResponse = await fetch(`${API_BASE_URL}/api/stop`, stopOptions);
             if (stopResponse.ok) {
                 setQrCode(null);
                 setPhoneNumber('');
@@ -134,7 +135,7 @@ const Configuracoes = () => {
                 body: JSON.stringify({ id: phoneNumber }),
             };
 
-            const changeResponse = await fetch('http://localhost:8080/api/change', changeOptions);
+            const changeResponse = await fetch(`${API_BASE_URL}/api/change`, changeOptions);
             if (changeResponse.ok) {
                 console.log('Número do WhatsApp alterado com sucesso');
             } else {

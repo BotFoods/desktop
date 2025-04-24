@@ -14,6 +14,7 @@ const ProdutoCadastro = () => {
     const [activeTab, setActiveTab] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
       validateSession();
@@ -30,7 +31,7 @@ const ProdutoCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/categorias/', options);
+                const response = await fetch(`${API_BASE_URL}/api/categorias/`, options);
                 const data = await response.json();
                 if (data.auth === false) {
                     setToken('');
@@ -55,7 +56,7 @@ const ProdutoCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/produtos?loja_id=1', options);
+                const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=1`, options);
                 const data = await response.json();
                 setProdutos(data);
             } catch (error) {
@@ -89,7 +90,7 @@ const ProdutoCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/produtos/cadastrar', options);
+                const response = await fetch(`${API_BASE_URL}/api/produtos/cadastrar`, options);
                 const data = await response.json();
                 if (data.success) {
                     const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria };
@@ -147,7 +148,7 @@ const ProdutoCadastro = () => {
         };
 
         try {
-            const response = await fetch(`http://localhost:8080/api/produtos/disponibilidade/${id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 setProdutos((prevProdutos) => {

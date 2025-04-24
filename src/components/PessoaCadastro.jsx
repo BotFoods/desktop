@@ -13,6 +13,7 @@ const PessoaCadastro = () => {
     const [usuarios, setUsuarios] = useState([]);
     const [funcoes, setFuncoes] = useState([]);
     const loggedUser = user;
+    const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
         validateSession();
@@ -34,7 +35,7 @@ const PessoaCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/usuarios', options);
+                const response = await fetch(`${API_BASE_URL}/api/usuarios`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setUsuarios(data.usuarios.filter(usuario => usuario.id !== loggedUser.id));
@@ -61,7 +62,7 @@ const PessoaCadastro = () => {
             };
 
             try {
-                const response = await fetch('http://localhost:8080/api/funcoes', options);
+                const response = await fetch(`${API_BASE_URL}/api/funcoes`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setFuncoes(data);
@@ -105,7 +106,7 @@ const PessoaCadastro = () => {
             })
         };
 
-        fetch('http://localhost:8080/api/usuarios/cadastrar', options)
+        fetch(`${API_BASE_URL}/api/usuarios/cadastrar`, options)
             .then(response => response.json())
             .then(response => {
                 setMessage(response.message);
@@ -131,7 +132,7 @@ const PessoaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/desativar/${id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/desativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 0 } : user));
@@ -153,7 +154,7 @@ const PessoaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/ativar/${id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/ativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 1 } : user));

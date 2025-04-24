@@ -4,6 +4,7 @@ import { useAuth } from '../services/AuthContext';
 const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, token } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const handleFinalizar = () => {
     setIsModalOpen(true);
@@ -48,7 +49,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     console.log('Dados da Venda:', vendaData);
 
     try {
-      const response = await fetch('http://localhost:8080/api/vendas/registrar', {
+      const response = await fetch(`${API_BASE_URL}/api/vendas/registrar`, {
         method: 'POST',
         headers: {
           authorization: token,

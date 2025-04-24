@@ -25,6 +25,7 @@ const CheckoutModal = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const cepInputRef = useRef(null);
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // URL base da API
 
   // Atualizar cálculo do total para considerar a quantidade
   const total = useMemo(() => {
@@ -123,7 +124,7 @@ const CheckoutModal = ({
 
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/orders', {
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
