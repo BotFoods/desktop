@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafgraph/spa-github-pages
+      // Credits: Copyright (c) 2016 Rafaël Pedrero
+      // MIT License
+
+      // Obtém o caminho da URL atual (ex: /repo/usuarios/123)
+      var segmentCount = 0; // Defina como 1 se estiver usando um domínio customizado no root
+                              // Defina como 0 se estiver usando usuario.github.io/repo/
+      var l = window.location;
+      var newPath = l.pathname.split('/').slice(1, 1 + segmentCount).join('/') + '/'; // Mantém a parte base do repo se houver
+      var search = l.search ? '&q=' + l.search.slice(1) : '';
+      var path = l.pathname.slice(newPath.length).split('/').filter(Boolean).join('/'); // Pega o caminho da rota SPA
+      var hash = l.hash ? '&p=' + l.hash.slice(1) : '';
+
+      // Reconstrói a URL para redirecionar para index.html com parâmetros
+      var redirectUrl = '/' + newPath +
+                        '?' +
+                        'path=' + encodeURIComponent(path) +
+                        search +
+                        hash;
+
+      // Redireciona para o index.html
+      l.replace(redirectUrl);
+
+    </script>
+  </head>
+  <body>
+    <p>If you are not redirected automatically, follow this <a id="redirectLink" href="#">link</a>.</p>
+    <script>document.getElementById('redirectLink').href = redirectUrl;</script>
+  </body>
+</html>
