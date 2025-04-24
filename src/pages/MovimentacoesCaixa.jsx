@@ -15,7 +15,7 @@ const MovimentacoesCaixa = () => {
     const fetchMovimentacoes = async () => {
       if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
+          const response = await fetch(`https://${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
             headers: {
               Authorization: `${token}`,
             },

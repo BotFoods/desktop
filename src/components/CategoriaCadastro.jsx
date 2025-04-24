@@ -24,7 +24,7 @@ const CategoriaCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/categorias/`, options);
+                const response = await fetch(`https://${API_BASE_URL}/api/categorias/`, options);
                 const data = await response.json();
                 setCategorias(data.categorias);
             } catch (error) {
@@ -52,7 +52,7 @@ const CategoriaCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/categorias/cadastrar`, options);
+                const response = await fetch(`https://${API_BASE_URL}/api/categorias/cadastrar`, options);
                 const data = await response.json();
                 if (data.success) {
                     setCategorias([...categorias, { id: data.id, categoria }]);
@@ -77,7 +77,7 @@ const CategoriaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/categorias/desativar/${id}`, options);
+            const response = await fetch(`https://${API_BASE_URL}/api/categorias/desativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 const newCategorias = categorias.map(cat => (cat.id === id ? { ...cat, ativo: 0 } : cat));
@@ -100,7 +100,7 @@ const CategoriaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/categorias/ativar/${id}`, options);
+            const response = await fetch(`https://${API_BASE_URL}/api/categorias/ativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 const newCategorias = categorias.map(cat => (cat.id === id ? { ...cat, ativo: 1 } : cat));

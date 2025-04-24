@@ -49,7 +49,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     console.log('Dados da Venda:', vendaData);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vendas/registrar`, {
+      const response = await fetch(`https://${API_BASE_URL}/api/vendas/registrar`, {
         method: 'POST',
         headers: {
           authorization: token,

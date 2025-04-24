@@ -35,7 +35,7 @@ const PessoaCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/usuarios`, options);
+                const response = await fetch(`https://${API_BASE_URL}/api/usuarios`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setUsuarios(data.usuarios.filter(usuario => usuario.id !== loggedUser.id));
@@ -62,7 +62,7 @@ const PessoaCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/funcoes`, options);
+                const response = await fetch(`https://${API_BASE_URL}/api/funcoes`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setFuncoes(data);
@@ -106,7 +106,7 @@ const PessoaCadastro = () => {
             })
         };
 
-        fetch(`${API_BASE_URL}/api/usuarios/cadastrar`, options)
+        fetch(`https://${API_BASE_URL}/api/usuarios/cadastrar`, options)
             .then(response => response.json())
             .then(response => {
                 setMessage(response.message);
@@ -132,7 +132,7 @@ const PessoaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/desativar/${id}`, options);
+            const response = await fetch(`https://${API_BASE_URL}/api/usuarios/desativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 0 } : user));
@@ -154,7 +154,7 @@ const PessoaCadastro = () => {
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/ativar/${id}`, options);
+            const response = await fetch(`https://${API_BASE_URL}/api/usuarios/ativar/${id}`, options);
             const data = await response.json();
             if (data.success) {
                 setUsuarios((prevUsuarios) => prevUsuarios.map(user => user.id === id ? { ...user, ativo: 1 } : user));

@@ -56,7 +56,7 @@ const Delivery = () => {
     const fetchProducts = async () => {
       if (!user || !token) return;
       try {
-        const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
+        const response = await fetch(`https://${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
           headers: {
             Authorization: `${token}`,
           },
