@@ -20,7 +20,7 @@ const FecharCaixaButton = ({ pdv }) => {
             body: JSON.stringify({ valor_final: closementValue })
         };
 
-        fetch(`https://${API_BASE_URL}/caixas/fechamento/${pdv.pdv.caixa.id_caixa}`, options)
+        fetch(`${API_BASE_URL}/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}`, options)
             .then(response => response.json())
             .then(response => {
                 console.log(response);

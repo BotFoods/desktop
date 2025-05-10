@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import templatePdv from '../templates/templatePDV.json';
 import { FaTrash } from 'react-icons/fa';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { verificarCaixaAberto, abrirCaixa } from '../services/CaixaService';
 
 const Caixa = () => {
@@ -30,7 +30,7 @@ const Caixa = () => {
     const fetchProducts = async () => {
       if (!user || !token) return;
         try {
-          const response = await fetch(`https://${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
+          const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
             method: 'GET',
             headers: {
               'Authorization': `${token}`,
@@ -279,22 +279,25 @@ const Caixa = () => {
               </div>
             </>
           ) : (
-            <div className="w-full flex flex-col items-center justify-center">
-              <h1 className="text-3xl font-bold mb-4">Abrir Caixa</h1>
-              <input
-                type="number"
-                value={valorInicial}
-                onChange={(e) => setValorInicial(e.target.value)}
-                className="p-2 rounded bg-gray-800 text-white mb-4"
-                placeholder="Valor Inicial"
-                autoFocus
-              />
-              <button
-                onClick={handleAbrirCaixa}
-                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-              >
-                Abrir Caixa
-              </button>
+            <div className="w-full flex flex-col items-center justify-center mt-5">
+              <div className="bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full">
+                <h1 className="text-3xl font-bold mb-2 text-center text-white">Abrir Caixa</h1>
+                <p className="text-gray-400 text-center mb-6">Informe o valor inicial para registrar a abertura do caixa.</p>
+                <input
+                  type="number"
+                  value={valorInicial}
+                  onChange={(e) => setValorInicial(e.target.value)}
+                  className="p-3 rounded bg-gray-700 text-white mb-6 w-full focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="Valor Inicial (R$)"
+                  autoFocus
+                />
+                <button
+                  onClick={handleAbrirCaixa}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded w-full transition duration-150 ease-in-out"
+                >
+                  Abrir Caixa
+                </button>
+              </div>
             </div>
           )}
         </div>

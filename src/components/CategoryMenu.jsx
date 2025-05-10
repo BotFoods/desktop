@@ -1,5 +1,6 @@
-import React from 'react';
+// import React from 'react';
 import { useLocation } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 
 const CategoryMenu = ({ categories = [], onSelectCategory = () => {} }) => {
@@ -75,12 +76,16 @@ const CategoryMenu = ({ categories = [], onSelectCategory = () => {} }) => {
           )}
           {(isPdvMesasRoute || categories.length > 0) && categoryButtons}
         </ul>
-        <div className="bottom-0 flex fixed pb-4 text-gray-400">
+        <div className="fixed bottom-0 left-0 w-64 flex px-4 pb-4 text-gray-400">
           <p>Conectado como: { user && user.nome }</p>
         </div>
       </nav>
     </aside>
   );
+};
+CategoryMenu.propTypes = {
+  categories: PropTypes.arrayOf(PropTypes.string),
+  onSelectCategory: PropTypes.func,
 };
 
 export default CategoryMenu;

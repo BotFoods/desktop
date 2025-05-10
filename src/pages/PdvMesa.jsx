@@ -51,7 +51,7 @@ const PdvMesa = () => {
         },
       };
   });
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     validateSession();
@@ -61,7 +61,7 @@ const PdvMesa = () => {
     const fetchProducts = async () => {
       if (!user || !token) return;
       try {
-        const response = await fetch(`https://${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
+        const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
           headers: {
             Authorization: `${token}`,
           },

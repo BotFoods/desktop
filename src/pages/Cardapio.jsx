@@ -16,7 +16,7 @@ const Cardapio = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('');
   const [filteredProducts, setFilteredProducts] = useState({}); 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     validateSession();
@@ -24,7 +24,7 @@ const Cardapio = () => {
     const fetchProdutos = async () => {
       const options = { method: 'GET', headers: {} };
       try {
-        const response = await fetch(`https://${API_BASE_URL}/api/cardapio/${id}/${wid}`, options);
+        const response = await fetch(`${API_BASE_URL}/api/cardapio/${id}/${wid}`, options);
         if (response.status === 404) {
           const errorData = await response.json();
           setErrorMessage(errorData.message);

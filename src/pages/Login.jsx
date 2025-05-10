@@ -14,7 +14,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`https://${API_BASE_URL}/api/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -25,7 +25,7 @@ const Login = () => {
         const data = await response.json();
         sessionStorage.setItem('token', data.token); // Armazena o token no sessionStorage
         setUser(data.user_data); // Atualiza os dados do usuário no contexto
-        setToken(data.token); // Atualiza o token no contexto
+        // setToken(data.token); 
         navigate('/caixa');
       } else {
         setError('Login falhou. Por favor, verifique suas credenciais.');

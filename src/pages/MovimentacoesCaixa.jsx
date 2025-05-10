@@ -9,13 +9,13 @@ const MovimentacoesCaixa = () => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : null;
   });
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchMovimentacoes = async () => {
       if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
         try {
-          const response = await fetch(`https://${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
+          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
             headers: {
               Authorization: `${token}`,
             },

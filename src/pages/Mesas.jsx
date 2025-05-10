@@ -7,7 +7,7 @@ const Mesas = () => {
   const { token } = useAuth();
   const [mesas, setMesas] = useState([]);
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const fetchMesas = async () => {
@@ -20,7 +20,7 @@ const Mesas = () => {
       };
 
       try {
-        const response = await fetch(`https://${API_BASE_URL}/api/mesas`, options);
+        const response = await fetch(`${API_BASE_URL}/api/mesas`, options);
         const data = await response.json();
         if (data.success) {
           setMesas(data.rows);
