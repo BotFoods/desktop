@@ -211,7 +211,12 @@ const Caixa = () => {
   };
 
   const handleAbrirCaixa = async () => {
-    const data = await abrirCaixa(user.id, valorInicial, token);
+    if (!user || !user.id || user.loja_id === undefined) {
+      console.error('Informações do usuário ou loja_id ausentes para abrir o caixa.');
+      // Optionally, display an error message to the user
+      return;
+    }
+    const data = await abrirCaixa(user.id, valorInicial, token, user.loja_id); // Pass user.loja_id
     if (data.success) {
       const updatedPdv = { ...pdv };
       updatedPdv.pdv.caixa.id_caixa = user.id;

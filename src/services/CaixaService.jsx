@@ -18,7 +18,7 @@ export const verificarCaixaAberto = async (userId, token) => {
     }
   };
   
-  export const abrirCaixa = async (userId, valorInicial, token) => {
+  export const abrirCaixa = async (userId, valorInicial, token, lojaId) => {
     const API_BASE_URL = import.meta.env.VITE_API_URL;
     try {
       const response = await fetch(`${API_BASE_URL}/api/caixas/abertura`, {
@@ -29,8 +29,9 @@ export const verificarCaixaAberto = async (userId, token) => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          id_usuario: userId,
+          usuario_abertura_id: userId,
           valor_inicial: valorInicial,
+          loja_id: lojaId, // Corrected to use lojaId parameter
         }),
       });
       const data = await response.json();
