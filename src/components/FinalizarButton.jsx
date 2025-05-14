@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 
-const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders }) => {
+const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -177,45 +177,48 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders }) => {
     <>
       <button
         onClick={handleFinalizar}
-        className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+        className={className || "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out"}
       >
         Finalizar
       </button>
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
-          <div className="bg-black bg-opacity-50 absolute inset-0"></div>
-          <div className="bg-white p-6 rounded shadow-lg z-10">
-            <h2 className="text-xl font-bold mb-4">Escolha a forma de pagamento</h2>
-            <button
-              onClick={() => handleOptionClick('Crédito')}
-              className="mt-4 bg-blue-500 text-white px-5 py-2 m-1 rounded"
-            >
-              Crédito
-            </button>
-            <button
-              onClick={() => handleOptionClick('Débito')}
-              className="mt-4 bg-blue-500 text-white px-5 py-2 m-1 rounded"
-            >
-              Débito
-            </button>
-            <button
-              onClick={() => handleOptionClick('Pix')}
-              className="mt-4 bg-blue-500 text-white px-5 py-2 m-1 rounded"
-            >
-              Pix
-            </button>
-            <button
-              onClick={closeModal}
-              className="mt-4 bg-red-500 text-white px-5 py-2 m-1 rounded"
-            >
-              Fechar
-            </button>
+          <div className="bg-black bg-opacity-60 absolute inset-0" onClick={closeModal}></div>
+          <div className="bg-white p-6 rounded-lg shadow-xl z-10 w-96">
+            <h2 className="text-xl font-bold mb-6 text-center border-b pb-2">Escolha a forma de pagamento</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleOptionClick('Crédito')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+              >
+                Crédito
+              </button>
+              <button
+                onClick={() => handleOptionClick('Débito')}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+              >
+                Débito
+              </button>
+              <button
+                onClick={() => handleOptionClick('Pix')}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+              >
+                Pix
+              </button>
+              <button
+                onClick={closeModal}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
       )}
     </>
   );
 };
+
 FinalizarButton.propTypes = {
   pdv: PropTypes.shape({
     pdv: PropTypes.shape({
@@ -258,6 +261,7 @@ FinalizarButton.propTypes = {
   setPdv: PropTypes.func.isRequired,
   setOrders: PropTypes.func.isRequired,
   loja_id: PropTypes.number.isRequired, // Added: loja_id is required
+  className: PropTypes.string,
 };
 
 export default FinalizarButton;

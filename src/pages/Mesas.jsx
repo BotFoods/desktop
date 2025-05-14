@@ -65,6 +65,19 @@ const Mesas = () => {
     return pdv.pdv.venda.produtos && pdv.pdv.venda.produtos.length > 0;
   };
 
+  const getMesaStatus = (mesaId) => {
+    // Check if mesa has pending orders
+    const pdvData = localStorage.getItem(`pdv_mesa_${mesaId}`);
+    if (!pdvData) return { status: 'disponivel', text: 'Disponível' };
+    
+    const pdv = JSON.parse(pdvData);
+    if (pdv.pdv.venda.produtos && pdv.pdv.venda.produtos.length > 0) {
+      return { status: 'ocupada', text: 'Ocupada' };
+    }
+    
+    return { status: 'disponivel', text: 'Disponível' };
+  };
+
   const handleOpenAddMesaModal = () => {
     setApiError(''); // Clear previous errors
     setIsModalOpen(true);
@@ -156,9 +169,9 @@ const Mesas = () => {
             {mesas.length > 0 && (
               <button
                 onClick={handleOpenAddMesaModal}
-                className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out flex items-center"
               >
-                + Adicionar Mesa
+                <span className="mr-1">+</span> Adicionar Mesa
               </button>
             )}
           </div>
@@ -170,30 +183,43 @@ const Mesas = () => {
               </p>
               <button
                 onClick={handleOpenAddMesaModal}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition duration-150 ease-in-out"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition duration-150 ease-in-out flex items-center justify-center"
               >
-                Cadastrar Primeira Mesa
+                <span className="mr-1">+</span> Cadastrar Primeira Mesa
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {mesas.map((mesa) => (
-                <div
-                  key={mesa.id}
-                  className="bg-gray-800 p-4 rounded shadow flex flex-col items-center cursor-pointer hover:bg-gray-700"
-                  onClick={() => handleMesaClick(mesa.id)}
-                >
-                  <h2 className="text-xl font-bold mb-2">Mesa {mesa.numero_mesa}</h2>
-                  <p className="text-gray-400 mb-2">Capacidade: {mesa.capacidade} pessoas</p>
-                  <span
-                    className={`px-4 py-2 rounded-full text-sm ${
-                      isMesaOcupada(mesa.id) ? 'bg-red-500' : 'bg-green-500'
-                    } text-white`}
+              {mesas.map((mesa) => {
+                const mesaStatus = getMesaStatus(mesa.id);
+                return (
+                  <div
+                    key={mesa.id}
+                    className={`bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg border-2 ${
+                      mesaStatus.status === 'ocupada' 
+                        ? 'border-yellow-500 hover:bg-gray-700' 
+                        : mesa.status === 'indisponivel' 
+                          ? 'border-red-500 hover:bg-gray-700' 
+                          : 'border-green-500 hover:bg-gray-700'
+                    }`}
+                    onClick={() => handleMesaClick(mesa.id)}
                   >
-                    {isMesaOcupada(mesa.id) ? 'Ocupada' : 'Disponível'}
-                  </span>
-                </div>
-              ))}
+                    <div className="text-3xl font-bold mb-3">Mesa {mesa.numero_mesa}</div>
+                    <p className="text-gray-400 mb-4">Capacidade: {mesa.capacidade} pessoas</p>
+                    <div 
+                      className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        mesaStatus.status === 'ocupada'
+                          ? 'bg-yellow-500 text-yellow-900'
+                          : mesa.status === 'indisponivel' 
+                            ? 'bg-red-500 text-white'
+                            : 'bg-green-500 text-white'
+                      }`}
+                    >
+                      {mesaStatus.text}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

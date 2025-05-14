@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
-import { FaTrash } from 'react-icons/fa';
+import { FaTrash, FaChair } from 'react-icons/fa';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
@@ -13,6 +13,7 @@ const PdvMesa = () => {
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
@@ -278,19 +279,30 @@ const PdvMesa = () => {
       <div className="flex-grow flex">
         <div className="ml-64 pt-16 p-4 flex-grow flex">
           <div className="w-3/4 pr-4">
-            <h1 className="text-3xl text-center font-bold">PDV - Mesa {mesaId}</h1>
-            <div className="mt-8">
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-3xl font-bold flex items-center">
+                <FaChair className="mr-2 text-yellow-500" /> 
+                Mesa {mesaId}
+              </h1>
+              <div className="bg-gray-800 px-4 py-2 rounded-lg shadow">
+                <span className="font-semibold">Total: </span>
+                <span className="text-xl text-green-400">
+                  R$ {orders.reduce((total, order) => total + parseFloat(order.subtotal), 0).toFixed(2)}
+                </span>
+              </div>
+            </div>
+            <div className="mt-6">
               {selectedCategory && (
                 <div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                     {products[selectedCategory]?.map((product) => (
                       <div
                         key={product.id}
-                        className="bg-gray-800 p-4 rounded shadow cursor-pointer"
+                        className="bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer transition-all duration-200 hover:bg-gray-700 hover:shadow-lg transform hover:scale-105"
                         onClick={() => addToOrder(product)}
                       >
                         <h3 className="text-lg font-bold">{product.name}</h3>
-                        <p className="text-gray-400">R$ {product.price}</p>
+                        <p className="text-green-400 font-medium mt-2">R$ {parseFloat(product.price).toFixed(2)}</p>
                       </div>
                     ))}
                   </div>
@@ -298,31 +310,66 @@ const PdvMesa = () => {
               )}
             </div>
           </div>
-          <div className="w-1/4 pl-4 bg-yellow-100 text-gray-900 p-4 rounded">
-            <h2 className="text-2xl font-bold">Resumo do Pedido</h2>
-            <ul className="mt-4">
-              {orders.map((order, index) => (
-                <li
-                  key={index}
-                  className={`border-b border-gray-300 py-2 ${order.status?.impresso ? 'text-gray-600 italic' : ''} flex justify-between items-center`}
-                >
-                  <span>{order.quantity}x - {order.name} - R$ {order.price} - R$ {order.subtotal.toFixed(2)}</span>
-                  <FaTrash
-                    className="text-red-500 cursor-pointer"
-                    onClick={() => removeFromOrder(order.id)}
-                  />
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 font-bold">
-              Total: R$
-              {orders.reduce((total, order) => total + parseFloat(order.subtotal), 0).toFixed(2)}
+          <div className="w-1/4 pl-4">
+            <div className="bg-gray-800 rounded-lg shadow-lg p-4 h-full">
+              <h2 className="text-2xl font-bold mb-4 text-center border-b border-gray-700 pb-2">Resumo do Pedido</h2>
+              {orders.length > 0 ? (
+                <ul className="mt-4 max-h-[calc(100vh-300px)] overflow-y-auto">
+                  {orders.map((order, index) => (
+                    <li
+                      key={index}
+                      className={`border-b border-gray-700 py-3 ${order.status?.impresso ? 'text-gray-500 italic' : ''} flex justify-between items-center`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center">
+                          <span className="font-bold text-green-400 mr-2">{order.quantity}x</span>
+                          <span>{order.name}</span>
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          R$ {parseFloat(order.price).toFixed(2)} un = R$ {order.subtotal.toFixed(2)}
+                        </div>
+                      </div>
+                      <button
+                        className="text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromOrder(order.id);
+                        }}
+                      >
+                        <FaTrash />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                  <p className="text-center">Nenhum item adicionado</p>
+                  <p className="text-center text-sm mt-2">Selecione produtos para adicionar ao pedido</p>
+                </div>
+              )}
+              <div className="mt-4 pt-4 border-t border-gray-700">
+                <div className="flex justify-between text-lg">
+                  <span className="font-medium">Total:</span>
+                  <span className="font-bold text-green-400">
+                    R$ {orders.reduce((total, order) => total + parseFloat(order.subtotal), 0).toFixed(2)}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-400 mt-1">
+                  {orders.reduce((total, order) => total + order.quantity, 0)} itens
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
       {user?.loja_id && (
-        <PdvActions pdv={pdv} setPdv={setPdv} setOrders={setOrders} loja_id={user.loja_id} />
+        <PdvActions 
+          pdv={pdv} 
+          setPdv={setPdv} 
+          setOrders={setOrders} 
+          setIsModalOpen={setIsModalOpen}
+          loja_id={user.loja_id} 
+        />
       )}
     </div>
   );
