@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 
-const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
+const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -39,7 +39,7 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
     const vendaData = {
       usuarioId: userId,
       caixaId: pdv.pdv.caixa.id_caixa,
-      lojaId: pdv.pdv.loja_id, // Added: ensure pdv.pdv.loja_id is available
+      lojaId: loja_id,
       vendaOrigemId: pdv.pdv.venda.mesa ? 2 : 1, // Added: 1 for PDV, 2 for Mesa (ensure these IDs are correct)
       clienteId: pdv.pdv.venda.dados_cliente?.id_cliente || null, // Optional
       cpfCnpjCliente: pdv.pdv.venda.dados_cliente?.cpf || null, // Optional
@@ -69,7 +69,16 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
         let receiptText = `        Comprovante de Venda\n`;
         receiptText += `----------------------------------------\n`;
         receiptText += `Data: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}\n`;
-        receiptText += `Operador: ${pdv.pdv.caixa.operador.nome}\n`;
+        receiptText += `Operador: ${pdv.pdv.caixa.operador?.nome || 'N/A'}\n`; 
+
+        // Add customer information if available (for delivery receipts)
+        if (pdv.pdv.venda.tipo === 'delivery' && pdv.pdv.venda.dados_cliente) {
+          receiptText += `----------------------------------------\n`;
+          receiptText += `Cliente: ${pdv.pdv.venda.dados_cliente.nome || 'N/A'}\n`;
+          receiptText += `Telefone: ${pdv.pdv.venda.dados_cliente.telefone || 'N/A'}\n`;
+          receiptText += `Endereco: ${pdv.pdv.venda.dados_cliente.endereco || 'N/A'}\n`;
+        }
+        
         if (pdv.pdv.venda.mesa) {
           receiptText += `Mesa: ${pdv.pdv.venda.mesa}\n`;
         }
@@ -154,6 +163,10 @@ const FinalizarButton = ({ pdv, setPdv, setOrders }) => {
       return updatedPdv;
     });
 
+    // For delivery orders, also clear the DELIVERY_STORAGE_KEY
+    if (pdv.pdv.venda.tipo === 'delivery') {
+      localStorage.removeItem('pdv_delivery');
+    }
 
     closeModal();
     // Refresh the page might not be ideal UX, consider just resetting state
@@ -209,10 +222,9 @@ FinalizarButton.propTypes = {
       caixa: PropTypes.shape({
         id_caixa: PropTypes.number.isRequired,
         operador: PropTypes.shape({
-          nome: PropTypes.string.isRequired,
+          nome: PropTypes.string, // Changed from isRequired to optional
         }).isRequired,
       }).isRequired,
-      loja_id: PropTypes.number.isRequired, // Added: lojaId is required by the backend
       venda: PropTypes.shape({
         total_venda: PropTypes.number.isRequired,
         produtos: PropTypes.arrayOf(
@@ -226,15 +238,16 @@ FinalizarButton.propTypes = {
           })
         ).isRequired,
         mesa: PropTypes.oneOfType([PropTypes.number, PropTypes.bool]),
-        // tipo: PropTypes.string, // Not directly used in new payload
-        // status_venda: PropTypes.string, // Not directly used in new payload
+        tipo: PropTypes.string, // Added: to check for delivery type
+        status_venda: PropTypes.string, // Added: to check for delivery type
         dados_cliente: PropTypes.shape({
           id_cliente: PropTypes.number, // Optional: for clienteId
           nome: PropTypes.string,
           cpf: PropTypes.string, // Optional: for cpfCnpjCliente
+          telefone: PropTypes.string, // Added: for customer phone
           endereco: PropTypes.any,
         }),
-        // observacoes: PropTypes.string, // Not directly used in new payload
+        observacoes: PropTypes.string, // Added: for customer observations
       }).isRequired,
       totais: PropTypes.shape({
         quantidade_itens: PropTypes.number.isRequired,
@@ -244,6 +257,7 @@ FinalizarButton.propTypes = {
   }).isRequired,
   setPdv: PropTypes.func.isRequired,
   setOrders: PropTypes.func.isRequired,
+  loja_id: PropTypes.number.isRequired, // Added: loja_id is required
 };
 
 export default FinalizarButton;

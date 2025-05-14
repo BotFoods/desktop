@@ -211,7 +211,7 @@ const Caixa = () => {
   };
 
   const handleAbrirCaixa = async () => {
-    if (!user || !user.id || user.loja_id === undefined) {
+    if (!user || !user.id || typeof user.loja_id === 'undefined') { // Check specifically for undefined
       console.error('Informações do usuário ou loja_id ausentes para abrir o caixa.');
       // Optionally, display an error message to the user
       return;
@@ -307,11 +307,12 @@ const Caixa = () => {
           )}
         </div>
       </div>
-      {caixaAberto && (
+      {caixaAberto && user?.loja_id && ( 
         <PdvActions
-          pdv={pdv} // Pass the pdv state here
+          pdv={pdv} 
           setPdv={setPdv}
           setOrders={setOrders}
+          loja_id={user.loja_id} 
         />
       )}
     </div>

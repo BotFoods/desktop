@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, redirect } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import { FaTrash } from 'react-icons/fa';
@@ -9,47 +9,62 @@ import { verificarCaixaAberto } from '../services/CaixaService';
 
 const PdvMesa = () => {
   const { validateSession, token, user } = useAuth();
-  const { mesaId } = useParams();
+  const { mesaId } = useParams(); // mesaId from useParams is a string
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
-    return pdv_salvo
-      ? JSON.parse(pdv_salvo)
-      : {
-        pdv: {
-          caixa: {
-            id_caixa: null,
-            abertura_caixa: null,
-            operador: {
-              id: null,
-              nome: '',
-              cargo: '',
-              pode_cancelar_itens: false,
-            },
-          },
-          venda: {
-            id_venda: '',
-            tipo: '',
-            status_venda: '',
-            dados_cliente: {
-              nome: '',
-              cpf: '',
-              endereco: null,
-            },
-            produtos: [],
-            total_venda: 0,
-            observacoes: '',
-            mesa: mesaId,
-          },
-          totais: {
-            quantidade_itens: 0,
-            valor_total: 0,
-          },
+    const currentNumericMesaId = parseInt(mesaId, 10);
+
+    const defaultState = {
+      pdv: {
+        caixa: {
+          id_caixa: null,
+          abertura_caixa: null,
+          operador: { id: null, nome: '', cargo: '', pode_cancelar_itens: false },
         },
-      };
+        venda: {
+          id_venda: '',
+          tipo: '',
+          status_venda: '',
+          dados_cliente: { nome: '', cpf: '', endereco: null },
+          produtos: [],
+          total_venda: 0,
+          observacoes: '',
+          mesa: currentNumericMesaId, // Ensure mesa is a number
+        },
+        totais: { quantidade_itens: 0, valor_total: 0 },
+      },
+    };
+
+    if (pdv_salvo) {
+      try {
+        const loadedPdv = JSON.parse(pdv_salvo);
+        // Ensure the pdv.venda.mesa path exists and is correctly typed
+        if (loadedPdv.pdv && loadedPdv.pdv.venda) {
+          const mesaValue = loadedPdv.pdv.venda.mesa;
+          if (typeof mesaValue !== 'undefined' && mesaValue !== null) {
+            const parsedMesa = parseInt(mesaValue, 10);
+            loadedPdv.pdv.venda.mesa = isNaN(parsedMesa) ? currentNumericMesaId : parsedMesa;
+          } else {
+            loadedPdv.pdv.venda.mesa = currentNumericMesaId;
+          }
+        } else {
+          // If essential structure is missing, rebuild it or use default
+          if (!loadedPdv.pdv) loadedPdv.pdv = { ...defaultState.pdv };
+          if (!loadedPdv.pdv.venda) loadedPdv.pdv.venda = { ...defaultState.pdv.venda };
+          // Ensure mesa is set if the venda object was missing or incomplete
+          loadedPdv.pdv.venda.mesa = currentNumericMesaId;
+        }
+        return loadedPdv;
+      } catch (e) {
+        console.error("Erro ao carregar PDV do localStorage, usando estado padrão:", e);
+        return defaultState;
+      }
+    }
+    return defaultState;
   });
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -98,10 +113,13 @@ const PdvMesa = () => {
       }
     };
 
-    fetchProducts();
-    verificarCaixa();
-    loadOrders();
-  }, [token, user]);
+    // Ensure user and user.loja_id are available before dependent operations
+    if (user && user.loja_id) {
+        fetchProducts();
+        verificarCaixa(); // verificarCaixa might also depend on user.id
+    }
+    loadOrders(); // loadOrders depends on mesaId, not directly on user
+  }, [token, user, mesaId]); // Added mesaId to dependencies for loadOrders consistency
 
   useEffect(() => {
     localStorage.setItem(`pdv_mesa_${mesaId}`, JSON.stringify(pdv));
@@ -303,7 +321,9 @@ const PdvMesa = () => {
           </div>
         </div>
       </div>
-      <PdvActions pdv={pdv} setPdv={setPdv} setOrders={setOrders} />
+      {user?.loja_id && (
+        <PdvActions pdv={pdv} setPdv={setPdv} setOrders={setOrders} loja_id={user.loja_id} />
+      )}
     </div>
   );
 };

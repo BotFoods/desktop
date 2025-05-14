@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 
 const MovimentacoesCaixa = () => {
   const { token } = useAuth();
   const [movimentacoes, setMovimentacoes] = useState([]);
-  const [pdv, setPdv] = useState(() => {
+  const [pdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : null;
   });
@@ -22,15 +22,21 @@ const MovimentacoesCaixa = () => {
             credentials: 'include',
           });
           const data = await response.json();
-          setMovimentacoes(data);
+          if (data.success && data.movimentacoes) {
+            setMovimentacoes(data.movimentacoes);
+          } else {
+            console.error('Erro ao buscar movimentações:', data.message || 'Resposta não sucedida');
+            setMovimentacoes([]); // Clear movimentacoes if fetch failed or data is not as expected
+          }
         } catch (error) {
           console.error('Erro ao buscar movimentações:', error);
+          setMovimentacoes([]); // Clear movimentacoes on error
         }
       }
     };
 
     fetchMovimentacoes();
-  }, [token, pdv]);
+  }, [token, pdv, API_BASE_URL]);
 
   return (
     <div className="bg-gray-900 text-white flex flex-col">
@@ -48,6 +54,9 @@ const MovimentacoesCaixa = () => {
                     <th className="border-b border-gray-700 p-2">Tipo</th>
                     <th className="border-b border-gray-700 p-2">Valor</th>
                     <th className="border-b border-gray-700 p-2">Data</th>
+                    <th className="border-b border-gray-700 p-2">Método Pag.</th>
+                    <th className="border-b border-gray-700 p-2">Ref. ID</th>
+                    <th className="border-b border-gray-700 p-2">Ref. Tipo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -58,12 +67,15 @@ const MovimentacoesCaixa = () => {
                         <td className="border-b border-gray-700 p-2">{movimentacao.descricao}</td>
                         <td className="border-b border-gray-700 p-2">{movimentacao.tipo}</td>
                         <td className="border-b border-gray-700 p-2">R$ {movimentacao.valor}</td>
-                        <td className="border-b border-gray-700 p-2">{movimentacao.data}</td>
+                        <td className="border-b border-gray-700 p-2">{movimentacao.data_movimentacao}</td>
+                        <td className="border-b border-gray-700 p-2">{movimentacao.metodo_pagamento_nome || 'N/A'}</td>
+                        <td className="border-b border-gray-700 p-2">{movimentacao.referencia_id || 'N/A'}</td>
+                        <td className="border-b border-gray-700 p-2">{movimentacao.referencia_tipo || 'N/A'}</td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="5" className="border-b border-gray-700 p-2 text-center">
+                      <td colSpan="8" className="border-b border-gray-700 p-2 text-center">
                         Nenhuma movimentação encontrada
                       </td>
                     </tr>
