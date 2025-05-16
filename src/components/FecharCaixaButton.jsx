@@ -2,39 +2,70 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import AlertModal from './AlertModal';
+import { FaCashRegister } from 'react-icons/fa';
 
-const FecharCaixaButton = ({ pdv }) => {
+const FecharCaixaButton = ({ pdv, className, children }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [closementValue, setClosementValue] = useState('');
-    const [observacoesInput, setObservacoesInput] = useState(''); // State for observations
-    const { token, user } = useAuth(); // Destructure user to get user.id
+    const [observacoesInput, setObservacoesInput] = useState('');
+    const { token, user } = useAuth();
     const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
+    
+    // Estado para o modal de alerta
+    const [alertInfo, setAlertInfo] = useState({
+        isOpen: false,
+        title: 'Atenção',
+        message: '',
+        type: 'error'
+    });
+
+    // Função para mostrar o alerta
+    const showAlert = (message, type = 'error', title = 'Atenção') => {
+        setAlertInfo({
+            isOpen: true,
+            title,
+            message,
+            type
+        });
+    };
+
+    // Função para fechar o alerta
+    const closeAlert = () => {
+        setAlertInfo(prev => ({
+            ...prev,
+            isOpen: false
+        }));
+    };
 
     const handleOpenModal = () => {
-        setClosementValue(''); // Reset value when opening modal
-        setObservacoesInput(''); // Reset observations when opening modal
         setIsModalOpen(true);
     };
 
+    const handleCloseModal = () => {
+        setIsModalOpen(false);
+        setClosementValue('');
+        setObservacoesInput('');
+    };
+
+    const validateClosementValue = (value) => {
+        return !isNaN(parseFloat(value)) && isFinite(value) && parseFloat(value) > 0;
+    };
+
     const handleCloseCaixa = () => {
-        if (!user || !user.id) {
-            console.error("Usuário não autenticado para fechar o caixa.");
-            // Optionally, show an error to the user
-            return;
-        }
-        if (closementValue.trim() === '') {
-            alert('O valor de fechamento é obrigatório.');
+        // Validação do valor informado
+        if (!validateClosementValue(closementValue)) {
+            showAlert('Por favor, informe um valor válido para o fechamento.');
             return;
         }
 
+        // Prepara o valor a ser enviado
         const valorFinalInformado = parseFloat(closementValue.replace(',', '.'));
-        if (isNaN(valorFinalInformado)) {
-            alert('Valor de fechamento inválido. Use números.');
-            return;
-        }
 
+        // Prepara o payload para a API
         const payload = {
+            status: 2, // Status 2 = fechado
             usuario_fechamento_id: user.id,
             valor_final_informado: valorFinalInformado,
             observacoes: observacoesInput,
@@ -56,64 +87,91 @@ const FecharCaixaButton = ({ pdv }) => {
                 console.log(response);
                 if (response.success) {
                     navigate(0); // Reload the page
+                } else {
+                    showAlert(response.message || 'Erro ao fechar o caixa.');
                 }
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                showAlert('Erro ao fechar o caixa. Verifique sua conexão.');
+            });
     };
 
     return (
         <>
             <button
                 onClick={handleOpenModal}
-                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                className={className || "bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out"}
             >
-                Fechar Caixa
+                {children || (
+                    <>
+                        <FaCashRegister className="mr-1" />
+                        <span>Fechar Caixa</span>
+                    </>
+                )}
             </button>
+            
+            {/* Modal para confirmar fechamento do caixa */}
             {isModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
-                    <div className="bg-black bg-opacity-50 absolute inset-0"></div>
-                    <div className="bg-white p-6 rounded shadow-lg z-10 w-full max-w-md">
+                <div className="fixed inset-0 flex items-center justify-center z-50 text-white">
+                    <div className="bg-black bg-opacity-75 absolute inset-0" onClick={handleCloseModal}></div>
+                    <div className="bg-gray-800 p-6 rounded-lg shadow-lg z-10 w-full max-w-md">
                         <h2 className="text-xl font-bold mb-4">Fechar Caixa</h2>
-                        <label htmlFor="valor_fechamento" className="block text-sm font-medium text-gray-700 mb-1">
-                            Valor de Fechamento Informado <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text" // Using text to allow for comma as decimal separator, will parse to float
-                            id="valor_fechamento"
-                            value={closementValue}
-                            onChange={(e) => setClosementValue(e.target.value)}
-                            placeholder="Ex: 150,50"
-                            className="border p-2 mb-4 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                            autoFocus
-                        />
-                        <label htmlFor="observacoes" className="block text-sm font-medium text-gray-700 mb-1">
-                            Observações
-                        </label>
-                        <textarea
-                            id="observacoes"
-                            value={observacoesInput}
-                            onChange={(e) => setObservacoesInput(e.target.value)}
-                            placeholder="Alguma observação sobre o fechamento?"
-                            className="border p-2 mb-6 w-full rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                            rows="3"
-                        />
-                        <div className="flex justify-end space-x-3">
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-5 py-2 rounded-md transition duration-150"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleCloseCaixa}
-                                className="bg-blue-500 hover:bg-blue-600 text-white font-bold px-5 py-2 rounded-md transition duration-150"
-                            >
-                                Confirmar Fechamento
-                            </button>
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="valor_fechamento" className="block text-sm font-medium text-gray-300 mb-1">
+                                    Valor de Fechamento Informado <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    id="valor_fechamento"
+                                    value={closementValue}
+                                    onChange={(e) => setClosementValue(e.target.value)}
+                                    placeholder="0,00"
+                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                />
+                            </div>
+
+                            <div>
+                                <label htmlFor="observacoes" className="block text-sm font-medium text-gray-300 mb-1">
+                                    Observações
+                                </label>
+                                <textarea
+                                    id="observacoes"
+                                    value={observacoesInput}
+                                    onChange={(e) => setObservacoesInput(e.target.value)}
+                                    placeholder="Observações sobre o fechamento do caixa"
+                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 h-24"
+                                ></textarea>
+                            </div>
+
+                            <div className="flex justify-end space-x-3 mt-6">
+                                <button
+                                    onClick={handleCloseModal}
+                                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-md transition duration-150"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleCloseCaixa}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-md transition duration-150"
+                                >
+                                    Confirmar Fechamento
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             )}
+            
+            {/* Modal de alerta para erros e mensagens */}
+            <AlertModal
+                isOpen={alertInfo.isOpen}
+                onClose={closeAlert}
+                title={alertInfo.title}
+                message={alertInfo.message}
+                type={alertInfo.type}
+            />
         </>
     );
 };
@@ -125,7 +183,9 @@ FecharCaixaButton.propTypes = {
                 id_caixa: PropTypes.number.isRequired
             }).isRequired
         }).isRequired
-    }).isRequired
+    }).isRequired,
+    className: PropTypes.string,
+    children: PropTypes.node
 };
 
 export default FecharCaixaButton;

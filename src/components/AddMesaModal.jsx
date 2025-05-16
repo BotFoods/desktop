@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import AlertModal from './AlertModal';
 
 const AddMesaModal = ({ isOpen, onClose, onSubmit, existingMesaNumbers = [], errorMessage }) => {
   const [numeroMesaInput, setNumeroMesaInput] = useState('');
   const [capacidadeInput, setCapacidadeInput] = useState('4');
+  const [alertInfo, setAlertInfo] = useState({
+    isOpen: false,
+    title: 'Atenção',
+    message: '',
+    type: 'error'
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -15,10 +22,19 @@ const AddMesaModal = ({ isOpen, onClose, onSubmit, existingMesaNumbers = [], err
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!capacidadeInput || parseInt(capacidadeInput, 10) <= 0) {
-      alert('Capacidade deve ser um número maior que zero.'); // Simple validation
+      setAlertInfo({
+        isOpen: true,
+        title: 'Dados inválidos',
+        message: 'Capacidade deve ser um número maior que zero.',
+        type: 'error'
+      });
       return;
     }
     onSubmit({ numero_mesa: numeroMesaInput, capacidade: capacidadeInput });
+  };
+
+  const closeAlert = () => {
+    setAlertInfo(prev => ({ ...prev, isOpen: false }));
   };
 
   if (!isOpen) return null;
@@ -93,9 +109,18 @@ const AddMesaModal = ({ isOpen, onClose, onSubmit, existingMesaNumbers = [], err
           </div>
         </form>
       </div>
+      
+      <AlertModal
+        isOpen={alertInfo.isOpen}
+        onClose={closeAlert}
+        title={alertInfo.title}
+        message={alertInfo.message}
+        type={alertInfo.type}
+      />
     </div>
   );
 };
+
 AddMesaModal.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,

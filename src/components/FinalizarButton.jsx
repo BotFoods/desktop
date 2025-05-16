@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
+import { FaCheckCircle } from 'react-icons/fa';
 
-const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className }) => {
+const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -177,15 +178,20 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className }) => {
     <>
       <button
         onClick={handleFinalizar}
-        className={className || "bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-150 ease-in-out"}
+        className={className || "bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out"}
       >
-        Finalizar
+        {children || (
+          <>
+            <FaCheckCircle className="mr-1" />
+            <span>Finalizar</span>
+          </>
+        )}
       </button>
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 text-black">
-          <div className="bg-black bg-opacity-60 absolute inset-0" onClick={closeModal}></div>
-          <div className="bg-white p-6 rounded-lg shadow-xl z-10 w-96">
-            <h2 className="text-xl font-bold mb-6 text-center border-b pb-2">Escolha a forma de pagamento</h2>
+        <div className="fixed inset-0 flex items-center justify-center z-50 text-white">
+          <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl z-10 w-96">
+            <h2 className="text-xl font-bold mb-6 text-center border-b pb-2 border-gray-700">Escolha a forma de pagamento</h2>
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleOptionClick('Crédito')}
@@ -262,6 +268,7 @@ FinalizarButton.propTypes = {
   setOrders: PropTypes.func.isRequired,
   loja_id: PropTypes.number.isRequired, // Added: loja_id is required
   className: PropTypes.string,
+  children: PropTypes.node,
 };
 
 export default FinalizarButton;

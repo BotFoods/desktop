@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
-import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle } from 'react-icons/fa';
+import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle, FaPlus, FaMinus, FaWallet, FaFileInvoiceDollar } from 'react-icons/fa';
 
 const MovimentacoesCaixa = () => {
   const { token, validateSession } = useAuth();
@@ -12,6 +12,7 @@ const MovimentacoesCaixa = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
   const [sessionValidated, setSessionValidated] = useState(false);
+  const [activeTab, setActiveTab] = useState('todas');
   const [pdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : null;
@@ -99,14 +100,27 @@ const MovimentacoesCaixa = () => {
     }
   }, [token, pdv, API_BASE_URL]);
 
-  // Filter movimentacoes when search term or filter type changes
+  // Filter movimentacoes when search term or filter type or active tab changes
   useEffect(() => {
     let results = [...movimentacoes];
     
+    // Apply filter type first if exists
     if (filterType) {
       results = results.filter(mov => mov.tipo === filterType);
     }
     
+    // Apply tab filter
+    if (activeTab === 'entradas') {
+      results = results.filter(mov => 
+        mov.tipo && typeof mov.tipo === 'string' && 
+        (mov.tipo.startsWith('ENTRADA_') || mov.tipo === 'ENTRADA'));
+    } else if (activeTab === 'saidas') {
+      results = results.filter(mov => 
+        mov.tipo && typeof mov.tipo === 'string' && 
+        (mov.tipo.startsWith('SAIDA_') || mov.tipo === 'SAIDA'));
+    }
+    
+    // Apply search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       results = results.filter(mov => 
@@ -117,7 +131,7 @@ const MovimentacoesCaixa = () => {
     }
     
     setFilteredMovimentacoes(results);
-  }, [searchTerm, filterType, movimentacoes]);
+  }, [searchTerm, filterType, activeTab, movimentacoes]);
 
   // Format date for better display
   const formatDate = (dateString) => {
@@ -181,8 +195,82 @@ const MovimentacoesCaixa = () => {
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
       <Header />
       <div className="flex-grow flex">
+        {/* Sidebar de Movimentações */}
+        <div className="fixed top-16 bottom-0 left-0 w-64 bg-gray-800 text-gray-300 overflow-y-auto">
+          <nav className="p-4">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+              Movimentações
+            </h3>
+            <div className="space-y-2">
+              <button 
+                onClick={() => setActiveTab('todas')}
+                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                  activeTab === 'todas' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <FaWallet />
+                <span>Todas</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('entradas')}
+                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                  activeTab === 'entradas' 
+                    ? 'bg-green-600 text-white' 
+                    : 'hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <FaPlus />
+                <span>Entradas</span>
+              </button>
+              <button 
+                onClick={() => setActiveTab('saidas')}
+                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                  activeTab === 'saidas' 
+                    ? 'bg-red-600 text-white' 
+                    : 'hover:bg-gray-700 hover:text-white'
+                }`}
+              >
+                <FaMinus />
+                <span>Saídas</span>
+              </button>
+              <button 
+                onClick={() => {}}
+                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+              >
+                <FaFileInvoiceDollar />
+                <span>Relatórios</span>
+              </button>
+            </div>
+          </nav>
+
+          {/* Informações de Suporte no Rodapé */}
+          <div className="absolute bottom-0 left-0 w-full p-4 bg-gray-800 border-t border-gray-700">
+            <div className="space-y-2 text-xs text-gray-400">
+              <p className="flex justify-between">
+                <span>Suporte:</span>
+                <a href="mailto:suporte@botfood.com" className="text-blue-400 hover:text-blue-300">
+                  suporte@botfood.com
+                </a>
+              </p>
+              <p className="flex justify-between">
+                <span>Contato:</span>
+                <span>(11) 9999-8888</span>
+              </p>
+              <p className="text-center mt-3 text-gray-500">
+                &copy; {new Date().getFullYear()} BotFood - Todos os direitos reservados
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="ml-64 pt-16 p-6 flex-grow flex flex-col">
-          <h1 className="text-3xl font-bold mb-6">Movimentações do Caixa</h1>
+          <h1 className="text-3xl font-bold mb-6">
+            {activeTab === 'todas' && "Todas as Movimentações"}
+            {activeTab === 'entradas' && "Entradas de Caixa"}
+            {activeTab === 'saidas' && "Saídas de Caixa"}
+          </h1>
           
           {/* Filter and Search Bar */}
           <div className="w-full bg-gray-800 p-4 rounded-lg shadow-lg mb-6">

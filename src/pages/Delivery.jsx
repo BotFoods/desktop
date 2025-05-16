@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
-import { FaTrash, FaSearch, FaUser, FaPhone } from 'react-icons/fa';
+import { FaTrash, FaSearch, FaUser, FaPhone, FaMotorcycle } from 'react-icons/fa';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
 import { useNavigate } from 'react-router-dom';
 import FinalizarButton from '../components/FinalizarButton';
+import AlertModal from '../components/AlertModal';
 
 const DELIVERY_STORAGE_KEY = 'pdv_delivery';
 
@@ -25,6 +26,29 @@ const Delivery = () => {
     address: '',
     id_cliente: null,
   });
+  // Estado para o modal de alerta
+  const [alertInfo, setAlertInfo] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
+  
+  // Função para mostrar o alerta
+  const showAlert = (message, type = 'info', title = 'Atenção') => {
+    setAlertInfo({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  // Função para fechar o alerta
+  const closeAlert = () => {
+    setAlertInfo(prev => ({ ...prev, isOpen: false }));
+  };
+  
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(DELIVERY_STORAGE_KEY);
 
@@ -219,7 +243,7 @@ const Delivery = () => {
 
   const searchCustomer = async () => {
     if (!searchPhone.trim()) {
-      alert('Por favor, informe um telefone para busca');
+      showAlert('Por favor, informe um telefone para busca', 'error');
       return;
     }
 
@@ -269,17 +293,17 @@ const Delivery = () => {
           setCustomerDetails({ ...customerDetails, phone: searchPhone });
         }
       } else {
-        alert('Erro ao buscar cliente: ' + data.message);
+        showAlert(`Erro ao buscar cliente: ${data.message}`, 'error');
       }
     } catch (error) {
       console.error('Erro ao buscar cliente:', error);
-      alert('Erro ao buscar cliente. Por favor, tente novamente.');
+      showAlert('Erro ao buscar cliente. Por favor, tente novamente.', 'error');
     }
   };
 
   const createCustomer = async () => {
     if (!customerDetails.name || !customerDetails.phone || !customerDetails.address) {
-      alert('Por favor, preencha todos os dados do cliente.');
+      showAlert('Por favor, preencha todos os dados do cliente.', 'error');
       return;
     }
 
@@ -324,11 +348,11 @@ const Delivery = () => {
         setPdvOpened(true);
         setIsCreatingCustomer(false);
       } else {
-        alert('Erro ao cadastrar cliente: ' + data.message);
+        showAlert(`Erro ao cadastrar cliente: ${data.message}`, 'error');
       }
     } catch (error) {
       console.error('Erro ao cadastrar cliente:', error);
-      alert('Erro ao cadastrar cliente. Por favor, tente novamente.');
+      showAlert('Erro ao cadastrar cliente. Por favor, tente novamente.', 'error');
     }
   };
 
@@ -458,10 +482,22 @@ const Delivery = () => {
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
       <Header categories={categories} onSelectCategory={setSelectedCategory} />
       
+      {/* Modal de alerta */}
+      <AlertModal
+        isOpen={alertInfo.isOpen}
+        onClose={closeAlert}
+        title={alertInfo.title}
+        message={alertInfo.message}
+        type={alertInfo.type}
+      />
+      
       {isSearching ? (
-        <div className="flex-grow flex flex-col items-center justify-center p-6">
+        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16">
           <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
-            <h1 className="text-3xl font-bold mb-6 text-center">Delivery</h1>
+            <h1 className="text-3xl font-bold mb-6 text-center flex items-center justify-center">
+              <FaMotorcycle className="mr-2 text-yellow-500" />
+              Delivery
+            </h1>
             <p className="text-gray-300 mb-6 text-center">
               Digite o telefone do cliente para iniciar o atendimento
             </p>
@@ -512,9 +548,12 @@ const Delivery = () => {
           </div>
         </div>
       ) : isCreatingCustomer ? (
-        <div className="flex-grow flex flex-col items-center justify-center p-6">
+        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16"> {/* Changed justify-center to justify-start and added pt-16 */}
           <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
-            <h1 className="text-3xl font-bold mb-2 text-center">Novo Cliente</h1>
+            <h1 className="text-3xl font-bold mb-2 text-center flex items-center justify-center">
+              <FaUser className="mr-2 text-yellow-500" />
+              Novo Cliente
+            </h1>
             <p className="text-gray-300 mb-6 text-center">
               Preencha os dados para cadastrar o cliente
             </p>
@@ -547,7 +586,7 @@ const Delivery = () => {
                 placeholder="Endereço completo"
                 value={customerDetails.address}
                 onChange={(e) => setCustomerDetails({ ...customerDetails, address: e.target.value })}
-                className="bg-gray-700 text-white w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
+                className="bg-gray-700 text-white w-full p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] align-top"
               />
             </div>
             
@@ -570,11 +609,14 @@ const Delivery = () => {
       ) : (
         <div className="flex-grow flex">
           <CategoryMenu categories={categories} onSelectCategory={setSelectedCategory} />
-          <div className="ml-64 pt-16 p-4 flex-grow flex">
+          <div className="ml-64 pt-20 p-6 flex-grow flex"> {/* Modificado: aumentado pt-16 para pt-20 e p-4 para p-6 */}
             <div className="w-3/4 pr-4">
-              <div className="bg-gray-800 p-4 rounded-lg mb-4 shadow-md">
+              <div className="bg-gray-800 p-4 rounded-lg mb-6 shadow-lg">
                 <div className="flex justify-between items-center">
-                  <h1 className="text-3xl text-center font-bold">PDV - Delivery</h1>
+                  <h1 className="text-3xl font-bold flex items-center">
+                    <FaMotorcycle className="mr-2 text-yellow-500" /> 
+                    PDV - Delivery
+                  </h1>
                   <button
                     onClick={clearDeliveryData}
                     className="bg-red-600 hover:bg-red-700 text-white text-sm py-1 px-3 rounded-lg transition-colors"
@@ -592,18 +634,35 @@ const Delivery = () => {
                   </p>
                 </div>
               </div>
-              <div className="mt-4">
-                {selectedCategory && (
+              <div className="mt-6">
+                {selectedCategory ? (
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                       {products[selectedCategory]?.map((product) => (
                         <div
                           key={product.id}
-                          className="bg-gray-800 p-4 rounded shadow cursor-pointer hover:bg-gray-700 transition-colors"
+                          className="bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer transition-all duration-200 hover:bg-gray-700 hover:shadow-lg transform hover:scale-105"
                           onClick={() => addToOrder(product)}
                         >
                           <h3 className="text-lg font-bold">{product.name}</h3>
-                          <p className="text-gray-400">R$ {product.price}</p>
+                          <p className="text-green-400 font-medium mt-2">R$ {parseFloat(product.price).toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  // Quando nenhuma categoria é selecionada, mostrar todos os produtos
+                  <div>
+                    <h3 className="text-xl font-bold mb-4">Todos os Produtos</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                      {Object.values(products).flat().map((product) => (
+                        <div
+                          key={product.id}
+                          className="bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer transition-all duration-200 hover:bg-gray-700 hover:shadow-lg transform hover:scale-105"
+                          onClick={() => addToOrder(product)}
+                        >
+                          <h3 className="text-lg font-bold">{product.name}</h3>
+                          <p className="text-green-400 font-medium mt-2">R$ {parseFloat(product.price).toFixed(2)}</p>
                         </div>
                       ))}
                     </div>
@@ -611,46 +670,66 @@ const Delivery = () => {
                 )}
               </div>
             </div>
-            <div className="w-1/4 pl-4 bg-yellow-100 text-gray-900 p-4 rounded-lg shadow-lg flex flex-col">
-              <h2 className="text-2xl font-bold mb-4">Resumo do Pedido</h2>
-              <div className="flex-grow">
-                {orders.length === 0 ? (
-                  <div className="text-center py-4 text-gray-500">
-                    Nenhum item adicionado ainda
-                  </div>
-                ) : (
+            <div className="w-1/4 pl-4">
+              <div className="bg-gray-800 rounded-lg shadow-lg p-4 h-full">
+                <h2 className="text-2xl font-bold mb-4 text-center border-b border-gray-700 pb-2">Resumo do Pedido</h2>
+                {orders.length > 0 ? (
                   <ul className="mt-4 max-h-[calc(100vh-350px)] overflow-y-auto">
                     {orders.map((order, index) => (
                       <li
                         key={index}
-                        className={`border-b border-gray-300 py-2 ${order.status?.impresso ? 'text-gray-600 italic' : ''} flex justify-between items-center`}
+                        className={`border-b border-gray-700 py-3 ${order.status?.impresso ? 'text-gray-500 italic' : ''} flex justify-between items-center`}
                       >
-                        <span>
-                          {order.quantity}x - {order.name} - R$ {order.price} - R$ {order.subtotal.toFixed(2)}
-                        </span>
-                        <FaTrash
-                          className="text-red-500 cursor-pointer hover:text-red-700"
-                          onClick={() => removeFromOrder(order.id)}
-                        />
+                        <div className="flex-1">
+                          <div className="flex items-center">
+                            <span className="font-bold text-green-400 mr-2">{order.quantity}x</span>
+                            <span>{order.name}</span>
+                          </div>
+                          <div className="text-sm text-gray-400">
+                            R$ {parseFloat(order.price).toFixed(2)} un = R$ {order.subtotal.toFixed(2)}
+                          </div>
+                        </div>
+                        <button
+                          className="text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromOrder(order.id);
+                          }}
+                        >
+                          <FaTrash />
+                        </button>
                       </li>
                     ))}
                   </ul>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                    <p className="text-center">Nenhum item adicionado</p>
+                    <p className="text-center text-sm mt-2">Selecione produtos para adicionar ao pedido</p>
+                  </div>
+                )}
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="flex justify-between text-lg">
+                    <span className="font-medium">Total:</span>
+                    <span className="font-bold text-green-400">
+                      R$ {orders.reduce((total, order) => total + parseFloat(order.subtotal), 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-400 mt-1">
+                    {orders.reduce((total, order) => total + order.quantity, 0)} itens
+                  </div>
+                </div>
+                {orders.length > 0 && user?.loja_id && (
+                  <div className="mt-4">
+                    <FinalizarButton 
+                      pdv={pdv} 
+                      setPdv={setPdv} 
+                      setOrders={setOrders}
+                      loja_id={user.loja_id} 
+                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow-md w-full"
+                    />
+                  </div>
                 )}
               </div>
-              <div className="mt-4 font-bold text-xl border-t border-gray-300 pt-3">
-                Total: R$
-                {orders.reduce((total, order) => total + parseFloat(order.subtotal), 0).toFixed(2)}
-              </div>
-              {orders.length > 0 && user?.loja_id && (
-                <div className="mt-4">
-                  <FinalizarButton 
-                    pdv={pdv} 
-                    setPdv={setPdv} 
-                    setOrders={setOrders}
-                    loja_id={user.loja_id} 
-                  />
-                </div>
-              )}
             </div>
           </div>
         </div>

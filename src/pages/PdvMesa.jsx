@@ -277,7 +277,7 @@ const PdvMesa = () => {
       <Header categories={categories} onSelectCategory={setSelectedCategory} />
       <CategoryMenu categories={categories} onSelectCategory={setSelectedCategory} />
       <div className="flex-grow flex">
-        <div className="ml-64 pt-16 p-4 flex-grow flex">
+        <div className="ml-64 pt-20 p-6 flex-grow flex"> {/* Modificado: aumentado pt-16 para pt-20 e p-4 para p-6 */}
           <div className="w-3/4 pr-4">
             <div className="flex items-center justify-between mb-6">
               <h1 className="text-3xl font-bold flex items-center">
@@ -292,10 +292,28 @@ const PdvMesa = () => {
               </div>
             </div>
             <div className="mt-6">
-              {selectedCategory && (
+              {selectedCategory ? (
+                // Quando uma categoria é selecionada, mostrar apenas produtos dessa categoria
                 <div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                     {products[selectedCategory]?.map((product) => (
+                      <div
+                        key={product.id}
+                        className="bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer transition-all duration-200 hover:bg-gray-700 hover:shadow-lg transform hover:scale-105"
+                        onClick={() => addToOrder(product)}
+                      >
+                        <h3 className="text-lg font-bold">{product.name}</h3>
+                        <p className="text-green-400 font-medium mt-2">R$ {parseFloat(product.price).toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                // Quando nenhuma categoria é selecionada, mostrar todos os produtos
+                <div>
+                  <h3 className="text-xl font-bold mb-4">Todos os Produtos</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                    {Object.values(products).flat().map((product) => (
                       <div
                         key={product.id}
                         className="bg-gray-800 p-4 rounded-lg shadow-md cursor-pointer transition-all duration-200 hover:bg-gray-700 hover:shadow-lg transform hover:scale-105"

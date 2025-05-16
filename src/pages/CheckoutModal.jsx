@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'; // Adicionado useMemo
+import { useState, useEffect, useRef, useMemo } from 'react'; // Adicionado useMemo
 import { FaWhatsapp, FaPlus, FaMinus, FaTrash } from 'react-icons/fa'; // Importar ícones necessários
+import PropTypes from 'prop-types'; // Importar PropTypes para validação de props
 
 // Atualizar props para incluir funções de manipulação
 const CheckoutModal = ({ 
@@ -161,45 +162,45 @@ const CheckoutModal = ({
 
   return (
     <div
-      className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity checkout-modal-overlay ${
+      className={`fixed inset-0 bg-black bg-opacity-75 z-50 transition-opacity checkout-modal-overlay ${
         isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
       }`}
       onClick={handleOutsideClick}
     >
       <div
-        className={`fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-lg transform transition-transform ${ // Ajustado para max-w-md e w-full
+        className={`fixed right-0 top-0 h-full w-full max-w-md bg-gray-800 shadow-lg transform transition-transform ${ // Alterado para bg-gray-800
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } flex flex-col`} // Adicionado flex flex-col
       >
         {/* Header do Modal */}
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold text-gray-800">Resumo do Pedido</h2>
+        <div className="p-4 border-b border-gray-700 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-white">Resumo do Pedido</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
+            className="text-gray-400 hover:text-white text-2xl"
           >
             &times;
           </button>
         </div>
 
         {/* Conteúdo Rolável */}
-        <div className="flex-grow overflow-y-auto p-4 text-black">
+        <div className="flex-grow overflow-y-auto p-4 text-white">
           {selectedProducts.length === 0 ? (
-            <p className="text-center text-gray-500">Seu carrinho está vazio.</p>
+            <p className="text-center text-gray-400">Seu carrinho está vazio.</p>
           ) : (
             <>
               <ul className="mb-4 space-y-3">
                 {selectedProducts.map((item) => (
-                  <li key={item.product.id} className="flex items-center justify-between border-b pb-3">
+                  <li key={item.product.id} className="flex items-center justify-between border-b border-gray-700 pb-3">
                     <div className="flex-grow mr-2">
                       <span className="block font-medium">{item.product.name}</span>
-                      <span className="text-sm text-gray-500">R$ {parseFloat(item.product.price).toFixed(2)}</span>
+                      <span className="text-sm text-gray-400">R$ {parseFloat(item.product.price).toFixed(2)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                        {/* Botão Diminuir */}
                        <button 
                          onClick={() => onDecreaseQuantity(item.product.id)} 
-                         className="text-red-500 hover:text-red-700 p-1 disabled:opacity-50"
+                         className="text-red-400 hover:text-red-300 p-1 disabled:opacity-50"
                          disabled={item.quantity <= 1} // Desabilita se quantidade for 1
                          aria-label="Diminuir quantidade"
                        >
@@ -210,7 +211,7 @@ const CheckoutModal = ({
                        {/* Botão Aumentar */}
                        <button 
                          onClick={() => onIncreaseQuantity(item.product)} // Passa o produto inteiro
-                         className="text-green-500 hover:text-green-700 p-1"
+                         className="text-green-400 hover:text-green-300 p-1"
                          aria-label="Aumentar quantidade"
                        >
                          <FaPlus size={16}/>
@@ -218,7 +219,7 @@ const CheckoutModal = ({
                        {/* Botão Remover */}
                        <button 
                          onClick={() => onRemoveProduct(item.product.id)} 
-                         className="text-gray-400 hover:text-red-600 ml-2 p-1"
+                         className="text-gray-400 hover:text-red-400 ml-2 p-1"
                          aria-label="Remover item"
                        >
                          <FaTrash size={16}/>
@@ -239,12 +240,12 @@ const CheckoutModal = ({
                    onChange={(e) => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))} // Formata e limita CEP
                    onBlur={fetchAddressByCep}
                    ref={cepInputRef}
-                   className={`w-full border rounded px-2 py-1 ${
-                     errorMessage && errorMessage.includes('CEP') ? 'border-red-500' : 'border-gray-300' // Ajuste na borda de erro
+                   className={`w-full border rounded px-2 py-1 bg-gray-700 text-white ${
+                     errorMessage && errorMessage.includes('CEP') ? 'border-red-500' : 'border-gray-600'
                    }`}
                    placeholder="Apenas números"
                  />
-                 {errorMessage && errorMessage.includes('CEP') && <p className="text-red-500 text-sm mt-1">{errorMessage}</p>}
+                 {errorMessage && errorMessage.includes('CEP') && <p className="text-red-400 text-sm mt-1">{errorMessage}</p>}
                </div>
                {/* ... Restante dos campos de endereço ... */}
                 <div className="mb-2">
@@ -253,7 +254,7 @@ const CheckoutModal = ({
                     type="text"
                     value={loading ? 'Buscando...' : address.street}
                     disabled
-                    className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-500" // Estilo para desabilitado
+                    className="w-full border rounded px-2 py-1 bg-gray-700 text-gray-400"
                     placeholder="Rua"
                   />
                 </div>
@@ -263,7 +264,7 @@ const CheckoutModal = ({
                     type="text"
                     value={address.number}
                     onChange={handleNumberInput} // Já remove não numéricos
-                    className="w-full border border-gray-300 rounded px-2 py-1"
+                    className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-700 text-white"
                     placeholder="Número"
                   />
                 </div>
@@ -273,7 +274,7 @@ const CheckoutModal = ({
                     type="text"
                     value={address.complement}
                     onChange={(e) => setAddress({ ...address, complement: e.target.value })}
-                    className="w-full border border-gray-300 rounded px-2 py-1"
+                    className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-700 text-white"
                     placeholder="Apto / Bloco / Casa"
                   />
                 </div>
@@ -283,7 +284,7 @@ const CheckoutModal = ({
                     type="text"
                     value={loading ? 'Buscando...' : address.neighborhood}
                     disabled
-                    className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-500"
+                    className="w-full border rounded px-2 py-1 bg-gray-700 text-gray-400"
                     placeholder="Bairro"
                   />
                 </div>
@@ -293,7 +294,7 @@ const CheckoutModal = ({
                     type="text"
                     value={loading ? 'Buscando...' : address.city}
                     disabled
-                    className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-500"
+                    className="w-full border rounded px-2 py-1 bg-gray-700 text-gray-400"
                     placeholder="Cidade"
                   />
                 </div>
@@ -303,7 +304,7 @@ const CheckoutModal = ({
                     type="text"
                     value={loading ? 'Buscando...' : address.state}
                     disabled
-                    className="w-full border rounded px-2 py-1 bg-gray-100 text-gray-500"
+                    className="w-full border rounded px-2 py-1 bg-gray-700 text-gray-400"
                     placeholder="Estado"
                   />
                 </div>
@@ -313,7 +314,7 @@ const CheckoutModal = ({
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2 py-1"
+                  className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-700 text-white"
                   required // Adicionado required
                 >
                   <option value="" disabled>Selecione...</option> {/* Melhor opção padrão */}
@@ -324,17 +325,17 @@ const CheckoutModal = ({
                 </select>
               </div>
               {/* Exibe mensagem de erro geral */}
-              {errorMessage && !errorMessage.includes('CEP') && <p className="text-red-500 text-sm mb-4">{errorMessage}</p>}
+              {errorMessage && !errorMessage.includes('CEP') && <p className="text-red-400 text-sm mb-4">{errorMessage}</p>}
             </>
           )}
         </div>
 
         {/* Footer do Modal (Botão Finalizar) */}
         {selectedProducts.length > 0 && ( // Só mostra o botão se houver itens
-          <div className="p-4 border-t">
+          <div className="p-4 border-t border-gray-700">
             <button
               onClick={handleFinalizeOrder}
-              className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 flex items-center justify-center gap-2 font-semibold text-lg disabled:opacity-70"
+              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-semibold text-lg disabled:opacity-70"
               disabled={loading || selectedProducts.length === 0} // Desabilita se carregando ou vazio
             >
               <FaWhatsapp />
@@ -345,6 +346,25 @@ const CheckoutModal = ({
       </div>
     </div>
   );
+};
+CheckoutModal.propTypes = {
+  isOpen: PropTypes.bool.isRequired,
+  onClose: PropTypes.func.isRequired,
+  selectedProducts: PropTypes.arrayOf(
+    PropTypes.shape({
+      product: PropTypes.shape({
+        id: PropTypes.string.isRequired,
+        name: PropTypes.string.isRequired,
+        price: PropTypes.string.isRequired,
+      }).isRequired,
+      quantity: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+  wid: PropTypes.string.isRequired,
+  contatoLoja: PropTypes.string.isRequired,
+  onIncreaseQuantity: PropTypes.func.isRequired,
+  onDecreaseQuantity: PropTypes.func.isRequired,
+  onRemoveProduct: PropTypes.func.isRequired,
 };
 
 export default CheckoutModal;

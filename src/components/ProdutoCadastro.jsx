@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaUndo } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaEdit, FaTrash, FaUndo, FaPlus, FaBoxOpen, FaCheck, FaTimes } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
+import Modal from './Modal';
 
 const ProdutoCadastro = () => {
     const { token, setToken, validateSession } = useAuth();
@@ -13,15 +14,19 @@ const ProdutoCadastro = () => {
     const [message, setMessage] = useState('');
     const [activeTab, setActiveTab] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [messageType, setMessageType] = useState('success');
     const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
-      validateSession();
-    }, []);
+        validateSession();
+    }, [validateSession]);
 
     useEffect(() => {
         const fetchCategorias = async () => {
+            setLoading(true);
             const options = {
                 method: 'GET',
                 headers: {
@@ -33,20 +38,21 @@ const ProdutoCadastro = () => {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/categorias/`, options);
                 const data = await response.json();
-                if (data.auth === false) {
-                    setToken('');
-                }
-                setCategorias(data.categorias.filter(cat => cat.ativo));
+                setCategorias(data.categorias.filter(cat => cat.ativo === 1));
             } catch (error) {
                 console.error('Error fetching categories:', error);
+                showMessage('Erro ao buscar categorias', 'error');
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchCategorias();
-    }, [token]);
+    }, [token, API_BASE_URL]);
 
     useEffect(() => {
         const fetchProdutos = async () => {
+            setLoading(true);
             const options = {
                 method: 'GET',
                 headers: {
@@ -61,15 +67,14 @@ const ProdutoCadastro = () => {
                 setProdutos(data);
             } catch (error) {
                 console.error('Error fetching products:', error);
+                showMessage('Erro ao buscar produtos', 'error');
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchProdutos();
-    }, [token]);
-
-    useEffect(() => {
-        document.getElementById('nomeProduto').focus();
-    }, []);
+    }, [token, API_BASE_URL]);
 
     useEffect(() => {
         if (categorias.length > 0) {
@@ -77,135 +82,315 @@ const ProdutoCadastro = () => {
         }
     }, [categorias]);
 
-    const handleAddProduto = async () => {
-        if (nome.trim() && preco.trim() && idCategoria) {
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    authorization: `${token}`
-                },
-                credentials: 'include',
-                body: JSON.stringify({ nome, descricao, preco, disponibilidade: 1, id_categoria: idCategoria })
-            };
+    const showMessage = (text, type = 'success') => {
+        setMessage(text);
+        setMessageType(type);
+        setTimeout(() => {
+            setMessage('');
+        }, 5000);
+    };
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/produtos/cadastrar`, options);
-                const data = await response.json();
-                if (data.success) {
-                    const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria };
-                    setProdutos((prevProdutos) => {
-                        const updatedProdutos = { ...prevProdutos };
-                        const category = categorias.find(cat => cat.id === idCategoria);
-                        if (category) {
-                            const categoryName = category.categoria;
-                            if (!updatedProdutos[categoryName]) {
-                                updatedProdutos[categoryName] = [];
-                            }
-                            updatedProdutos[categoryName].push(newProduct);
-                        }
-                        return updatedProdutos;
-                    });
-                    setNome('');
-                    setDescricao('');
-                    setPreco('');
-                    setIdCategoria('');
-                    setMessage(data.message);
-                } else {
-                    console.error('Error adding product:', data.message);
-                }
-            } catch (error) {
-                console.error('Error adding product:', error);
-            }
+    const formatPrice = (price) => {
+        if (!price) return '0,00';
+        return Number(price).toFixed(2).replace('.', ',');
+    };
+
+    const handlePriceChange = (e) => {
+        const value = e.target.value;
+        
+        // Remove todos os caracteres que não são números ou vírgula
+        const numericValue = value.replace(/[^0-9,]/g, '');
+        
+        // Substitui vírgula por ponto para armazenamento interno
+        setPreco(numericValue);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        
+        if (!nome.trim()) {
+            showMessage('Digite o nome do produto', 'error');
+            return;
         }
-    };
 
-    const handleEditProduto = (category, index) => {
-        const product = produtos[category][index];
-        setEditProduct({ ...product, category, index });
-        setIsEditModalOpen(true);
-    };
+        if (!preco.trim()) {
+            showMessage('Digite o preço do produto', 'error');
+            return;
+        }
 
-    const handleSaveEdit = () => {
-        const { category, index, nome, descricao, preco } = editProduct;
-        setProdutos((prevProdutos) => {
-            const updatedProdutos = { ...prevProdutos };
-            updatedProdutos[category][index] = { ...updatedProdutos[category][index], nome, descricao, preco };
-            return updatedProdutos;
-        });
-        setIsEditModalOpen(false);
-    };
+        if (!idCategoria) {
+            showMessage('Selecione uma categoria', 'error');
+            return;
+        }
 
-    const handleToggleDisponibilidade = async (category, id, disponibilidade) => {
+        setLoading(true);
+        
+        // Converte o preço para o formato esperado pela API
+        const precoFormatado = preco.replace(',', '.');
+        
         const options = {
-            method: 'PATCH',
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
             },
             credentials: 'include',
-            body: JSON.stringify({ disponibilidade })
+            body: JSON.stringify({
+                nome,
+                descricao,
+                preco: precoFormatado,
+                id_categoria: idCategoria,
+                loja_id: 1,
+                sku: '',
+                codigo_barras: '',
+                disponibilidade: 1
+            })
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/produtos/cadastrar`, options);
             const data = await response.json();
+            
             if (data.success) {
+                const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria, disponibilidade: 1 };
                 setProdutos((prevProdutos) => {
                     const updatedProdutos = { ...prevProdutos };
-                    updatedProdutos[category] = updatedProdutos[category].map(prod => 
-                        prod.id === id ? { ...prod, disponibilidade } : prod
-                    );
+                    const category = categorias.find(cat => cat.id === parseInt(idCategoria, 10));
+                    if (category) {
+                        const categoryName = category.categoria;
+                        if (!updatedProdutos[categoryName]) {
+                            updatedProdutos[categoryName] = [];
+                        }
+                        updatedProdutos[categoryName].push({
+                            ...newProduct, 
+                            name: nome,  // Add name property for display
+                            price: preco // Add price property for display
+                        });
+                    }
                     return updatedProdutos;
                 });
+                setNome('');
+                setDescricao('');
+                setPreco('');
+                setIdCategoria('');
+                showMessage(data.message || 'Produto cadastrado com sucesso!');
+                setIsFormModalOpen(false);
             } else {
-                console.error('Error changing product availability:', data.message);
+                showMessage(data.message || 'Erro ao cadastrar produto', 'error');
             }
         } catch (error) {
-            console.error('Error changing product availability:', error);
+            console.error('Error creating product:', error);
+            showMessage('Erro ao cadastrar produto', 'error');
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleTabClick = (category) => {
-        setActiveTab(category);
+    const handleEditProduto = (categoria, index) => {
+        const product = produtos[categoria][index];
+        setEditProduct({...product});
+        setIsEditModalOpen(true);
     };
 
-    return (
-        <>
-            <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md mx-auto">
-                <form
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        handleAddProduto();
-                    }}
-                    className="space-y-4"
-                >
+    const handleSaveEdit = async () => {
+        if (!editProduct || !editProduct.nome) {
+            showMessage('Nome do produto é obrigatório', 'error');
+            return;
+        }
+
+        if (!editProduct.price && !editProduct.preco) {
+            showMessage('Preço do produto é obrigatório', 'error');
+            return;
+        }
+
+        setLoading(true);
+        
+        // Converte o preço para o formato esperado pela API
+        const precoFormatado = (editProduct.price || editProduct.preco).toString().replace(',', '.');
+        
+        const options = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                authorization: `${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                id: editProduct.id,
+                nome: editProduct.nome || editProduct.name,
+                descricao: editProduct.descricao,
+                preco: precoFormatado,
+                loja_id: 1,
+                id_categoria: editProduct.id_categoria
+            })
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/produtos/atualizar/${editProduct.id}`, options);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Atualiza o produto na lista
+                setProdutos((prevProdutos) => {
+                    const updatedProdutos = { ...prevProdutos };
+                    
+                    // Encontra a categoria do produto
+                    for (const categoria in updatedProdutos) {
+                        const index = updatedProdutos[categoria].findIndex(p => p.id === editProduct.id);
+                        if (index !== -1) {
+                            updatedProdutos[categoria][index] = {
+                                ...updatedProdutos[categoria][index],
+                                nome: editProduct.nome || editProduct.name,
+                                name: editProduct.nome || editProduct.name,
+                                descricao: editProduct.descricao,
+                                preco: precoFormatado,
+                                price: precoFormatado
+                            };
+                            break;
+                        }
+                    }
+                    
+                    return updatedProdutos;
+                });
+                
+                showMessage('Produto atualizado com sucesso!');
+                setIsEditModalOpen(false);
+            } else {
+                showMessage(data.message || 'Erro ao atualizar produto', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating product:', error);
+            showMessage('Erro ao atualizar produto', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleDisponibilidade = async (categoria, productId, novaDisponibilidade) => {
+        setLoading(true);
+        
+        const options = {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                authorization: `${token}`
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                disponibilidade: novaDisponibilidade
+            })
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${productId}`, options);
+            const data = await response.json();
+            
+            if (data.success) {
+                // Atualiza o produto na lista
+                setProdutos((prevProdutos) => {
+                    const updatedProdutos = { ...prevProdutos };
+                    
+                    if (updatedProdutos[categoria]) {
+                        const index = updatedProdutos[categoria].findIndex(p => p.id === productId);
+                        if (index !== -1) {
+                            updatedProdutos[categoria][index] = {
+                                ...updatedProdutos[categoria][index],
+                                disponibilidade: novaDisponibilidade
+                            };
+                        }
+                    }
+                    
+                    return updatedProdutos;
+                });
+                
+                showMessage(novaDisponibilidade === 1 ? 'Produto ativado com sucesso!' : 'Produto desativado com sucesso!');
+            } else {
+                showMessage(data.message || 'Erro ao alterar disponibilidade do produto', 'error');
+            }
+        } catch (error) {
+            console.error('Error toggling product availability:', error);
+            showMessage('Erro ao alterar disponibilidade do produto', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleTabClick = (categoria) => {
+        setActiveTab(categoria);
+    };
+
+    const openFormModal = () => {
+        setNome('');
+        setDescricao('');
+        setPreco('');
+        setIdCategoria('');
+        setIsFormModalOpen(true);
+    };
+
+    const ProductForm = () => (
+        <div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="relative">
+                    <label htmlFor="nomeProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                        Nome <span className="text-red-500">*</span>
+                    </label>
                     <input
                         id="nomeProduto"
                         type="text"
                         value={nome}
                         onChange={(e) => setNome(e.target.value)}
                         placeholder="Nome do Produto"
-                        className="w-full p-2 rounded bg-gray-700 text-white"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                         autoFocus
+                        disabled={loading}
                     />
+                </div>
+                
+                <div className="relative">
+                    <label htmlFor="descricaoProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                        Descrição
+                    </label>
                     <textarea
+                        id="descricaoProduto"
                         value={descricao}
                         onChange={(e) => setDescricao(e.target.value)}
                         placeholder="Descrição do Produto"
-                        className="w-full p-2 rounded bg-gray-700 text-white"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                        rows="3"
+                        disabled={loading}
                     />
-                    <input
-                        type="number"
-                        value={preco}
-                        onChange={(e) => setPreco(e.target.value)}
-                        placeholder="Preço do Produto"
-                        className="w-full p-2 rounded bg-gray-700 text-white"
-                    />
+                </div>
+                
+                <div className="relative">
+                    <label htmlFor="precoProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                        Preço <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                            R$
+                        </span>
+                        <input
+                            id="precoProduto"
+                            type="text"
+                            value={preco}
+                            onChange={handlePriceChange}
+                            placeholder="0,00"
+                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                            disabled={loading}
+                        />
+                    </div>
+                </div>
+                
+                <div className="relative">
+                    <label htmlFor="categoriaProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                        Categoria <span className="text-red-500">*</span>
+                    </label>
                     <select
+                        id="categoriaProduto"
                         value={idCategoria}
                         onChange={(e) => setIdCategoria(e.target.value)}
-                        className="w-full p-2 rounded bg-gray-700 text-white"
+                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                        disabled={loading || categorias.length === 0}
                     >
                         <option value="">Selecione uma Categoria</option>
                         {categorias.map((cat) => (
@@ -214,121 +399,319 @@ const ProdutoCadastro = () => {
                             </option>
                         ))}
                     </select>
-                    <button type="submit" className="w-full p-2 rounded bg-blue-600 text-white font-bold">
-                        Cadastrar
-                    </button>
-                </form>
-                {message && <p className="mt-4 text-green-500">{message}</p>}
+                    {categorias.length === 0 && (
+                        <p className="mt-1 text-sm text-yellow-400">
+                            Nenhuma categoria disponível. Cadastre uma categoria primeiro.
+                        </p>
+                    )}
+                </div>
+                
+                <button 
+                    type="submit" 
+                    className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                        loading || categorias.length === 0
+                        ? 'bg-gray-600 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                    } text-white font-bold`}
+                    disabled={loading || categorias.length === 0}
+                >
+                    {loading ? (
+                        <span className="flex items-center">
+                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Cadastrando...
+                        </span>
+                    ) : (
+                        <span className="flex items-center">
+                            <FaPlus className="mr-2" />
+                            Cadastrar Produto
+                        </span>
+                    )}
+                </button>
+            </form>
+            {message && (
+                <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
+                    messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+                }`}>
+                    {message}
+                </div>
+            )}
+        </div>
+    );
+
+    return (
+        <>
+            <div className="mb-6 flex justify-between items-center">
+                <h3 className="text-xl font-bold relative">
+                    <span className="relative inline-block">
+                        Catálogo de Produtos
+                        <span className="absolute -top-1 -right-6 bg-blue-500 text-xs text-white py-1 px-2 rounded-full">
+                            {Object.values(produtos).flat().length}
+                        </span>
+                    </span>
+                </h3>
+                
+                <button 
+                    onClick={openFormModal}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+                >
+                    <FaPlus />
+                    <span>Novo Produto</span>
+                </button>
             </div>
-            <div className="w-full">
+            
+            <Modal 
+                isOpen={isFormModalOpen} 
+                onClose={() => setIsFormModalOpen(false)} 
+                title="Novo Produto" 
+                icon={<FaBoxOpen />}
+                width="max-w-xl"
+            >
+                <ProductForm />
+            </Modal>
+            
+            <div className="w-full mt-8">
                 <hr className="my-8 border-gray-700" />
-                <h3 className="text-xl font-bold mb-4 text-center">Lista de Produtos</h3>
-                <div className="flex justify-center mb-4">
-                    {categorias.map((cat) => (
-                        <button
-                            key={cat.id}
-                            onClick={() => handleTabClick(cat.categoria)}
-                            className={`px-4 py-2 mx-2 rounded ${activeTab === cat.categoria ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'}`}
-                            disabled={!cat.ativo}
-                        >
-                            {cat.categoria}
-                        </button>
-                    ))}
-                </div>
-                {categorias.map((cat) => (
-                    <div key={cat.id} className={`${activeTab === cat.categoria ? 'block' : 'hidden'}`}>
-                        <h4 className="text-lg font-bold mb-2">Disponíveis</h4>
-                        <table className="min-w-full bg-gray-800 text-white text-center">
-                            <thead>
-                                <tr>
-                                    <th className="py-2 px-4 border-b border-gray-700">Nome</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Descrição</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Preço</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {produtos[cat.categoria] && produtos[cat.categoria].filter(prod => prod.disponibilidade === 1).map((prod, index) => (
-                                    <tr key={prod.id}>
-                                        <td className="py-2 px-4 border-b border-gray-700">{prod.name}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">{prod.descricao ? prod.descricao : '-'}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">R$ {prod.price}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">
-                                            <button onClick={() => handleEditProduto(cat.categoria, index)} className="mr-2">
-                                                <FaEdit />
-                                            </button>
-                                            <button onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 0)}>
-                                                <FaTrash />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        <h4 className="text-lg font-bold mt-6 mb-2">Indisponíveis</h4>
-                        <table className="min-w-full bg-gray-800 text-white text-center">
-                            <thead>
-                                <tr>
-                                    <th className="py-2 px-4 border-b border-gray-700">Nome</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Descrição</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Preço</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Categoria</th>
-                                    <th className="py-2 px-4 border-b border-gray-700">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {produtos[cat.categoria] && produtos[cat.categoria].filter(prod => prod.disponibilidade === 0).map((prod, index) => (
-                                    <tr key={prod.id} className="text-gray-500 italic line-through">
-                                        <td className="py-2 px-4 border-b border-gray-700">{prod.name}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">{prod.descricao ? prod.descricao : '-'}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">R$ {prod.price}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">{cat.categoria}</td>
-                                        <td className="py-2 px-4 border-b border-gray-700">
-                                            <button onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 1)} className='text-gray-100'>
-                                                <FaUndo />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                
+                <h3 className="text-xl font-bold mb-6 text-center">Lista de Produtos</h3>
+                
+                {categorias.length === 0 ? (
+                    <div className="bg-gray-800 rounded-lg p-6 text-center text-gray-400">
+                        <p>Nenhuma categoria cadastrada.</p>
+                        <p className="text-sm mt-2">Cadastre uma categoria antes de adicionar produtos.</p>
                     </div>
-                ))}
+                ) : loading && Object.keys(produtos).length === 0 ? (
+                    <div className="flex justify-center items-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex flex-wrap justify-center gap-2 mb-6 overflow-x-auto pb-2">
+                            {categorias.map((cat) => (
+                                <button
+                                    key={cat.id}
+                                    onClick={() => handleTabClick(cat.categoria)}
+                                    className={`px-4 py-2 rounded-lg transition-all duration-200 ${
+                                        activeTab === cat.categoria 
+                                        ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
+                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                    }`}
+                                    disabled={!cat.ativo}
+                                >
+                                    {cat.categoria}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        {categorias.map((cat) => (
+                            <div key={cat.id} className={`${activeTab === cat.categoria ? 'block' : 'hidden'} transition-opacity duration-300`}>
+                                <div className="mb-8">
+                                    <div className="flex items-center mb-4">
+                                        <h4 className="text-lg font-bold flex items-center">
+                                            <FaCheck className="text-green-500 mr-2" />
+                                            Produtos Disponíveis
+                                        </h4>
+                                        <span className="ml-2 bg-green-500 text-xs text-white py-1 px-2 rounded-full">
+                                            {produtos[cat.categoria]?.filter(prod => prod.disponibilidade === 1).length || 0}
+                                        </span>
+                                    </div>
+                                    
+                                    {!produtos[cat.categoria] || produtos[cat.categoria].filter(prod => prod.disponibilidade === 1).length === 0 ? (
+                                        <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
+                                            <p>Nenhum produto disponível nesta categoria.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto rounded-lg shadow">
+                                            <table className="min-w-full bg-gray-800 text-white rounded-lg overflow-hidden">
+                                                <thead className="bg-gray-700">
+                                                    <tr>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Nome</th>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Descrição</th>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Preço</th>
+                                                        <th className="py-3 px-4 text-center border-b border-gray-600">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {produtos[cat.categoria].filter(prod => prod.disponibilidade === 1).map((prod, index) => (
+                                                        <tr 
+                                                            key={prod.id}
+                                                            className="hover:bg-gray-700 transition-colors duration-150"
+                                                        >
+                                                            <td className="py-3 px-4 border-b border-gray-700">{prod.nome || prod.name}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700">{prod.descricao || '-'}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700">R$ {formatPrice(prod.price || prod.preco)}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
+                                                                <button 
+                                                                    onClick={() => handleEditProduto(cat.categoria, index)} 
+                                                                    className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors duration-200"
+                                                                    title="Editar produto"
+                                                                >
+                                                                    <FaEdit />
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 0)}
+                                                                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors duration-200"
+                                                                    title="Desativar produto"
+                                                                >
+                                                                    <FaTrash />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mb-6">
+                                    <div className="flex items-center mb-4">
+                                        <h4 className="text-lg font-bold flex items-center">
+                                            <FaTimes className="text-red-500 mr-2" />
+                                            Produtos Indisponíveis
+                                        </h4>
+                                        <span className="ml-2 bg-gray-500 text-xs text-white py-1 px-2 rounded-full">
+                                            {produtos[cat.categoria]?.filter(prod => prod.disponibilidade === 0).length || 0}
+                                        </span>
+                                    </div>
+                                    
+                                    {!produtos[cat.categoria] || produtos[cat.categoria].filter(prod => prod.disponibilidade === 0).length === 0 ? (
+                                        <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
+                                            <p>Nenhum produto indisponível nesta categoria.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto rounded-lg shadow">
+                                            <table className="min-w-full bg-gray-800 text-gray-400 rounded-lg overflow-hidden">
+                                                <thead className="bg-gray-700">
+                                                    <tr>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Nome</th>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Descrição</th>
+                                                        <th className="py-3 px-4 text-left border-b border-gray-600">Preço</th>
+                                                        <th className="py-3 px-4 text-center border-b border-gray-600">Ações</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {produtos[cat.categoria].filter(prod => prod.disponibilidade === 0).map((prod) => (
+                                                        <tr 
+                                                            key={prod.id}
+                                                            className="hover:bg-gray-700 transition-colors duration-150 italic"
+                                                        >
+                                                            <td className="py-3 px-4 border-b border-gray-700">{prod.nome || prod.name}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700">{prod.descricao || '-'}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700">R$ {formatPrice(prod.price || prod.preco)}</td>
+                                                            <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
+                                                                <button 
+                                                                    onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 1)}
+                                                                    className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors duration-200"
+                                                                    title="Reativar produto"
+                                                                >
+                                                                    <FaUndo />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                )}
             </div>
-            {isEditModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-gray-800 p-6 rounded-lg shadow-md w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Editar Produto</h2>
-                        <input
-                            type="text"
-                            value={editProduct.nome}
-                            onChange={(e) => setEditProduct({ ...editProduct, nome: e.target.value })}
-                            placeholder="Nome do Produto"
-                            className="w-full p-2 rounded bg-gray-700 text-white mb-4"
-                        />
-                        <textarea
-                            value={editProduct.descricao}
-                            onChange={(e) => setEditProduct({ ...editProduct, descricao: e.target.value })}
-                            placeholder="Descrição do Produto"
-                            className="w-full p-2 rounded bg-gray-700 text-white mb-4"
-                        />
-                        <input
-                            type="number"
-                            value={editProduct.preco}
-                            onChange={(e) => setEditProduct({ ...editProduct, preco: e.target.value })}
-                            placeholder="Preço do Produto"
-                            className="w-full p-2 rounded bg-gray-700 text-white mb-4"
-                        />
-                        <button onClick={handleSaveEdit} className="w-full p-2 rounded bg-blue-600 text-white font-bold">
-                            Salvar
-                        </button>
-                        <button onClick={() => setIsEditModalOpen(false)} className="w-full p-2 rounded bg-red-600 text-white font-bold mt-2">
-                            Cancelar
-                        </button>
+            
+            {isEditModalOpen && editProduct && (
+                <Modal 
+                    isOpen={isEditModalOpen} 
+                    onClose={() => setIsEditModalOpen(false)} 
+                    title="Editar Produto" 
+                    icon={<FaEdit />}
+                    width="max-w-xl"
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Nome <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={editProduct.nome || editProduct.name || ''}
+                                onChange={(e) => setEditProduct({ ...editProduct, nome: e.target.value, name: e.target.value })}
+                                placeholder="Nome do Produto"
+                                className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Descrição
+                            </label>
+                            <textarea
+                                value={editProduct.descricao || ''}
+                                onChange={(e) => setEditProduct({ ...editProduct, descricao: e.target.value })}
+                                placeholder="Descrição do Produto"
+                                className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                rows="3"
+                                disabled={loading}
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Preço <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    R$
+                                </span>
+                                <input
+                                    type="text"
+                                    value={editProduct.price || editProduct.preco || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/[^0-9,]/g, '');
+                                        setEditProduct({ ...editProduct, price: value, preco: value })
+                                    }}
+                                    placeholder="0,00"
+                                    className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                        
+                        <div className="flex space-x-3 pt-2">
+                            <button
+                                onClick={() => setIsEditModalOpen(false)}
+                                className="w-1/2 p-3 rounded-lg bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors duration-200"
+                                disabled={loading}
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={handleSaveEdit}
+                                className={`w-1/2 p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                                    loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                                } text-white font-bold`}
+                                disabled={loading}
+                            >
+                                {loading ? (
+                                    <span className="flex items-center">
+                                        <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Salvando...
+                                    </span>
+                                ) : (
+                                    <span>Salvar</span>
+                                )}
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </Modal>
             )}
         </>
     );
