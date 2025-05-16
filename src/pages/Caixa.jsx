@@ -25,7 +25,7 @@ const Caixa = () => {
   
   useEffect(() => {
     validateSession();
-  }, []);
+  }, [validateSession]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -34,6 +34,7 @@ const Caixa = () => {
           const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, {
             method: 'GET',
             headers: {
+              'Content-Type': 'application/json',
               'Authorization': `${token}`,
             },
             credentials: 'include',

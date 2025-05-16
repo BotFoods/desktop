@@ -87,14 +87,11 @@ const Login = () => {
       const data = await response.json();
       
       if (data.auth) {
-        setUser(data.user_data);
-        // Atualiza o token no sessionStorage
         sessionStorage.setItem('token', data.token);
-        // Atualiza o token no AuthContext
+        setUser(data.user_data);
         setToken(data.token);
         navigate('/caixa');
         
-        // Salva loja se marcado para lembrar
         if (lojaSalva) {
           localStorage.setItem(STORAGE_KEY, loja);
         }
