@@ -4,7 +4,7 @@ import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
 
 const ProdutoCadastro = () => {
-    const { token, setToken, validateSession } = useAuth();
+    const { token, validateSession } = useAuth();
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
     const [preco, setPreco] = useState('');

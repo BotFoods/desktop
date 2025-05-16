@@ -3,7 +3,6 @@ import { FaStore, FaUser, FaLock, FaSignInAlt, FaExternalLinkAlt } from 'react-i
 import { useAuth } from '../services/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo_chatgpt.png';
-import { update } from 'lodash';
 
 const STORAGE_KEY = 'botfoods_loja';
 

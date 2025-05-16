@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react'; // Adicionado useMemo
+import { useEffect, useState, useMemo } from 'react'; // Adicionado useMemo
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import CheckoutModal from './CheckoutModal';
-import { FaShoppingCart, FaBars, FaPlusCircle, FaMinusCircle, FaTrash } from 'react-icons/fa'; // Adicionar Ícones
+import { FaShoppingCart, FaBars, FaPlusCircle } from 'react-icons/fa'; // Adicionar Ícones
 
 const Cardapio = () => {
   const { id, wid } = useParams();

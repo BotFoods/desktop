@@ -26,7 +26,7 @@ const Configuracoes = () => {
     
     const WHATSAPP_STORAGE_KEY = 'whatsapp_config';
 
-    const [whatsappConfig, setWhatsappConfig] = useState(() => {
+    const [whatsappConfig] = useState(() => {
         const config_salvo = localStorage.getItem(WHATSAPP_STORAGE_KEY);
         
         const defaultConfig = {

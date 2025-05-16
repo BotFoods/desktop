@@ -1,5 +1,4 @@
 import PropTypes from 'prop-types';
-import { NavLink } from 'react-router-dom';
 import { FaHome, FaWineGlassAlt, FaUtensils, FaPizzaSlice, FaHamburger, FaIceCream, FaCoffee } from 'react-icons/fa';
 
 const CategoryMenu = ({ categories, onSelectCategory }) => {

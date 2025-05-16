@@ -58,12 +58,12 @@ const Mesas = () => {
     navigate(`/pdv/mesa/${mesaId}`);
   };
 
-  const isMesaOcupada = (mesaId) => {
-    const pdvData = localStorage.getItem(`pdv_mesa_${mesaId}`);
-    if (!pdvData) return false;
-    const pdv = JSON.parse(pdvData);
-    return pdv.pdv.venda.produtos && pdv.pdv.venda.produtos.length > 0;
-  };
+  // const isMesaOcupada = (mesaId) => {
+  //   const pdvData = localStorage.getItem(`pdv_mesa_${mesaId}`);
+  //   if (!pdvData) return false;
+  //   const pdv = JSON.parse(pdvData);
+  //   return pdv.pdv.venda.produtos && pdv.pdv.venda.produtos.length > 0;
+  // };
 
   const getMesaStatus = (mesaId) => {
     // Check if mesa has pending orders

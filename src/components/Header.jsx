@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CategoryMenu from './CategoryMenu';
 import { useAuth } from '../services/AuthContext';
 import { FaBell, FaUser } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
+import PropTypes from 'prop-types';
 
 const BALCAO_STORAGE_KEY = 'pdv_balcao_aguardando';
 
@@ -175,6 +176,10 @@ const Header = ({ categories, onSelectCategory }) => {
       <CategoryMenu categories={categories} onSelectCategory={onSelectCategory} />
     </>
   );
+};
+Header.propTypes = {
+  categories: PropTypes.array.isRequired,
+  onSelectCategory: PropTypes.func.isRequired,
 };
 
 export default Header;

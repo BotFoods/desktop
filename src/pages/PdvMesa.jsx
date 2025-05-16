@@ -13,7 +13,7 @@ const PdvMesa = () => {
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);

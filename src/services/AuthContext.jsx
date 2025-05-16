@@ -1,8 +1,9 @@
-import { set } from 'lodash';
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const AuthContext = createContext();
+
+import PropTypes from 'prop-types';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -68,6 +69,10 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsValidating(false);
     }
+  };
+
+  AuthProvider.propTypes = {
+    children: PropTypes.node.isRequired,
   };
 
   const logout = () => {
