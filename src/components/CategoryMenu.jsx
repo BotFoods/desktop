@@ -1,86 +1,77 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '../services/AuthContext';
+import PropTypes from 'prop-types';
+import { FaHome, FaWineGlassAlt, FaUtensils, FaPizzaSlice, FaHamburger, FaIceCream, FaCoffee } from 'react-icons/fa';
 
-const CategoryMenu = ({ categories = [], onSelectCategory = () => {} }) => {
-  const location = useLocation();
-  const isCadastrosRoute = location.pathname.startsWith('/cadastros');
-  const isMovimentacoesRoute = location.pathname.startsWith('/movimentacoes');
-  const isMesasRoute = location.pathname.startsWith('/mesas');
-  const isPdvMesasRoute = location.pathname.startsWith('/pdv/mesa');
-  const isConfiguracoesRoute = location.pathname.startsWith('/configuracoes');
-  const { user } = useAuth();
-
-  // Shared category rendering logic
-  const categoryButtons = categories.map((category) => (
-    <li key={category}>
-      <button
-        onClick={() => onSelectCategory(category)}
-        className="text-gray-300 hover:text-white"
-      >
-        {category}
-      </button>
-    </li>
-  ));
+const CategoryMenu = ({ categories, onSelectCategory }) => {
+  const currentYear = new Date().getFullYear();
+  
+  // Mapeamento de categorias para ícones
+  const getCategoryIcon = (category) => {
+    const categoryLower = category?.toLowerCase() || '';
+    if (categoryLower.includes('bebida')) return <FaWineGlassAlt />;
+    if (categoryLower.includes('pizza')) return <FaPizzaSlice />;
+    if (categoryLower.includes('burger') || categoryLower.includes('hamburguer') || categoryLower.includes('lanche')) return <FaHamburger />;
+    if (categoryLower.includes('sobremesa') || categoryLower.includes('doce')) return <FaIceCream />;
+    if (categoryLower.includes('café') || categoryLower.includes('cafe')) return <FaCoffee />;
+    return <FaUtensils />;
+  };
 
   return (
-    <aside className="fixed top-0 left-0 w-64 bg-gray-800 shadow-md z-20 h-full dark:bg-gray-800 dark:text-white">
-      <nav className="px-4 py-6">
-        <div className="text-2xl font-bold text-white mb-6">
-          <button onClick={() => onSelectCategory('')} className="text-gray-300 hover:text-white">BotFoods</button>
-        </div>
-        <ul className="space-y-4">
-          {isCadastrosRoute && (
-            <>
-              <li>
-                <button onClick={() => onSelectCategory('Categorias')} className="text-gray-300 hover:text-white">Categorias</button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('Produtos')} className="text-gray-300 hover:text-white">Produtos</button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('Pessoas')} className="text-gray-300 hover:text-white">Pessoas</button>
-              </li>
-            </>
-          )}
-          {isMovimentacoesRoute && (
-            <>
-              <li>
-                <button onClick={() => onSelectCategory('Entrada')} className="text-gray-300 hover:text-white">Entrada</button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('Saída')} className="text-gray-300 hover:text-white">Saída</button>
-              </li>
-            </>
-          )}
-          {isMesasRoute && (
-            <>
-              <li>
-                <button onClick={() => onSelectCategory('Nova Mesa')} className="text-gray-300 hover:text-white">Nova Mesa</button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('Reservas')} className="text-gray-300 hover:text-white">Reservas</button>
-              </li>
-            </>
-          )}
-          {isConfiguracoesRoute && (
-            <>
-              <li>
-                <button onClick={() => onSelectCategory('WhatsApp')} className="text-gray-300 hover:text-white">WhatsApp</button>
-              </li>
-              <li>
-                <button onClick={() => onSelectCategory('Email')} className="text-gray-300 hover:text-white">Email</button>
-              </li>
-            </>
-          )}
-          {(isPdvMesasRoute || categories.length > 0) && categoryButtons}
-        </ul>
-        <div className="bottom-0 flex fixed pb-4 text-gray-400">
-          <p>Conectado como: { user && user.nome }</p>
-        </div>
+    <div className="fixed top-16 bottom-0 left-0 w-64 bg-gray-800 text-gray-300 overflow-y-auto">
+      <nav className="p-4">
+        <button 
+          className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+          onClick={() => onSelectCategory && onSelectCategory('')} // Passando string vazia para limpar a seleção de categoria
+        >
+          <FaHome className="text-xl" />
+          <span>Home</span>
+        </button>
+
+        {categories && categories.length > 0 && (
+          <div className="mt-6">
+            <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Categorias
+            </h3>
+            <div className="mt-3 space-y-2">
+              {categories.map((category, index) => (
+                <button
+                  key={index}
+                  className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                  onClick={() => onSelectCategory && onSelectCategory(category)}
+                >
+                  {getCategoryIcon(category)}
+                  <span>{category}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </nav>
-    </aside>
+      
+      {/* Informações de Suporte no Rodapé */}
+      <div className="absolute bottom-0 left-0 w-full p-4 bg-gray-800 border-t border-gray-700">
+        <div className="space-y-2 text-xs text-gray-400">
+          <p className="flex justify-between">
+            <span>Suporte:</span>
+            <a href="mailto:suporte@botfood.com" className="text-blue-400 hover:text-blue-300">
+              suporte@botfood.com.br
+            </a>
+          </p>
+          <p className="flex justify-between">
+            <span>Contato:</span>
+            <span>(11) 98635-2205</span>
+          </p>
+          <p className="text-center mt-3 text-gray-500">
+            &copy; {currentYear} BotFood - Todos os direitos reservados
+          </p>
+        </div>
+      </div>
+    </div>
   );
+};
+
+CategoryMenu.propTypes = {
+  categories: PropTypes.arrayOf(PropTypes.string),
+  onSelectCategory: PropTypes.func,
 };
 
 export default CategoryMenu;

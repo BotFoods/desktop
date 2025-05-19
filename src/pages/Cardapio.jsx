@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react'; // Adicionado useMemo
+import { useEffect, useState, useMemo } from 'react'; // Adicionado useMemo
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import CheckoutModal from './CheckoutModal';
-import { FaShoppingCart, FaBars, FaPlusCircle, FaMinusCircle, FaTrash } from 'react-icons/fa'; // Adicionar Ícones
+import { FaShoppingCart, FaBars, FaPlusCircle } from 'react-icons/fa'; // Adicionar Ícones
 
 const Cardapio = () => {
   const { id, wid } = useParams();
@@ -16,6 +16,7 @@ const Cardapio = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('');
   const [filteredProducts, setFilteredProducts] = useState({}); 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     validateSession();
@@ -23,7 +24,7 @@ const Cardapio = () => {
     const fetchProdutos = async () => {
       const options = { method: 'GET', headers: {} };
       try {
-        const response = await fetch(`http://localhost:8080/api/cardapio/${id}/${wid}`, options);
+        const response = await fetch(`${API_BASE_URL}/api/cardapio/${id}/${wid}`, options);
         if (response.status === 404) {
           const errorData = await response.json();
           setErrorMessage(errorData.message);

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
     "web": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173\"",
-    "build": "vite build && electron-builder",
+    "build": "vite build",
     "start": "electron .",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -16,13 +16,13 @@
     "concurrently": "^9.1.0",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.7",
-    "electron": "^33.2.1",
     "jwt-decode": "^4.0.0",
     "lodash": "^4.17.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.4.0",
-    "react-router-dom": "^7.0.2"
+    "react-router-dom": "^7.0.2",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
@@ -30,6 +30,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "electron": "^35.2.0",
+    "electron-builder": "^26.0.12",
     "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.2",
     "eslint-plugin-react-hooks": "^5.0.0",
