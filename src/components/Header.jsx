@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CategoryMenu from './CategoryMenu';
 import { useAuth } from '../services/AuthContext';
-import { FaBell, FaUser } from 'react-icons/fa';
+import { FaBell, FaUser, FaHourglassHalf } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
 import PropTypes from 'prop-types';
 
@@ -86,9 +86,31 @@ const Header = ({ categories, onSelectCategory }) => {
     }
   };
   
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // const formatTime = (timestamp) => {
+  //   const date = new Date(timestamp);
+  //   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  // };
+  
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    }).format(value);
+  };
+
+  const getElapsedTime = (timestamp) => {
+    const now = new Date();
+    const orderTime = new Date(timestamp);
+    const diffMs = now - orderTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Agora';
+    if (diffMins === 1) return '1 min';
+    if (diffMins < 60) return `${diffMins} mins`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours === 1) return '1 hora';
+    return `${diffHours} horas`;
   };
 
   return (
@@ -111,10 +133,11 @@ const Header = ({ categories, onSelectCategory }) => {
             
             <div className="relative ml-2" ref={dropdownRef}>
               <button 
-                className="text-gray-300 hover:text-white p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500"
+                className={`text-gray-300 hover:text-white p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500 ${pendingOrders.length > 0 ? 'animate-pulse' : ''}`}
                 onClick={() => setShowDropdown(!showDropdown)}
+                aria-label={`Notificações ${pendingOrders.length > 0 ? `(${pendingOrders.length})` : ''}`}
               >
-                <FaBell className="text-lg" />
+                <FaBell className={`text-lg ${pendingOrders.length > 0 ? 'text-yellow-500' : ''}`} />
                 {pendingOrders.length > 0 && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
                     {pendingOrders.length}
@@ -122,30 +145,67 @@ const Header = ({ categories, onSelectCategory }) => {
                 )}
               </button>
               
-              {showDropdown && pendingOrders.length > 0 && (
-                <div className="absolute right-0 mt-2 w-72 bg-gray-800 rounded-lg shadow-xl z-40">
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-80 bg-gray-800 rounded-lg shadow-xl z-40">
                   <div className="p-3 border-b border-gray-700">
-                    <h3 className="text-white font-medium">Pedidos aguardando pagamento</h3>
+                    <h3 className="text-white font-medium">
+                      {pendingOrders.length > 0 
+                        ? `Pedidos aguardando pagamento (${pendingOrders.length})` 
+                        : 'Nenhum pedido pendente'}
+                    </h3>
                   </div>
-                  <ul className="max-h-80 overflow-y-auto">
-                    {pendingOrders.map((order) => (
-                      <li key={order.id} className="border-b border-gray-700 last:border-b-0">
-                        <button 
-                          className="w-full px-4 py-3 text-left hover:bg-gray-700 transition-colors flex items-start justify-between"
-                          onClick={() => handleOrderClick(order)}
-                        >
-                          <div>
-                            <p className="font-medium text-white">Pedido #{order.id.split('_')[1].slice(-4)}</p>
-                            <p className="text-sm text-gray-400">
-                              {order.pdvData.pdv.venda.produtos.length} itens • 
-                              R$ {order.pdvData.pdv.venda.total_venda.toFixed(2)}
-                            </p>
-                          </div>
-                          <span className="text-gray-400 text-xs">{formatTime(order.timestamp)}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  
+                  {pendingOrders.length > 0 ? (
+                    <ul className="max-h-96 overflow-y-auto">
+                      {pendingOrders.map((order) => (
+                        <li key={order.id} className="border-b border-gray-700 last:border-b-0 hover:bg-gray-750">
+                          <button 
+                            className="w-full px-4 py-3 text-left transition-colors flex flex-col"
+                            onClick={() => handleOrderClick(order)}
+                          >
+                            <div className="flex justify-between items-start w-full">
+                              <div>
+                                <p className="font-semibold text-white flex items-center">
+                                  <FaHourglassHalf className="text-yellow-500 mr-2" /> 
+                                  Pedido #{order.id.split('_')[1].slice(-4)}
+                                </p>
+                                <p className="text-sm text-gray-300 mt-1">
+                                  {order.description || 'Items variados'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-white font-semibold">
+                                  {order.totalAmount ? formatCurrency(order.totalAmount) : ''}
+                                </span>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {getElapsedTime(order.timestamp)} atrás
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex justify-between mt-2 text-xs">
+                              <span className="text-gray-400">
+                                {order.itemCount || order.pdvData.pdv.venda.produtos.length} itens
+                              </span>
+                              <span className="text-purple-400">
+                                Aguardando finalização
+                              </span>
+                            </div>
+                            
+                            <div className="mt-2 text-center">
+                              <span className="bg-purple-600/30 text-purple-300 text-xs py-1 px-2 rounded-full">
+                                Clique para continuar o pedido
+                              </span>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-gray-400">Não há pedidos aguardando pagamento.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

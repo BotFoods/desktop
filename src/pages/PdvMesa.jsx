@@ -348,11 +348,15 @@ const PdvMesa = () => {
                         </div>
                       </div>
                       <button
-                        className="text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700"
+                        className={`text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700 ${order.status?.impresso ? 'opacity-50 cursor-not-allowed' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          removeFromOrder(order.id);
+                          if (!order.status?.impresso) {
+                            removeFromOrder(order.id);
+                          }
                         }}
+                        disabled={order.status?.impresso}
+                        title={order.status?.impresso ? "Item impresso na cozinha" : "Remover item"}
                       >
                         <FaTrash />
                       </button>

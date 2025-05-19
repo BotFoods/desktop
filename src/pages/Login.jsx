@@ -82,6 +82,8 @@ const Login = () => {
           usuario,
           senha,
         }),
+        credentials: 'include',
+        withCredentials: true,
       });
       
       const data = await response.json();

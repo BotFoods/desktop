@@ -53,12 +53,12 @@ const CategoryMenu = ({ categories, onSelectCategory }) => {
           <p className="flex justify-between">
             <span>Suporte:</span>
             <a href="mailto:suporte@botfood.com" className="text-blue-400 hover:text-blue-300">
-              suporte@botfood.com
+              suporte@botfood.com.br
             </a>
           </p>
           <p className="flex justify-between">
             <span>Contato:</span>
-            <span>(11) 9999-8888</span>
+            <span>(11) 98635-2205</span>
           </p>
           <p className="text-center mt-3 text-gray-500">
             &copy; {currentYear} BotFood - Todos os direitos reservados

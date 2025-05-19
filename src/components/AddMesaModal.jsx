@@ -55,6 +55,7 @@ const AddMesaModal = ({ isOpen, onClose, onSubmit, existingMesaNumbers = [], err
           <h2 className="text-2xl font-bold text-white">Adicionar Nova Mesa</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">&times;</button>
         </div>
+        
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="numero_mesa" className="block text-sm font-medium text-gray-300 mb-1">
@@ -67,6 +68,7 @@ const AddMesaModal = ({ isOpen, onClose, onSubmit, existingMesaNumbers = [], err
               onChange={(e) => setNumeroMesaInput(e.target.value)}
               className="p-3 rounded bg-gray-700 text-white w-full focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder={`Ex: ${getNextSuggestedNumber()} (ou deixe em branco)`}
+              autoFocus
             />
              <p className="text-xs text-gray-400 mt-1">
               Se deixado em branco, será usado o próximo número sequencial: {getNextSuggestedNumber()}.

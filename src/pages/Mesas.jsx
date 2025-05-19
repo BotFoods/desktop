@@ -2,16 +2,28 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import { useNavigate } from 'react-router-dom';
-import AddMesaModal from '../components/AddMesaModal'; // Import the modal
+import AddMesaModal from '../components/AddMesaModal';
+// Importando ícones adicionais para as ações de desativar/ativar
+import { FaBan, FaCheck, FaEllipsisV } from 'react-icons/fa';
+import AlertModal from '../components/AlertModal';
 
 const Mesas = () => {
-  const { token, user } = useAuth(); // Ensure 'user' is destructured
+  const { token, user } = useAuth();
   const [mesas, setMesas] = useState([]);
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [apiError, setApiError] = useState('');
+  // Estado para gerenciar o menu de contexto
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0, mesaId: null });
+  // Estado para o modal de alerta
+  const [alertInfo, setAlertInfo] = useState({
+    isOpen: false,
+    title: 'Atenção',
+    message: '',
+    type: 'info'
+  });
 
   const fetchMesas = useCallback(async () => {
     if (!user || !user.loja_id) {
@@ -54,16 +66,24 @@ const Mesas = () => {
     }
   }, [fetchMesas, user]);
 
+  // Função para mostrar alerta
+  const showAlert = (message, type = 'info', title = 'Atenção') => {
+    setAlertInfo({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  // Fecha o alerta
+  const closeAlert = () => {
+    setAlertInfo(prev => ({ ...prev, isOpen: false }));
+  };
+
   const handleMesaClick = (mesaId) => {
     navigate(`/pdv/mesa/${mesaId}`);
   };
-
-  // const isMesaOcupada = (mesaId) => {
-  //   const pdvData = localStorage.getItem(`pdv_mesa_${mesaId}`);
-  //   if (!pdvData) return false;
-  //   const pdv = JSON.parse(pdvData);
-  //   return pdv.pdv.venda.produtos && pdv.pdv.venda.produtos.length > 0;
-  // };
 
   const getMesaStatus = (mesaId) => {
     // Check if mesa has pending orders
@@ -159,11 +179,130 @@ const Mesas = () => {
     }
   };
 
+  // Função para abrir o menu de contexto
+  const handleContextMenu = (e, mesaId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ 
+      visible: true, 
+      x: e.clientX, 
+      y: e.clientY, 
+      mesaId
+    });
+  };
+
+  // Função para mostrar o menu de ações ao clicar nos três pontos
+  const handleActionMenu = (e, mesaId) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setContextMenu({ 
+      visible: true, 
+      x: rect.left, 
+      y: rect.bottom, 
+      mesaId
+    });
+  };
+
+  // Fechar menu de contexto
+  const closeContextMenu = () => {
+    setContextMenu({ ...contextMenu, visible: false });
+  };
+
+  // Desativar mesa
+  const handleDesativarMesa = async (mesaId) => {
+    if (!user || !user.loja_id) {
+      showAlert("Erro: Informações do usuário ou loja ausentes.", "error");
+      return;
+    }
+
+    closeContextMenu();
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/mesas/desativar/${mesaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ id_loja: user.loja_id }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Atualiza o estado da mesa localmente
+        setMesas(mesas.map(mesa => 
+          mesa.id === mesaId ? { ...mesa, ativo: false } : mesa
+        ));
+        showAlert(data.message || "Mesa desativada com sucesso!", "success");
+      } else {
+        showAlert(data.error || "Erro ao desativar mesa", "error");
+      }
+    } catch (error) {
+      console.error("Erro ao desativar mesa:", error);
+      showAlert("Ocorreu um erro ao comunicar com o servidor", "error");
+    }
+  };
+
+  // Ativar mesa
+  const handleAtivarMesa = async (mesaId) => {
+    if (!user || !user.loja_id) {
+      showAlert("Erro: Informações do usuário ou loja ausentes.", "error");
+      return;
+    }
+
+    closeContextMenu();
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/mesas/ativar/${mesaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({ id_loja: user.loja_id }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Atualiza o estado da mesa localmente
+        setMesas(mesas.map(mesa => 
+          mesa.id === mesaId ? { ...mesa, ativo: true } : mesa
+        ));
+        showAlert(data.message || "Mesa ativada com sucesso!", "success");
+      } else {
+        showAlert(data.error || "Erro ao ativar mesa", "error");
+      }
+    } catch (error) {
+      console.error("Erro ao ativar mesa:", error);
+      showAlert("Ocorreu um erro ao comunicar com o servidor", "error");
+    }
+  };
+
+  // Função para verificar se uma mesa está ativa de forma robusta
+  const isMesaAtiva = (mesa) => {
+    if (mesa.ativo === undefined || mesa.ativo === null) return true; // Se não tem o campo, assume ativa
+    
+    // Conversão para diferentes tipos de dados possíveis
+    if (typeof mesa.ativo === 'string') {
+      return mesa.ativo.toLowerCase() === 'true' || mesa.ativo === '1';
+    }
+    
+    if (typeof mesa.ativo === 'number') {
+      return mesa.ativo === 1;
+    }
+    
+    return Boolean(mesa.ativo); // Para casos booleanos ou outros tipos
+  };
+
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
       <Header />
       <div className="flex-grow flex">
-        <div className="ml-64 pt-16 p-8 flex-grow">
+        <div className="ml-64 pt-16 my-3 p-8 flex-grow">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-center">Mesas</h1>
             {mesas.length > 0 && (
@@ -192,30 +331,47 @@ const Mesas = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {mesas.map((mesa) => {
                 const mesaStatus = getMesaStatus(mesa.id);
+                
+                // Usa a nova função para verificar o estado "ativo" de forma mais robusta
+                const isAtiva = isMesaAtiva(mesa);
+                const finalStatus = !isAtiva ? 'indisponivel' : mesaStatus.status;
+                const finalText = !isAtiva ? 'Indisponível' : mesaStatus.text;
+                
                 return (
                   <div
                     key={mesa.id}
-                    className={`bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center cursor-pointer transition-all duration-300 transform hover:scale-105 hover:shadow-lg border-2 ${
-                      mesaStatus.status === 'ocupada' 
+                    onClick={() => isAtiva && handleMesaClick(mesa.id)}
+                    onContextMenu={(e) => handleContextMenu(e, mesa.id)}
+                    className={`bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center relative 
+                      ${isAtiva ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : 'cursor-not-allowed opacity-80'} 
+                      transition-all duration-300 transform border-2 
+                      ${finalStatus === 'ocupada' 
                         ? 'border-yellow-500 hover:bg-gray-700' 
-                        : mesa.status === 'indisponivel' 
-                          ? 'border-red-500 hover:bg-gray-700' 
+                        : !isAtiva 
+                          ? 'border-red-500' 
                           : 'border-green-500 hover:bg-gray-700'
                     }`}
-                    onClick={() => handleMesaClick(mesa.id)}
                   >
+                    {/* Botão de ações (três pontos) */}
+                    <button 
+                      onClick={(e) => handleActionMenu(e, mesa.id)}
+                      className="absolute top-2 right-2 p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-full transition-colors"
+                    >
+                      <FaEllipsisV />
+                    </button>
+
                     <div className="text-3xl font-bold mb-3">Mesa {mesa.numero_mesa}</div>
                     <p className="text-gray-400 mb-4">Capacidade: {mesa.capacidade} pessoas</p>
                     <div 
                       className={`px-4 py-2 rounded-full text-sm font-medium ${
-                        mesaStatus.status === 'ocupada'
+                        finalStatus === 'ocupada'
                           ? 'bg-yellow-500 text-yellow-900'
-                          : mesa.status === 'indisponivel' 
+                          : !isAtiva 
                             ? 'bg-red-500 text-white'
                             : 'bg-green-500 text-white'
                       }`}
                     >
-                      {mesaStatus.text}
+                      {finalText}
                     </div>
                   </div>
                 );
@@ -224,12 +380,58 @@ const Mesas = () => {
           )}
         </div>
       </div>
+
+      {/* Menu de contexto */}
+      {contextMenu.visible && (
+        <>
+          <div 
+            className="fixed inset-0 z-40"
+            onClick={closeContextMenu}
+          />
+          <div 
+            className="fixed z-50 bg-gray-800 shadow-lg rounded-lg overflow-hidden border border-gray-700"
+            style={{
+              top: `${contextMenu.y}px`,
+              left: `${contextMenu.x}px`,
+              transform: 'translate(-50%, 10px)'
+            }}
+          >
+            {!isMesaAtiva(mesas.find(m => m.id === contextMenu.mesaId) || {}) ? (
+              <button
+                onClick={() => handleAtivarMesa(contextMenu.mesaId)}
+                className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-700 text-white"
+              >
+                <FaCheck className="mr-2 text-green-500" />
+                <span>Ativar Mesa</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleDesativarMesa(contextMenu.mesaId)}
+                className="flex items-center w-full px-4 py-2 text-left hover:bg-gray-700 text-white"
+              >
+                <FaBan className="mr-2 text-red-500" />
+                <span>Desativar Mesa</span>
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
       <AddMesaModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleModalSubmit}
         existingMesaNumbers={mesas.map(m => m.numero_mesa)}
         errorMessage={apiError}
+      />
+
+      {/* Modal de alerta */}
+      <AlertModal
+        isOpen={alertInfo.isOpen}
+        onClose={closeAlert}
+        title={alertInfo.title}
+        message={alertInfo.message}
+        type={alertInfo.type}
       />
     </div>
   );

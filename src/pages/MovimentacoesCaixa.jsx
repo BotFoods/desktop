@@ -194,7 +194,7 @@ const MovimentacoesCaixa = () => {
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
       <Header />
-      <div className="flex-grow flex">
+      <div className="flex-grow flex my-3">
         {/* Sidebar de Movimentações */}
         <div className="fixed top-16 bottom-0 left-0 w-64 bg-gray-800 text-gray-300 overflow-y-auto">
           <nav className="p-4">

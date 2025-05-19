@@ -492,7 +492,7 @@ const Delivery = () => {
       />
       
       {isSearching ? (
-        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16">
+        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16 my-3">
           <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
             <h1 className="text-3xl font-bold mb-6 text-center flex items-center justify-center">
               <FaMotorcycle className="mr-2 text-yellow-500" />
@@ -690,11 +690,15 @@ const Delivery = () => {
                           </div>
                         </div>
                         <button
-                          className="text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700"
+                          className={`text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700 ${order.status?.impresso ? 'opacity-50 cursor-not-allowed' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            removeFromOrder(order.id);
+                            if (!order.status?.impresso) {
+                              removeFromOrder(order.id);
+                            }
                           }}
+                          disabled={order.status?.impresso}
+                          title={order.status?.impresso ? "Item impresso na cozinha" : "Remover item"}
                         >
                           <FaTrash />
                         </button>

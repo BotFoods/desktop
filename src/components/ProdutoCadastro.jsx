@@ -186,12 +186,6 @@ const ProdutoCadastro = () => {
         }
     };
 
-    const handleEditProduto = (categoria, index) => {
-        const product = produtos[categoria][index];
-        setEditProduct({...product});
-        setIsEditModalOpen(true);
-    };
-
     const handleSaveEdit = async () => {
         if (!editProduct || !editProduct.nome) {
             showMessage('Nome do produto é obrigatório', 'error');
@@ -325,6 +319,12 @@ const ProdutoCadastro = () => {
         setPreco('');
         setIdCategoria('');
         setIsFormModalOpen(true);
+    };
+
+    const handleEditProduto = (categoria, index) => {
+        const product = produtos[categoria][index];
+        setEditProduct({...product});
+        setIsEditModalOpen(true);
     };
 
     const ProductForm = () => (
@@ -643,6 +643,7 @@ const ProdutoCadastro = () => {
                                 placeholder="Nome do Produto"
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                                 disabled={loading}
+                                autoFocus
                             />
                         </div>
                         
