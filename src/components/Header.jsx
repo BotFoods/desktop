@@ -69,6 +69,12 @@ const Header = ({ categories, onSelectCategory }) => {
     setPendingOrders(updatedOrders);
     setShowDropdown(false);
     
+    // Reset status_venda to enable the Preparar button
+    const pdvData = { ...order.pdvData };
+    if (pdvData.pdv && pdvData.pdv.venda) {
+      pdvData.pdv.venda.status_venda = '';
+    }
+    
     // Check if we need to navigate to caixa
     const currentPath = window.location.pathname;
     if (currentPath !== '/caixa') {
@@ -76,12 +82,12 @@ const Header = ({ categories, onSelectCategory }) => {
       
       // We need to defer setting the PDV state to ensure the component is mounted
       setTimeout(() => {
-        localStorage.setItem('pdv', JSON.stringify(order.pdvData));
+        localStorage.setItem('pdv', JSON.stringify(pdvData));
         window.location.reload(); // Force reload to update PDV state
       }, 100);
     } else {
       // We're already on the caixa page, just update the state
-      localStorage.setItem('pdv', JSON.stringify(order.pdvData));
+      localStorage.setItem('pdv', JSON.stringify(pdvData));
       window.location.reload(); // Force reload to update PDV state
     }
   };

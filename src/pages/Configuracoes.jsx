@@ -110,11 +110,9 @@ const Configuracoes = () => {
             if (startData.qrCodeId) {
                 await fetchQrCode(startData.qrCodeId);
             } else if (startData.status === 'already_started') {
-                console.log('Já conectado');
                 setQrCode(null);
                 setStatusMessage({ type: 'success', text: 'Você já está conectado.' });
             } else {
-                console.error('QR code ID not found in response');
                 setStatusMessage({ type: 'error', text: 'Erro ao capturar QRCode.' });
             }
         } catch (error) {

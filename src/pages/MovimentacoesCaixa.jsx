@@ -42,9 +42,6 @@ const MovimentacoesCaixa = () => {
     { entradas: 0, saidas: 0 }
   );
 
-  // Log the totals for debugging
-  console.log("Final totals:", totals);
-
   // Handle session validation only once when component mounts
   useEffect(() => {
     if (!sessionValidated) {
