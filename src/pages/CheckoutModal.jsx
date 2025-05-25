@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'; // Adicionado useMemo
+import { useState, useEffect, useMemo } from 'react'; // Removido useRef
 import { FaWhatsapp, FaPlus, FaMinus, FaTrash } from 'react-icons/fa'; // Importar ícones necessários
 import PropTypes from 'prop-types'; // Importar PropTypes para validação de props
 
@@ -25,19 +25,13 @@ const CheckoutModal = ({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
-  const cepInputRef = useRef(null);
+  
   const API_BASE_URL = import.meta.env.VITE_API_URL; // URL base da API
 
   // Atualizar cálculo do total para considerar a quantidade
   const total = useMemo(() => {
     return selectedProducts.reduce((sum, item) => sum + (parseFloat(item.product.price) * item.quantity), 0);
   }, [selectedProducts]);
-
-  useEffect(() => {
-    if (isOpen && cepInputRef.current) {
-      cepInputRef.current.focus();
-    }
-  }, [isOpen]);
 
   const handleOutsideClick = (e) => {
     if (e.target.classList.contains('checkout-modal-overlay')) {
@@ -63,9 +57,6 @@ const CheckoutModal = ({
           complement: '',
         });
         setLoading(false);
-        if (cepInputRef.current) {
-          cepInputRef.current.focus();
-        }
         return;
       }
       setAddress({
@@ -86,9 +77,6 @@ const CheckoutModal = ({
         number: '',
         complement: '',
       });
-      if (cepInputRef.current) {
-        cepInputRef.current.focus();
-      }
     } finally {
       setLoading(false);
     }
@@ -134,9 +122,7 @@ const CheckoutModal = ({
       });
 
       if (response.ok) {
-        console.log('Pedido enviado com sucesso para o backend!'); 
-        
-        // APENAS construir a URL base do WhatsApp
+        // Construir a URL base do WhatsApp
         const whatsappUrl = `https://wa.me/${contatoLoja}`; // Sem texto pré-preenchido
         
         // Abrir link do WhatsApp em nova aba
@@ -239,25 +225,15 @@ const CheckoutModal = ({
                    value={cep}
                    onChange={(e) => setCep(e.target.value.replace(/\D/g, '').slice(0, 8))} // Formata e limita CEP
                    onBlur={fetchAddressByCep}
-                   ref={cepInputRef}
                    className={`w-full border rounded px-2 py-1 bg-gray-700 text-white ${
                      errorMessage && errorMessage.includes('CEP') ? 'border-red-500' : 'border-gray-600'
                    }`}
                    placeholder="Apenas números"
+                   autoFocus
                  />
                  {errorMessage && errorMessage.includes('CEP') && <p className="text-red-400 text-sm mt-1">{errorMessage}</p>}
                </div>
                {/* ... Restante dos campos de endereço ... */}
-                <div className="mb-2">
-                  <label className="block text-sm font-medium mb-1">Rua</label>
-                  <input
-                    type="text"
-                    value={loading ? 'Buscando...' : address.street}
-                    disabled
-                    className="w-full border rounded px-2 py-1 bg-gray-700 text-gray-400"
-                    placeholder="Rua"
-                  />
-                </div>
                 <div className="mb-2">
                   <label className="block text-sm font-medium mb-1">Número</label>
                   <input

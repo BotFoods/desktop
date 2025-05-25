@@ -9,6 +9,8 @@ import { FaCheckCircle, FaTimesCircle, FaClock, FaHourglassHalf, FaCashRegister 
 const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id }) => {
   // Determine if we're in a "balcao" context (not mesa or delivery)
   const isBalcao = !pdv.pdv.venda.mesa && pdv.pdv.venda.tipo !== 'delivery';
+  // Check if we're in a delivery context
+  const isDelivery = pdv.pdv.venda.tipo === 'delivery';
   
   return (
     <div className="fixed bottom-0 left-0 right-0 ml-64 bg-gray-800 text-white shadow-lg py-3 border-t border-gray-700 z-30">
@@ -35,14 +37,17 @@ const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id }) => {
           <span>Cancelar</span>
         </CancelarButton>
         
-        <PrepararButton 
-          pdv={pdv} 
-          setPdv={setPdv} 
-          className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out shadow-md"
-        >
-          <FaClock className="mr-1" />
-          <span>Preparar</span>
-        </PrepararButton>
+        {/* Only show Preparar button when not in delivery context */}
+        {!isDelivery && (
+          <PrepararButton 
+            pdv={pdv} 
+            setPdv={setPdv} 
+            className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out shadow-md"
+          >
+            <FaClock className="mr-1" />
+            <span>Preparar</span>
+          </PrepararButton>
+        )}
         
         {/* Only show Aguardar button in balcao context */}
         {isBalcao && (

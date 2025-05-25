@@ -4,7 +4,7 @@ import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
 
 const ProdutoCadastro = () => {
-    const { token, validateSession } = useAuth();
+    const { token, validateSession, user } = useAuth();
     const [nome, setNome] = useState('');
     const [descricao, setDescricao] = useState('');
     const [preco, setPreco] = useState('');
@@ -12,12 +12,13 @@ const ProdutoCadastro = () => {
     const [categorias, setCategorias] = useState([]);
     const [produtos, setProdutos] = useState({});
     const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState('success');
     const [activeTab, setActiveTab] = useState('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [editProduct, setEditProduct] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [messageType, setMessageType] = useState('success');
+
     const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     useEffect(() => {
@@ -62,19 +63,18 @@ const ProdutoCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=1`, options);
+                const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user?.loja_id || 1}`, options);
                 const data = await response.json();
                 setProdutos(data);
             } catch (error) {
-                console.error('Error fetching products:', error);
-                showMessage('Erro ao buscar produtos', 'error');
+                showMessage('Erro ao buscar produtos. Verifique sua conexão.', error);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchProdutos();
-    }, [token, API_BASE_URL]);
+    }, [token, API_BASE_URL, user]);
 
     useEffect(() => {
         if (categorias.length > 0) {
@@ -97,17 +97,17 @@ const ProdutoCadastro = () => {
 
     const handlePriceChange = (e) => {
         const value = e.target.value;
-        
+
         // Remove todos os caracteres que não são números ou vírgula
         const numericValue = value.replace(/[^0-9,]/g, '');
-        
+
         // Substitui vírgula por ponto para armazenamento interno
         setPreco(numericValue);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!nome.trim()) {
             showMessage('Digite o nome do produto', 'error');
             return;
@@ -124,10 +124,10 @@ const ProdutoCadastro = () => {
         }
 
         setLoading(true);
-        
+
         // Converte o preço para o formato esperado pela API
         const precoFormatado = preco.replace(',', '.');
-        
+
         const options = {
             method: 'POST',
             headers: {
@@ -150,7 +150,7 @@ const ProdutoCadastro = () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/produtos/cadastrar`, options);
             const data = await response.json();
-            
+
             if (data.success) {
                 const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria, disponibilidade: 1 };
                 setProdutos((prevProdutos) => {
@@ -162,7 +162,7 @@ const ProdutoCadastro = () => {
                             updatedProdutos[categoryName] = [];
                         }
                         updatedProdutos[categoryName].push({
-                            ...newProduct, 
+                            ...newProduct,
                             name: nome,  // Add name property for display
                             price: preco // Add price property for display
                         });
@@ -198,10 +198,10 @@ const ProdutoCadastro = () => {
         }
 
         setLoading(true);
-        
+
         // Converte o preço para o formato esperado pela API
         const precoFormatado = (editProduct.price || editProduct.preco).toString().replace(',', '.');
-        
+
         const options = {
             method: 'PUT',
             headers: {
@@ -222,12 +222,12 @@ const ProdutoCadastro = () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/produtos/atualizar/${editProduct.id}`, options);
             const data = await response.json();
-            
+
             if (data.success) {
                 // Atualiza o produto na lista
                 setProdutos((prevProdutos) => {
                     const updatedProdutos = { ...prevProdutos };
-                    
+
                     // Encontra a categoria do produto
                     for (const categoria in updatedProdutos) {
                         const index = updatedProdutos[categoria].findIndex(p => p.id === editProduct.id);
@@ -243,10 +243,10 @@ const ProdutoCadastro = () => {
                             break;
                         }
                     }
-                    
+
                     return updatedProdutos;
                 });
-                
+
                 showMessage('Produto atualizado com sucesso!');
                 setIsEditModalOpen(false);
             } else {
@@ -262,7 +262,7 @@ const ProdutoCadastro = () => {
 
     const handleToggleDisponibilidade = async (categoria, productId, novaDisponibilidade) => {
         setLoading(true);
-        
+
         const options = {
             method: 'PUT',
             headers: {
@@ -278,12 +278,12 @@ const ProdutoCadastro = () => {
         try {
             const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${productId}`, options);
             const data = await response.json();
-            
+
             if (data.success) {
                 // Atualiza o produto na lista
                 setProdutos((prevProdutos) => {
                     const updatedProdutos = { ...prevProdutos };
-                    
+
                     if (updatedProdutos[categoria]) {
                         const index = updatedProdutos[categoria].findIndex(p => p.id === productId);
                         if (index !== -1) {
@@ -293,10 +293,10 @@ const ProdutoCadastro = () => {
                             };
                         }
                     }
-                    
+
                     return updatedProdutos;
                 });
-                
+
                 showMessage(novaDisponibilidade === 1 ? 'Produto ativado com sucesso!' : 'Produto desativado com sucesso!');
             } else {
                 showMessage(data.message || 'Erro ao alterar disponibilidade do produto', 'error');
@@ -323,7 +323,7 @@ const ProdutoCadastro = () => {
 
     const handleEditProduto = (categoria, index) => {
         const product = produtos[categoria][index];
-        setEditProduct({...product});
+        setEditProduct({ ...product });
         setIsEditModalOpen(true);
     };
 
@@ -345,7 +345,7 @@ const ProdutoCadastro = () => {
                         disabled={loading}
                     />
                 </div>
-                
+
                 <div className="relative">
                     <label htmlFor="descricaoProduto" className="block text-sm font-medium text-gray-300 mb-1">
                         Descrição
@@ -360,7 +360,7 @@ const ProdutoCadastro = () => {
                         disabled={loading}
                     />
                 </div>
-                
+
                 <div className="relative">
                     <label htmlFor="precoProduto" className="block text-sm font-medium text-gray-300 mb-1">
                         Preço <span className="text-red-500">*</span>
@@ -380,7 +380,7 @@ const ProdutoCadastro = () => {
                         />
                     </div>
                 </div>
-                
+
                 <div className="relative">
                     <label htmlFor="categoriaProduto" className="block text-sm font-medium text-gray-300 mb-1">
                         Categoria <span className="text-red-500">*</span>
@@ -405,14 +405,14 @@ const ProdutoCadastro = () => {
                         </p>
                     )}
                 </div>
-                
-                <button 
-                    type="submit" 
+
+                <button
+                    type="submit"
                     className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
                         loading || categorias.length === 0
-                        ? 'bg-gray-600 cursor-not-allowed' 
-                        : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                    } text-white font-bold`}
+                            ? 'bg-gray-600 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                        } text-white font-bold`}
                     disabled={loading || categorias.length === 0}
                 >
                     {loading ? (
@@ -434,7 +434,7 @@ const ProdutoCadastro = () => {
             {message && (
                 <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
                     messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
-                }`}>
+                    }`}>
                     {message}
                 </div>
             )}
@@ -452,8 +452,8 @@ const ProdutoCadastro = () => {
                         </span>
                     </span>
                 </h3>
-                
-                <button 
+
+                <button
                     onClick={openFormModal}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 transition-colors duration-200"
                 >
@@ -461,22 +461,22 @@ const ProdutoCadastro = () => {
                     <span>Novo Produto</span>
                 </button>
             </div>
-            
-            <Modal 
-                isOpen={isFormModalOpen} 
-                onClose={() => setIsFormModalOpen(false)} 
-                title="Novo Produto" 
+
+            <Modal
+                isOpen={isFormModalOpen}
+                onClose={() => setIsFormModalOpen(false)}
+                title="Novo Produto"
                 icon={<FaBoxOpen />}
                 width="max-w-xl"
             >
                 <ProductForm />
             </Modal>
-            
+
             <div className="w-full mt-8">
                 <hr className="my-8 border-gray-700" />
-                
+
                 <h3 className="text-xl font-bold mb-6 text-center">Lista de Produtos</h3>
-                
+
                 {categorias.length === 0 ? (
                     <div className="bg-gray-800 rounded-lg p-6 text-center text-gray-400">
                         <p>Nenhuma categoria cadastrada.</p>
@@ -494,17 +494,17 @@ const ProdutoCadastro = () => {
                                     key={cat.id}
                                     onClick={() => handleTabClick(cat.categoria)}
                                     className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                                        activeTab === cat.categoria 
-                                        ? 'bg-blue-600 text-white shadow-lg transform scale-105' 
-                                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                                    }`}
+                                        activeTab === cat.categoria
+                                            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
+                                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                        }`}
                                     disabled={!cat.ativo}
                                 >
                                     {cat.categoria}
                                 </button>
                             ))}
                         </div>
-                        
+
                         {categorias.map((cat) => (
                             <div key={cat.id} className={`${activeTab === cat.categoria ? 'block' : 'hidden'} transition-opacity duration-300`}>
                                 <div className="mb-8">
@@ -517,7 +517,7 @@ const ProdutoCadastro = () => {
                                             {produtos[cat.categoria]?.filter(prod => prod.disponibilidade === 1).length || 0}
                                         </span>
                                     </div>
-                                    
+
                                     {!produtos[cat.categoria] || produtos[cat.categoria].filter(prod => prod.disponibilidade === 1).length === 0 ? (
                                         <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
                                             <p>Nenhum produto disponível nesta categoria.</p>
@@ -535,7 +535,7 @@ const ProdutoCadastro = () => {
                                                 </thead>
                                                 <tbody>
                                                     {produtos[cat.categoria].filter(prod => prod.disponibilidade === 1).map((prod, index) => (
-                                                        <tr 
+                                                        <tr
                                                             key={prod.id}
                                                             className="hover:bg-gray-700 transition-colors duration-150"
                                                         >
@@ -543,14 +543,14 @@ const ProdutoCadastro = () => {
                                                             <td className="py-3 px-4 border-b border-gray-700">{prod.descricao || '-'}</td>
                                                             <td className="py-3 px-4 border-b border-gray-700">R$ {formatPrice(prod.price || prod.preco)}</td>
                                                             <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
-                                                                <button 
-                                                                    onClick={() => handleEditProduto(cat.categoria, index)} 
+                                                                <button
+                                                                    onClick={() => handleEditProduto(cat.categoria, index)}
                                                                     className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg transition-colors duration-200"
                                                                     title="Editar produto"
                                                                 >
                                                                     <FaEdit />
                                                                 </button>
-                                                                <button 
+                                                                <button
                                                                     onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 0)}
                                                                     className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors duration-200"
                                                                     title="Desativar produto"
@@ -576,7 +576,7 @@ const ProdutoCadastro = () => {
                                             {produtos[cat.categoria]?.filter(prod => prod.disponibilidade === 0).length || 0}
                                         </span>
                                     </div>
-                                    
+
                                     {!produtos[cat.categoria] || produtos[cat.categoria].filter(prod => prod.disponibilidade === 0).length === 0 ? (
                                         <div className="bg-gray-800 rounded-lg p-4 text-center text-gray-400">
                                             <p>Nenhum produto indisponível nesta categoria.</p>
@@ -594,7 +594,7 @@ const ProdutoCadastro = () => {
                                                 </thead>
                                                 <tbody>
                                                     {produtos[cat.categoria].filter(prod => prod.disponibilidade === 0).map((prod) => (
-                                                        <tr 
+                                                        <tr
                                                             key={prod.id}
                                                             className="hover:bg-gray-700 transition-colors duration-150 italic"
                                                         >
@@ -602,7 +602,7 @@ const ProdutoCadastro = () => {
                                                             <td className="py-3 px-4 border-b border-gray-700">{prod.descricao || '-'}</td>
                                                             <td className="py-3 px-4 border-b border-gray-700">R$ {formatPrice(prod.price || prod.preco)}</td>
                                                             <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
-                                                                <button 
+                                                                <button
                                                                     onClick={() => handleToggleDisponibilidade(cat.categoria, prod.id, 1)}
                                                                     className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors duration-200"
                                                                     title="Reativar produto"
@@ -622,12 +622,12 @@ const ProdutoCadastro = () => {
                     </>
                 )}
             </div>
-            
+
             {isEditModalOpen && editProduct && (
-                <Modal 
-                    isOpen={isEditModalOpen} 
-                    onClose={() => setIsEditModalOpen(false)} 
-                    title="Editar Produto" 
+                <Modal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    title="Editar Produto"
                     icon={<FaEdit />}
                     width="max-w-xl"
                 >
@@ -646,7 +646,7 @@ const ProdutoCadastro = () => {
                                 autoFocus
                             />
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">
                                 Descrição
@@ -660,7 +660,7 @@ const ProdutoCadastro = () => {
                                 disabled={loading}
                             />
                         </div>
-                        
+
                         <div>
                             <label className="block text-sm font-medium text-gray-300 mb-1">
                                 Preço <span className="text-red-500">*</span>
@@ -682,7 +682,7 @@ const ProdutoCadastro = () => {
                                 />
                             </div>
                         </div>
-                        
+
                         <div className="flex space-x-3 pt-2">
                             <button
                                 onClick={() => setIsEditModalOpen(false)}
@@ -691,11 +691,11 @@ const ProdutoCadastro = () => {
                             >
                                 Cancelar
                             </button>
-                            <button 
+                            <button
                                 onClick={handleSaveEdit}
                                 className={`w-1/2 p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
                                     loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                                } text-white font-bold`}
+                                    } text-white font-bold`}
                                 disabled={loading}
                             >
                                 {loading ? (

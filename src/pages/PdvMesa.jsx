@@ -13,7 +13,8 @@ const PdvMesa = () => {
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
-  const [setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
@@ -61,7 +62,8 @@ const PdvMesa = () => {
         }
         return loadedPdv;
       } catch (e) {
-        console.error("Erro ao carregar PDV do localStorage, usando estado padrão:", e);
+        // Mostrar erro em um modal ou notificação para o usuário
+        setErrorMessage(`Erro ao carregar dados da mesa. Usando configurações padrão.`);
         return defaultState;
       }
     }
@@ -106,11 +108,12 @@ const PdvMesa = () => {
           updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
           setPdv(updatedPdv);
         } else {
-          console.warn('Nenhum caixa aberto encontrado.');
-          navigate('/caixa');
+          setErrorMessage('Nenhum caixa aberto encontrado. Redirecionando para abrir o caixa...');
+          setTimeout(() => navigate('/caixa'), 1500);
         }
       } catch (error) {
-        console.error('Erro ao verificar caixa aberto:', error);
+        setErrorMessage(`Erro ao verificar caixa aberto: ${error.message}. Redirecionando...`);
+        setTimeout(() => navigate('/caixa'), 2000);
       }
     };
 
@@ -246,28 +249,33 @@ const PdvMesa = () => {
   const loadOrders = () => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
     if (!pdv_salvo) {
-      console.warn(`Nenhum PDV salvo encontrado para Mesa ${mesaId}.`);
+      setErrorMessage(`Nenhum pedido encontrado para Mesa ${mesaId}.`);
       setOrders([]);
       return;
     }
 
-    const pdvData = JSON.parse(pdv_salvo);
-    if (!pdvData.pdv.venda || !pdvData.pdv.venda.produtos) {
-      console.warn(`PDV para Mesa ${mesaId} não contém dados de venda ou produtos.`);
+    try {
+      const pdvData = JSON.parse(pdv_salvo);
+      if (!pdvData.pdv.venda || !pdvData.pdv.venda.produtos) {
+        setErrorMessage(`Dados incompletos para Mesa ${mesaId}. Iniciando nova comanda.`);
+        setOrders([]);
+        return;
+      }
+
+      const updatedOrders = pdvData.pdv.venda.produtos.map((product) => ({
+        id: product.id_produto,
+        name: product.nome,
+        price: product.preco_unitario,
+        quantity: product.quantidade,
+        subtotal: product.subtotal,
+        status: product.status,
+      }));
+
+      setOrders(updatedOrders);
+    } catch (error) {
+      setErrorMessage(`Erro ao carregar pedidos da mesa ${mesaId}: ${error.message}`);
       setOrders([]);
-      return;
     }
-
-    const updatedOrders = pdvData.pdv.venda.produtos.map((product) => ({
-      id: product.id_produto,
-      name: product.nome,
-      price: product.preco_unitario,
-      quantity: product.quantidade,
-      subtotal: product.subtotal,
-      status: product.status,
-    }));
-
-    setOrders(updatedOrders);
   };
 
   const categories = Object.keys(products);

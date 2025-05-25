@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { FaTimesCircle } from 'react-icons/fa';
 
-const CancelarButton = ({ setPdv, setOrders, setIsModalOpen, className, children }) => {
+const CancelarButton = ({ pdv, setPdv, setOrders, setIsModalOpen, className, children }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const handleClick = () => {

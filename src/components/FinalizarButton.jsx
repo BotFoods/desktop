@@ -2,11 +2,28 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { FaCheckCircle } from 'react-icons/fa';
+import AlertModal from './AlertModal';
 
 const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const { user, token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Função para mostrar alerta
+  const showAlert = (message, type = 'info', title = 'Atenção') => {
+    setAlertInfo({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  // Fecha o alerta
+  const closeAlert = () => {
+    setAlertInfo(prev => ({ ...prev, isOpen: false }));
+  };
 
   const handleFinalizar = () => {
     setIsModalOpen(true);
@@ -49,8 +66,6 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
       pagamentos: pagamentosPayload,
     };
 
-    console.log('Dados da Venda para API:', vendaData);
-
     try {
       const response = await fetch(`${API_BASE_URL}/api/vendas/registrar`, {
         method: 'POST',
@@ -62,7 +77,6 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
         body: JSON.stringify(vendaData),
       });
       const result = await response.json();
-      console.log('Resultado Registro Venda:', result);
 
       if (response.ok && result.cupomId) { // Check for cupomId for success
         // Construct receipt text
@@ -102,8 +116,6 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
         receiptText += `----------------------------------------\n`;
         receiptText += `        Obrigado pela preferencia!\n\n\n\n`; // Add extra lines for paper cut
 
-        console.log('Texto do Cupom:\n', receiptText);
-
         // Send to print server
         try {
           const printResponse = await fetch('http://localhost:5000/imprimir', {
@@ -118,27 +130,24 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
             }),
           });
           const printResult = await printResponse.json();
-          console.log('Resultado Impressão:', printResult);
+          
           if (!printResponse.ok) {
-             console.error('Erro ao enviar para impressão:', printResult.error || 'Erro desconhecido');
-             // Optionally show an error message to the user
+             showAlert('Erro ao enviar para impressão: ' + (printResult.error || 'Erro desconhecido'), 'error', 'Erro de Impressão');
           }
         } catch (printError) {
-          console.error('Erro ao conectar com servidor de impressão:', printError);
-          // Optionally show an error message to the user
+          showAlert('Erro ao conectar com servidor de impressão. Verifique se o servidor está ativo.', 'error', 'Erro de Impressão');
         }
 
       } else {
-         console.error('Falha ao registrar venda:', result.message || 'Erro desconhecido');
-         // Optionally show an error message to the user
-         closeModal(); // Close modal even if printing fails but sale registration failed
-         return; // Stop further execution like clearing order if sale failed
+         showAlert('Falha ao registrar venda: ' + (result.message || 'Erro desconhecido'), 'error', 'Erro ao Finalizar');
+         closeModal();
+         return;
       }
 
     } catch (error) {
-      console.error('Erro ao registrar venda:', error);
-      closeModal(); // Close modal on error
-      return; // Stop further execution
+      showAlert('Erro ao registrar venda. Verifique sua conexão e tente novamente.', 'error', 'Erro ao Finalizar');
+      closeModal();
+      return;
     }
 
     // Clear the order in state and localStorage
@@ -170,8 +179,7 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
     }
 
     closeModal();
-    // Refresh the page might not be ideal UX, consider just resetting state
-    // window.location.reload();
+    showAlert('Venda finalizada com sucesso!', 'success', 'Sucesso');
   };
 
   return (
@@ -187,6 +195,7 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
           </>
         )}
       </button>
+      
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 text-white">
           <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>
@@ -221,6 +230,15 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
           </div>
         </div>
       )}
+      
+      {/* Alert Modal */}
+      <AlertModal 
+        isOpen={alertInfo.isOpen}
+        onClose={closeAlert}
+        title={alertInfo.title}
+        message={alertInfo.message}
+        type={alertInfo.type}
+      />
     </>
   );
 };
