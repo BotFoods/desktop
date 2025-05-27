@@ -82,7 +82,7 @@ jobs:
 
           # Tenta encontrar o arquivo .exe (pode precisar de ajuste se nome com versão)
           # Este comando pega o primeiro .exe encontrado. Se houver mais, refine.
-          EXE_FILE_PATH=$(find "${ELECTRON_BUILD_OUTPUT_DIR}" -maxdepth 1 -name "*.exe" -print -quit)
+          EXE_FILE_PATH=$(find "${ELECTRON_BUILD_OUTPUT_DIR}" -name "*.exe" -print -quit)
           
           # Caminho para o arquivo latest.yml (se usar electron-updater)
           YML_FILE_PATH="${ELECTRON_BUILD_OUTPUT_DIR}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
