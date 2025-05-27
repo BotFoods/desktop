@@ -68,7 +68,7 @@ jobs:
         # Ex: './electron-build-output' ou './dist_electron'
         # A configuração 'publish: never' no electron-builder é recomendada aqui,
         # já que estamos fazendo o upload manual para o GCS.
-        run: npm run build-electron # Seu script de build do Electron
+        run: npm run electron:build # Seu script de build do Electron
         env:
           NODE_ENV: production # Define o ambiente como produção
            # Se seu build do Electron precisar de um GH_TOKEN para algo (ex: rascunho de release no GitHub)
