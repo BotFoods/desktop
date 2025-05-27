@@ -1,0 +1,127 @@
+name: Build and Deploy Frontend (Web & Desktop) to GCP
+
+on:
+  push:
+    branches: ["main"] # Aciona quando há push na branch 'main'
+  workflow_dispatch:    # Permite acionamento manual
+
+permissions:
+  contents: 'read'      # Para fazer checkout do código
+  id-token: 'write'     # Necessário para autenticar no GCP (se usar Workload Identity Federation)
+
+jobs:
+  build-and-deploy-frontend:
+    runs-on: ubuntu-latest
+    env:
+      # Nomes dos seus buckets GCS e caminhos (ajuste se necessário)
+      GCS_WEB_BUCKET: botfood-sistema-web # SEU BUCKET PARA O SITE REACT
+      GCS_DESKTOP_BUCKET: botfood-desktop-downloads # SEU BUCKET PARA DOWNLOADS DO ELECTRON
+      GCS_DESKTOP_FOLDER: releases # Pasta dentro do bucket de downloads (ex: releases/BotFood-Setup.exe)
+      ELECTRON_SETUP_FILENAME: BotFood-Setup.exe # Nome fixo para o .exe no GCS
+      ELECTRON_LATEST_YML_FILENAME: latest.yml # Nome fixo para o latest.yml no GCS
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }} # Usando a chave da Service Account
+
+      - name: Set up Cloud SDK (gcloud)
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Ou a versão Node.js do seu projeto
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci # Instala dependências de forma limpa e rápida
+
+      # --- ETAPA: BUILD E DEPLOY DO SITE WEB (REACT) ---
+      - name: Build React Web App
+        run: npm run build # Este comando deve gerar a pasta './dist' (padrão Vite)
+        env:
+          # Passa a URL da API de produção para o build do React
+          VITE_API_URL: ${{ secrets.VITE_API_URL_PROD }}
+
+      - name: Deploy Web App to GCS
+        run: |
+          echo "Deploying Web App to gs://${{ env.GCS_WEB_BUCKET }}"
+          # Sincroniza o conteúdo da pasta 'dist' com a raiz do bucket
+          # -m: operações em paralelo
+          # -d: deleta arquivos no destino que não existem na origem (cuidado!)
+          # -r: recursivo para diretórios
+          gsutil -m rsync -d -r ./dist gs://${{ env.GCS_WEB_BUCKET }}
+          echo "Web App deployment complete. Site should be available at https://sistema.botfood.com.br"
+          echo "(DNS e propagação do Load Balancer podem levar um tempo)"
+
+      # --- ETAPA: BUILD E DEPLOY DO DESKTOP (ELECTRON) ---
+      - name: Build Electron App
+        # Este script deve gerar o .exe e outros arquivos na pasta de saída configurada
+        # Ex: './electron-build-output' ou './dist_electron'
+        # A configuração 'publish: never' no electron-builder é recomendada aqui,
+        # já que estamos fazendo o upload manual para o GCS.
+        run: npm run build-electron # Seu script de build do Electron
+        env:
+          NODE_ENV: production # Define o ambiente como produção
+           # Se seu build do Electron precisar de um GH_TOKEN para algo (ex: rascunho de release no GitHub)
+           # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+           # Adicione outras variáveis se o build do Electron precisar
+
+      - name: Upload Electron App to GCS
+        run: |
+          # Ajuste este caminho para a pasta de saída do seu electron-builder
+          ELECTRON_BUILD_OUTPUT_DIR="./dist_electron"
+
+          # Tenta encontrar o arquivo .exe (pode precisar de ajuste se nome com versão)
+          # Este comando pega o primeiro .exe encontrado. Se houver mais, refine.
+          EXE_FILE_PATH=$(find "${ELECTRON_BUILD_OUTPUT_DIR}" -maxdepth 1 -name "*.exe" -print -quit)
+          
+          # Caminho para o arquivo latest.yml (se usar electron-updater)
+          YML_FILE_PATH="${ELECTRON_BUILD_OUTPUT_DIR}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+
+          if [ -z "$EXE_FILE_PATH" ]; then
+            echo "ERRO: Arquivo .exe não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}"
+            exit 1
+          fi
+
+          TARGET_EXE_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
+          TARGET_YML_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+
+          echo "Uploading ${EXE_FILE_PATH} to ${TARGET_EXE_GCS_PATH}"
+          gsutil cp "${EXE_FILE_PATH}" "${TARGET_EXE_GCS_PATH}"
+          gsutil acl ch -u AllUsers:R "${TARGET_EXE_GCS_PATH}" # Torna público para download
+
+          # Se o arquivo latest.yml existir, faz o upload também
+          if [ -f "$YML_FILE_PATH" ]; then
+            echo "Uploading ${YML_FILE_PATH} to ${TARGET_YML_GCS_PATH}"
+            gsutil cp "${YML_FILE_PATH}" "${TARGET_YML_GCS_PATH}"
+            gsutil acl ch -u AllUsers:R "${TARGET_YML_GCS_PATH}" # Torna público
+          else
+            echo "Arquivo ${ELECTRON_LATEST_YML_FILENAME} não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}, pulando upload."
+          fi
+
+          echo "--- URLs de Download (Exemplos) ---"
+          echo "EXE: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
+          if [ -f "$YML_FILE_PATH" ]; then
+            echo "YML: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+          fi
+
+      # Opcional: Invalidar Cache do CDN após o deploy do site web
+      # Este passo pode ser complexo para configurar corretamente o nome do Load Balancer/URL Map
+      # E requer permissões adicionais para a Service Account (ex: Compute Load Balancer Admin)
+      # - name: Invalidate CDN Cache for Web App
+      #   if: success() # Só roda se os passos anteriores foram bem sucedidos
+      #   run: |
+      #     echo "Attempting to invalidate CDN cache..."
+      #     # Você precisará identificar o NOME_DO_SEU_URL_MAP associado ao seu Load Balancer
+      #     # Pode encontrar isso no console do GCP em Network Services > Load balancing > Seu LB > Detalhes do Roteamento
+      #     # Exemplo: gcloud compute url-maps invalidate-cdn-cache NOME_DO_SEU_URL_MAP --path "/*" --global
+      #     echo "CDN invalidation step placeholder. Configure with your URL Map name."
