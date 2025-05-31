@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Caixa from './pages/Caixa';
 import Cadastros from './pages/Cadastros';
 import Login from './pages/Login';
+import Checkout from './pages/Checkout';
 import PrivateRoute from './routes/PrivateRoute';
 import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
 import Mesas from './pages/Mesas';
@@ -26,6 +27,7 @@ const AppRoutes = () => {
       <div className="bg-gray-900 text-white min-h-screen">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/" element={<Navigate to="/caixa" />} />
           <Route
             path="/caixa"

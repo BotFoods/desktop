@@ -225,9 +225,7 @@ const Login = () => {
           
           <div className="mt-6 text-center">
             <a 
-              href="https://checkout.botfoods.com.br" 
-              target="_blank" 
-              rel="noopener noreferrer"
+              href="/checkout" 
               className="text-blue-400 hover:text-blue-300 flex items-center justify-center space-x-1 transition-colors"
             >
               <span>Cadastrar sua loja no BotFood</span>

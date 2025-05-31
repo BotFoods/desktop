@@ -20,8 +20,8 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.removeItem('token');
     lastValidatedToken.current = null; // Limpa o último token validado
     
-    // Só redirecionar para login se não estiver na página de login e não for cardapio
-    if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio')) {
+    // Só redirecionar para login se não estiver na página de login e não for cardapio ou checkout
+    if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio') && !location.pathname.startsWith('/checkout')) {
       navigate('/login');
     }
   }, [navigate, location.pathname]);
@@ -31,7 +31,8 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    if (location.pathname.startsWith('/cardapio') || location.pathname === '/login') {
+    // Não validar sessão para cardapio, login ou checkout
+    if (location.pathname.startsWith('/cardapio') || location.pathname === '/login' || location.pathname.startsWith('/checkout')) {
       return;
     }
 
@@ -87,8 +88,8 @@ export const AuthProvider = ({ children }) => {
       // Se temos um token, tentamos validar a sessão.
       // A própria validateSession() tem lógica para não revalidar desnecessariamente.
       validateSession();
-    } else if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio')) {
-      // Se não há token e não estamos em login/cardapio, redireciona para login.
+    } else if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio') && !location.pathname.startsWith('/checkout')) {
+      // Se não há token e não estamos em login/cardapio/checkout, redireciona para login.
       navigate('/login');
     }
   }, [token, location.pathname, validateSession, navigate]);
