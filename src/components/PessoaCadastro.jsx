@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaUndo, FaPlus, FaUser, FaUserPlus, FaLock, FaEnvelope, FaIdCard } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUndo, FaPlus, FaUser, FaUserPlus, FaLock, FaEnvelope, FaIdCard, FaUserTie } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
 
@@ -344,146 +344,6 @@ const PessoaCadastro = () => {
     const usuariosAtivos = usuarios.filter(user => user.status === 1);
     const usuariosInativos = usuarios.filter(user => user.status === 0);
 
-    const UserForm = () => (
-        <div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                    <label htmlFor="nome" className="block text-sm font-medium text-gray-300 mb-1">
-                        Nome <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaUser className="text-gray-400" />
-                        </div>
-                        <input
-                            id="nome"
-                            type="text"
-                            placeholder="Nome completo"
-                            value={nome}
-                            onChange={(e) => setNome(e.target.value)}
-                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                            autoFocus
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-                
-                <div className="relative">
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                        Email <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaEnvelope className="text-gray-400" />
-                        </div>
-                        <input
-                            id="email"
-                            type="email"
-                            placeholder="exemplo@email.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-                
-                <div className="relative">
-                    <label htmlFor="usuario" className="block text-sm font-medium text-gray-300 mb-1">
-                        Nome de usuário <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaIdCard className="text-gray-400" />
-                        </div>
-                        <input
-                            id="usuario"
-                            type="text"
-                            placeholder="Nome de usuário para login"
-                            value={usuario}
-                            onChange={(e) => setUsuario(e.target.value)}
-                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-                
-                <div className="relative">
-                    <label htmlFor="senha" className="block text-sm font-medium text-gray-300 mb-1">
-                        Senha <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaLock className="text-gray-400" />
-                        </div>
-                        <input
-                            id="senha"
-                            type="password"
-                            placeholder="Senha (mínimo 6 caracteres)"
-                            value={senha}
-                            onChange={(e) => setSenha(e.target.value)}
-                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-                
-                <div className="relative">
-                    <label htmlFor="funcao" className="block text-sm font-medium text-gray-300 mb-1">
-                        Função <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        id="funcao"
-                        value={funcao}
-                        onChange={(e) => setFuncao(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                        disabled={loading || funcoes.length === 0}
-                    >
-                        {funcoes.length === 0 ? (
-                            <option value="">Carregando funções...</option>
-                        ) : (
-                            funcoes.map((funcao) => (
-                                <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
-                            ))
-                        )}
-                    </select>
-                </div>
-                
-                <button 
-                    type="submit" 
-                    className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                        loading
-                        ? 'bg-gray-600 cursor-not-allowed' 
-                        : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                    } text-white font-bold`}
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <span className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Cadastrando...
-                        </span>
-                    ) : (
-                        <span className="flex items-center">
-                            <FaPlus className="mr-2" />
-                            Cadastrar Usuário
-                        </span>
-                    )}
-                </button>
-            </form>
-            {message && (
-                <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
-                    messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
-                }`}>
-                    {message}
-                </div>
-            )}
-        </div>
-    );
-
     return (
         <>
             <div className="mb-6 flex justify-between items-center">
@@ -512,7 +372,143 @@ const PessoaCadastro = () => {
                 icon={<FaUserPlus />}
                 width="max-w-lg"
             >
-                <UserForm />
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="relative">
+                        <label htmlFor="nome" className="block text-sm font-medium text-gray-300 mb-1">
+                            Nome <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaUser className="text-gray-400" />
+                            </div>
+                            <input
+                                id="nome"
+                                type="text"
+                                placeholder="Nome completo"
+                                value={nome}
+                                onChange={(e) => setNome(e.target.value)}
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                            Email <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaEnvelope className="text-gray-400" />
+                            </div>
+                            <input
+                                id="email"
+                                type="email"
+                                placeholder="exemplo@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <label htmlFor="usuario" className="block text-sm font-medium text-gray-300 mb-1">
+                            Nome de usuário <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaIdCard className="text-gray-400" />
+                            </div>
+                            <input
+                                id="usuario"
+                                type="text"
+                                placeholder="Nome de usuário"
+                                value={usuario}
+                                onChange={(e) => setUsuario(e.target.value)}
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <label htmlFor="senha" className="block text-sm font-medium text-gray-300 mb-1">
+                            Senha <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaLock className="text-gray-400" />
+                            </div>
+                            <input
+                                id="senha"
+                                type="password"
+                                placeholder="Senha"
+                                value={senha}
+                                onChange={(e) => setSenha(e.target.value)}
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+                    
+                    <div className="relative">
+                        <label htmlFor="funcao" className="block text-sm font-medium text-gray-300 mb-1">
+                            Função <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <FaUserTie className="text-gray-400" />
+                            </div>
+                            <select
+                                id="funcao"
+                                value={funcao}
+                                onChange={(e) => setFuncao(e.target.value)}
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 appearance-none"
+                                disabled={loading}
+                            >
+                                <option value="">Selecione uma função</option>
+                                {funcoes.map(funcao => (
+                                    <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                            loading 
+                            ? 'bg-gray-600 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                        } text-white font-bold`}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Cadastrando...
+                            </span>
+                        ) : (
+                            <span className="flex items-center">
+                                <FaPlus className="mr-2" />
+                                Cadastrar Usuário
+                            </span>
+                        )}
+                    </button>
+                </form>
+                {message && (
+                    <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
+                        messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+                    }`}>
+                        {message}
+                    </div>
+                )}
             </Modal>
             
             <div className="w-full mt-8">                
@@ -667,6 +663,7 @@ const PessoaCadastro = () => {
                                     placeholder="Nome completo"
                                     className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
                                     disabled={loading}
+                                    autoFocus
                                 />
                             </div>
                         </div>

@@ -1,166 +1,18 @@
 import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { FaCreditCard, FaLock, FaRegCheckCircle, FaRegClock, FaSpinner, FaStore, FaEnvelope } from 'react-icons/fa';
-import PropTypes from 'prop-types';
+import { FaRegCheckCircle, FaRegClock, FaSpinner, FaStore, FaEnvelope, FaKey, FaWhatsapp } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
-
-// Carregar Stripe com a chave pública
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-
-// Componente para o formulário do cartão
-const CheckoutForm = ({ clientSecret, onComplete, isLoading }) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [error, setError] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const [succeeded, setSucceeded] = useState(false);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [cardBrand, setCardBrand] = useState('');
-  const [cardFeedback, setCardFeedback] = useState('');
-
-  // Função para identificar o tipo do cartão
-  const handleCardChange = (event) => {
-    const { empty, complete, error, brand } = event;
-    setCardBrand(brand);
-    setCardComplete(complete);
-    
-    if (error) {
-      setError(error.message);
-      setCardFeedback('');
-    } else if (empty) {
-      setError('');
-      setCardFeedback('');
-    } else if (complete) {
-      setError('');
-      setCardFeedback('Cartão válido');
-    } else {
-      setError('');
-      setCardFeedback('');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      // Stripe.js ainda não carregou
-      return;
-    }
-
-    if (error) {
-      elements.getElement(CardElement).focus();
-      return;
-    }
-
-    if (cardComplete) {
-      setProcessing(true);
-    } else {
-      setError('Por favor, preencha os dados do cartão corretamente');
-      return;
-    }
-
-    try {
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: elements.getElement(CardElement),
-        }
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-        setProcessing(false);
-      } else {
-        if (result.paymentIntent.status === 'succeeded') {
-          setSucceeded(true);
-          setError(null);
-          setProcessing(false);
-          onComplete(result.paymentIntent);
-        }
-      }
-    } catch (err) {
-      console.error("Erro ao processar pagamento:", err);
-      setError("Ocorreu um erro ao processar seu pagamento. Por favor, tente novamente.");
-      setProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-gray-700 rounded-lg p-6 border border-gray-600">
-        <div className="mb-6">
-          <label htmlFor="card-element" className="block text-sm font-medium text-gray-300 mb-2 flex items-center">
-            <FaCreditCard className="mr-2" /> Dados do Cartão
-          </label>
-          <div className="border border-gray-600 rounded-lg p-4 bg-gray-800">
-            <CardElement
-              id="card-element"
-              options={{
-                style: {
-                  base: {
-                    color: 'white',
-                    fontFamily: '"Inter", sans-serif',
-                    fontSize: '16px',
-                    '::placeholder': {
-                      color: '#94a3b8', // slate-400
-                    },
-                    iconColor: '#ffffff',
-                  },
-                  invalid: {
-                    color: '#f87171', // red-400
-                    iconColor: '#f87171',
-                  },
-                },
-              }}
-              onChange={handleCardChange}
-            />
-          </div>
-          {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
-          {cardFeedback && !error && (
-            <div className="text-green-400 text-sm mt-2 flex items-center">
-              <FaRegCheckCircle className="mr-1" />
-              {cardFeedback} {cardBrand && `(${cardBrand})`}
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center mb-4 text-sm text-gray-400">
-          <FaLock className="mr-2" />
-          <span>Seus dados estão seguros e criptografados</span>
-        </div>
-        
-        <button
-          disabled={processing || !stripe || !cardComplete || succeeded || isLoading}
-          type="submit"
-          className={`w-full p-3 rounded-lg ${
-            processing || isLoading || !cardComplete ? 'bg-blue-700 opacity-70' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-          } text-white font-bold flex items-center justify-center transition-all duration-200`}
-        >
-          {processing || isLoading ? (
-            <span className="flex items-center">
-              <FaSpinner className="animate-spin mr-2" />
-              Processando...
-            </span>
-          ) : (
-            <span className="flex items-center">
-              Confirmar assinatura
-            </span>
-          )}
-        </button>
-      </div>
-    </form>
-  );
-};
 
 // Componente principal da página de checkout
 const Checkout = () => {
   const [loading, setLoading] = useState(false);
-  const [clientSecret, setClientSecret] = useState('');
   const [error, setError] = useState(null);
-  const [subscription, setSubscription] = useState(null);
   const [completed, setCompleted] = useState(false);
   const [email, setEmail] = useState('');
   const [nomeLoja, setNomeLoja] = useState('');
+  const [senha, setSenha] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [step, setStep] = useState(1); // Controla qual passo está sendo exibido
+  const [isTransitioning, setIsTransitioning] = useState(false); // Controla a animação de transição
   const [selectedPlan] = useState('price_standard');
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -183,11 +35,30 @@ const Checkout = () => {
     }
   ];
 
-  // Criando a assinatura ao enviar o formulário inicial
-  const handleStartSubscription = async (e) => {
+  // Função para avançar para o passo 2
+  const handleGoToStep2 = async (e) => {
     e.preventDefault();
     
-    if (!email || !nomeLoja || !selectedPlan) {
+    if (!email || !nomeLoja) {
+      setError('Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    setError(null);
+    setIsTransitioning(true);
+    
+    // Aguarda a animação de rotação terminar
+    setTimeout(() => {
+      setStep(2);
+      setIsTransitioning(false);
+    }, 300);
+  };
+
+  // Função para criar a loja e finalizar
+  const handleCreateStore = async (e) => {
+    e.preventDefault();
+    
+    if (!senha || !whatsapp) {
       setError('Por favor, preencha todos os campos.');
       return;
     }
@@ -207,7 +78,9 @@ const Checkout = () => {
         body: JSON.stringify({
           clienteEmail: email,
           nomeLoja,
-          pricePlanId: selectedPlanData.priceId, // Usar o ID do preço do plano no Stripe
+          senha,
+          whatsapp,
+          pricePlanId: selectedPlanData.priceId,
           descricao: `Assinatura ${selectedPlanData.name} - BotFoods`,
           metadata: {
             plano: 'standard',
@@ -219,48 +92,25 @@ const Checkout = () => {
       const data = await response.json();
       
       if (data.success) {
-        setClientSecret(data.clientSecret);
-        setSubscription({
-          id: data.subscriptionId,
-          status: data.status,
-          trialEnd: data.trialEnd
-        });
+        setCompleted(true);
+        // Redireciona para login após 3 segundos
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 3000);
       } else {
-        setError(data.message || 'Erro ao criar assinatura. Por favor, tente novamente.');
+        setError(data.message || 'Erro ao criar loja. Por favor, tente novamente.');
       }
     } catch (err) {
-      console.error('Erro na criação da assinatura:', err);
+      console.error('Erro na criação da loja:', err);
       setError('Falha na conexão com o servidor. Por favor, verifique sua internet e tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Função para lidar com a confirmação da assinatura
-  const handleSubscriptionCompleted = (paymentIntent) => {
-    setCompleted(true);
-    // Salvando o ID do pagamento para referência futura ou exibição ao usuário
-    console.log('Pagamento confirmado:', paymentIntent.id);
-    
-    // Aqui você pode implementar redirecionamento para o dashboard
-    // ou outras ações após a assinatura ser confirmada
-  };
-
   // Exibir a página adequada com base no estado da assinatura
   const renderContent = () => {
     if (completed) {
-      // Encontrar o plano selecionado
-      const planDetails = plans[0]; // Agora só temos um plano
-      
-      // Calcular data de término do teste (15 dias após hoje)
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 15);
-      const formattedTrialEndDate = trialEndDate.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-      
       return (
         <div className="max-w-md mx-auto p-6 bg-gray-800 rounded-lg shadow-xl border-2 border-green-500 text-center relative overflow-hidden">
           {/* Background decorativo */}
@@ -270,7 +120,7 @@ const Checkout = () => {
           <div className="relative">
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
               <div className="bg-green-600 text-white text-xs px-4 py-1 rounded-full font-bold animate-pulse">
-                TESTE GRÁTIS ATIVADO
+                LOJA CRIADA COM SUCESSO
               </div>
             </div>
             
@@ -280,9 +130,9 @@ const Checkout = () => {
                   <FaRegCheckCircle size={48} className="text-white" />
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Assinatura Confirmada!</h2>
+              <h2 className="text-2xl font-bold text-white mb-2">Parabéns!</h2>
               <p className="text-gray-300">
-                Parabéns! Seu período de teste foi iniciado com sucesso. Você receberá um e-mail com os detalhes.
+                Sua loja foi criada com sucesso! Você será redirecionado para o login em alguns segundos.
               </p>
             </div>
           </div>
@@ -290,37 +140,30 @@ const Checkout = () => {
           <div className="bg-gray-700 rounded-lg p-4 mb-6 text-left">
             <h3 className="font-medium text-white mb-3 flex items-center">
               <FaRegCheckCircle className="text-green-500 mr-2" />
-              Detalhes da Assinatura:
+              Detalhes da Loja:
             </h3>
             <div className="space-y-2 text-gray-300 text-sm">
-              <p>• Loja: <span className="text-white">{nomeLoja}</span></p>
+              <p>• Nome: <span className="text-white">{nomeLoja}</span></p>
               <p>• E-mail: <span className="text-white">{email}</span></p>
-              <p>• Plano: <span className="text-white">{planDetails?.name || 'Plano selecionado'}</span></p>
-              <p>• Valor: <span className="text-white">{planDetails?.price || ''} {planDetails?.period || ''}</span></p>
-              <p>• Status: <span className="text-green-400 font-medium">Período de teste ativo</span></p>
-              <p className="flex items-center">
-                • Acesso gratuito até: 
-                <span className="bg-green-900/30 text-green-400 font-medium rounded ml-2 px-2 py-0.5">
-                  {formattedTrialEndDate}
-                </span>
-              </p>
+              <p>• WhatsApp: <span className="text-white">{whatsapp}</span></p>
+              <p>• Status: <span className="text-green-400 font-medium">Ativa</span></p>
             </div>
           </div>
           
           <div className="bg-green-900/20 text-green-300 p-4 rounded-lg mb-6 border border-green-800/30">
-            <h4 className="font-medium mb-2">Seu teste grátis inclui:</h4>
+            <h4 className="font-medium mb-2">Próximos passos:</h4>
             <ul className="text-sm text-left space-y-2">
               <li className="flex items-start">
                 <FaRegCheckCircle className="text-green-500 mt-1 mr-2 flex-shrink-0" />
-                <span>Acesso completo a todas as funcionalidades do sistema por 15 dias</span>
+                <span>Faça login com seu e-mail e senha</span>
               </li>
               <li className="flex items-start">
                 <FaRegCheckCircle className="text-green-500 mt-1 mr-2 flex-shrink-0" />
-                <span>Suporte técnico prioritário para ajudar na configuração inicial</span>
+                <span>Configure seu cardápio e produtos</span>
               </li>
               <li className="flex items-start">
                 <FaRegCheckCircle className="text-green-500 mt-1 mr-2 flex-shrink-0" />
-                <span>Cancele a qualquer momento durante o período de teste</span>
+                <span>Comece a receber pedidos!</span>
               </li>
             </ul>
           </div>
@@ -329,91 +172,8 @@ const Checkout = () => {
             href="/login" 
             className="w-full block p-4 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-center transition-all duration-200 shadow-lg"
           >
-            Acessar Meu Sistema Agora
+            Ir para Login
           </a>
-        </div>
-      );
-    }
-    
-    if (clientSecret && subscription) {
-      return (
-        <div className="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Coluna de Resumo à Esquerda */}
-          <div className="md:col-span-1">
-            <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 sticky top-8">
-              <h3 className="text-xl font-bold text-white mb-6">Resumo da Assinatura</h3>
-              
-              <div className="bg-green-900/20 p-3 rounded-lg border border-green-800/30 mb-6">
-                <div className="flex items-center mb-2">
-                  <FaRegClock className="text-green-400 mr-2" />
-                  <span className="text-green-400 font-medium">15 dias grátis</span>
-                </div>
-                <p className="text-gray-300 text-sm">
-                  Seu período de teste já está garantido
-                </p>
-              </div>
-              
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-gray-300">
-                  <span>Plano</span>
-                  <span className="font-medium text-white">{plans[0].name}</span>
-                </div>
-                <div className="flex justify-between text-gray-300">
-                  <span>Valor</span>
-                  <span className="font-medium text-white">{plans[0].price}{plans[0].period}</span>
-                </div>
-                <div className="flex justify-between text-gray-300">
-                  <span>Primeira cobrança</span>
-                  <span className="font-medium text-white">após 15 dias</span>
-                </div>
-              </div>
-              
-              <div className="pt-4 border-t border-gray-700">
-                <div className="flex items-center text-blue-400 mb-4">
-                  <FaLock className="mr-2" />
-                  <span className="text-sm">
-                    Você não será cobrado durante o período de teste.
-                  </span>
-                </div>
-                
-                <div className="bg-blue-900/20 text-blue-300 p-3 rounded-lg text-sm">
-                  Após os 15 dias de teste, o valor será cobrado automaticamente no cartão informado. Você pode cancelar a qualquer momento.
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Coluna de Pagamento à Direita */}
-          <div className="md:col-span-2">
-            <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 relative">
-              {/* Indicador de etapa */}
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs font-bold py-1 px-4 rounded-full">
-                PASSO 2 DE 2
-              </div>
-              
-              <h2 className="text-2xl font-bold text-white mb-2">Finalizar Assinatura</h2>
-              <p className="text-gray-400 mb-6">Adicione um cartão para garantir sua assinatura após o período de teste</p>
-              
-              {error && (
-                <div className="bg-red-500/20 text-red-300 p-3 rounded-lg mb-6 text-center">
-                  {error}
-                </div>
-              )}
-              
-              <Elements stripe={stripePromise}>
-                <CheckoutForm 
-                  clientSecret={clientSecret} 
-                  onComplete={handleSubscriptionCompleted}
-                  isLoading={loading}
-                />
-              </Elements>
-              
-              <div className="mt-4 flex items-center justify-center text-gray-400 text-sm">
-                <FaLock className="mr-2" />
-                <span>Seus dados estão protegidos com criptografia de ponta a ponta</span>
-              </div>
-            </div>
-          </div>
         </div>
       );
     }
@@ -530,93 +290,192 @@ const Checkout = () => {
           <div className="bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-6 relative h-full">
             {/* Indicador de etapa */}
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs font-bold py-1 px-4 rounded-full">
-              PASSO 1 DE 2
+              {step === 1 ? 'PASSO 1 DE 2' : 'PASSO 2 DE 2'}
             </div>
             
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-white">Informações da Loja</h2>
-              <div className="bg-green-900/30 text-green-400 text-xs font-bold px-3 py-1 rounded-full flex items-center">
-                <FaRegClock className="mr-1" /> 15 DIAS GRÁTIS
-              </div>
-            </div>
-            
-            <div className="bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-800/30">
-              <p className="text-blue-300 text-sm">
-                Preencha os dados abaixo para iniciar seu período de teste <span className="font-bold">gratuito de 15 dias</span>. Sem compromisso e sem necessidade de cartão de crédito agora.
-              </p>
-            </div>
-            
-            <form onSubmit={handleStartSubscription} className="space-y-4">
-              <div>
-                <label htmlFor="loja" className="block text-sm font-medium text-gray-300 mb-1">
-                  Nome da Loja
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaStore className="text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    id="loja"
-                    placeholder="Nome da sua Loja"
-                    value={nomeLoja}
-                    onChange={(e) => setNomeLoja(e.target.value)}
-                    className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
+            {/* Container com animação de rotação */}
+            <div className={`transition-all duration-300 ${isTransitioning ? 'transform rotate-y-180 opacity-0' : 'transform rotate-y-0 opacity-100'}`}
+                 style={{
+                   transformStyle: 'preserve-3d',
+                 }}>
               
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
-                  E-mail
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FaEnvelope className="text-gray-400" />
+              {step === 1 ? (
+                // PASSO 1 - Informações da Loja
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-white">Informações da Loja</h2>
+                    <div className="bg-green-900/30 text-green-400 text-xs font-bold px-3 py-1 rounded-full flex items-center">
+                      <FaRegClock className="mr-1" /> 15 DIAS GRÁTIS
+                    </div>
                   </div>
-                  <input
-                    type="email"
-                    id="email"
-                    placeholder="seu@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                    disabled={loading}
-                  />
-                </div>
-              </div>
-              
-              <div className="pt-5">
-                <button 
-                  type="submit" 
-                  className="w-full p-4 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold flex items-center justify-center transition-all duration-200 shadow-lg"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Processando...
-                    </span>
-                  ) : (
-                    <span className="flex items-center">
-                      Iniciar Meu Teste Grátis <FaRegClock className="ml-2" />
-                    </span>
-                  )}
-                </button>
-                
-                <div className="mt-4 text-center">
-                  <p className="text-green-400 text-sm font-medium">Sem compromisso • Cancele quando quiser</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Ao clicar em continuar, você concorda com nossos 
-                    <a href="#" className="text-blue-400 hover:text-blue-300 ml-1">Termos de Serviço</a>.
-                  </p>
-                </div>
-              </div>
-            </form>
+                  
+                  <div className="bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-800/30">
+                    <p className="text-blue-300 text-sm">
+                      Preencha os dados abaixo para iniciar seu período de teste <span className="font-bold">gratuito de 15 dias</span>. Sem compromisso e sem necessidade de cartão de crédito agora.
+                    </p>
+                  </div>
+                  
+                  <form onSubmit={handleGoToStep2} className="space-y-4">
+                    <div>
+                      <label htmlFor="loja" className="block text-sm font-medium text-gray-300 mb-1">
+                        Nome da Loja
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaStore className="text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          id="loja"
+                          placeholder="Nome da sua Loja"
+                          value={nomeLoja}
+                          onChange={(e) => setNomeLoja(e.target.value)}
+                          className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                          disabled={loading}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                        E-mail
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaEnvelope className="text-gray-400" />
+                        </div>
+                        <input
+                          type="email"
+                          id="email"
+                          placeholder="seu@email.com"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                          disabled={loading}
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="pt-5">
+                      <button 
+                        type="submit" 
+                        className="w-full p-4 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold flex items-center justify-center transition-all duration-200 shadow-lg"
+                        disabled={loading || isTransitioning}
+                      >
+                        <span className="flex items-center">
+                          Continuar para Próximo Passo <FaRegCheckCircle className="ml-2" />
+                        </span>
+                      </button>
+                      
+                      <div className="mt-4 text-center">
+                        <p className="text-green-400 text-sm font-medium">Sem compromisso • Cancele quando quiser</p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Ao continuar, você concorda com nossos 
+                          <a href="#" className="text-blue-400 hover:text-blue-300 ml-1">Termos de Serviço</a>.
+                        </p>
+                      </div>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                // PASSO 2 - Senha e WhatsApp
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold text-white">Configurações de Acesso</h2>
+                    <div className="bg-green-900/30 text-green-400 text-xs font-bold px-3 py-1 rounded-full flex items-center">
+                      <FaRegClock className="mr-1" /> FINALIZANDO
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-900/20 p-4 rounded-lg mb-6 border border-green-800/30">
+                    <p className="text-green-300 text-sm">
+                      Quase pronto! Defina sua senha e informe seu WhatsApp para finalizar a criação da sua loja.
+                    </p>
+                  </div>
+                  
+                  <form onSubmit={handleCreateStore} className="space-y-4">
+                    <div>
+                      <label htmlFor="senha" className="block text-sm font-medium text-gray-300 mb-1">
+                        Senha de Acesso
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaKey className="text-gray-400" />
+                        </div>
+                        <input
+                          type="password"
+                          id="senha"
+                          placeholder="Digite uma senha segura"
+                          value={senha}
+                          onChange={(e) => setSenha(e.target.value)}
+                          className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                          disabled={loading}
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Mínimo de 6 caracteres</p>
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-300 mb-1">
+                        WhatsApp
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FaWhatsapp className="text-gray-400" />
+                        </div>
+                        <input
+                          type="tel"
+                          id="whatsapp"
+                          placeholder="(11) 99999-9999"
+                          value={whatsapp}
+                          onChange={(e) => setWhatsapp(e.target.value)}
+                          className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                          disabled={loading}
+                          required
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Para comunicação e suporte</p>
+                    </div>
+                    
+                    <div className="pt-5">
+                      <button 
+                        type="submit" 
+                        className="w-full p-4 rounded-lg bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-bold flex items-center justify-center transition-all duration-200 shadow-lg"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <span className="flex items-center">
+                            <FaSpinner className="animate-spin mr-2" />
+                            Criando sua loja...
+                          </span>
+                        ) : (
+                          <span className="flex items-center">
+                            Criar Minha Loja <FaStore className="ml-2" />
+                          </span>
+                        )}
+                      </button>
+                      
+                      <button 
+                        type="button" 
+                        onClick={() => setStep(1)}
+                        className="w-full mt-3 p-2 text-gray-400 hover:text-white text-sm transition-colors duration-200"
+                        disabled={loading}
+                      >
+                        ← Voltar para o passo anterior
+                      </button>
+                      
+                      <div className="mt-4 text-center">
+                        <p className="text-green-400 text-sm font-medium">Suas informações estão seguras</p>
+                      </div>
+                    </div>
+                  </form>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -639,7 +498,7 @@ const Checkout = () => {
       </div>
 
       {/* Seção de FAQ */}
-      {!clientSecret && !completed && <FAQSection />}
+      {!completed && <FAQSection />}
 
       {/* Footer */}
       <div className="max-w-6xl w-full mx-auto mt-12 pt-6 border-t border-gray-700">
@@ -715,13 +574,6 @@ const FAQSection = () => {
       </div>
     </div>
   );
-};
-
-// Adicionar validação PropTypes para o CheckoutForm
-CheckoutForm.propTypes = {
-  clientSecret: PropTypes.string.isRequired,
-  onComplete: PropTypes.func.isRequired,
-  isLoading: PropTypes.bool.isRequired
 };
 
 export default Checkout;

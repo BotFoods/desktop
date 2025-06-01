@@ -67,13 +67,16 @@ const ProdutoCadastro = () => {
                 const data = await response.json();
                 setProdutos(data);
             } catch (error) {
-                showMessage('Erro ao buscar produtos. Verifique sua conexão.', error);
+                console.error('Erro ao buscar produtos:', error);
+                showMessage('Erro ao buscar produtos. Verifique sua conexão.', 'error');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchProdutos();
+        if (token && API_BASE_URL && user) {
+            fetchProdutos();
+        }
     }, [token, API_BASE_URL, user]);
 
     useEffect(() => {
@@ -88,6 +91,29 @@ const ProdutoCadastro = () => {
         setTimeout(() => {
             setMessage('');
         }, 5000);
+    };
+
+    const fetchProdutos = async () => {
+        if (!token || !API_BASE_URL || !user) return;
+        
+        setLoading(true);
+        const options = {
+            method: 'GET',
+            headers: {
+                authorization: `${token}`
+            },
+            credentials: 'include',
+        };
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user?.loja_id || 1}`, options);
+            const data = await response.json();
+            setProdutos(data);
+        } catch (error) {
+            console.error('Erro ao recarregar produtos:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const formatPrice = (price) => {
@@ -153,9 +179,11 @@ const ProdutoCadastro = () => {
 
             if (data.success) {
                 const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria, disponibilidade: 1 };
+                
                 setProdutos((prevProdutos) => {
                     const updatedProdutos = { ...prevProdutos };
                     const category = categorias.find(cat => cat.id === parseInt(idCategoria, 10));
+                    
                     if (category) {
                         const categoryName = category.categoria;
                         if (!updatedProdutos[categoryName]) {
@@ -175,6 +203,9 @@ const ProdutoCadastro = () => {
                 setIdCategoria('');
                 showMessage(data.message || 'Produto cadastrado com sucesso!');
                 setIsFormModalOpen(false);
+                
+                // Recarregar a lista de produtos para garantir sincronização
+                await fetchProdutos();
             } else {
                 showMessage(data.message || 'Erro ao cadastrar produto', 'error');
             }
@@ -327,120 +358,6 @@ const ProdutoCadastro = () => {
         setIsEditModalOpen(true);
     };
 
-    const ProductForm = () => (
-        <div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                    <label htmlFor="nomeProduto" className="block text-sm font-medium text-gray-300 mb-1">
-                        Nome <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        id="nomeProduto"
-                        type="text"
-                        value={nome}
-                        onChange={(e) => setNome(e.target.value)}
-                        placeholder="Nome do Produto"
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                        autoFocus
-                        disabled={loading}
-                    />
-                </div>
-
-                <div className="relative">
-                    <label htmlFor="descricaoProduto" className="block text-sm font-medium text-gray-300 mb-1">
-                        Descrição
-                    </label>
-                    <textarea
-                        id="descricaoProduto"
-                        value={descricao}
-                        onChange={(e) => setDescricao(e.target.value)}
-                        placeholder="Descrição do Produto"
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                        rows="3"
-                        disabled={loading}
-                    />
-                </div>
-
-                <div className="relative">
-                    <label htmlFor="precoProduto" className="block text-sm font-medium text-gray-300 mb-1">
-                        Preço <span className="text-red-500">*</span>
-                    </label>
-                    <div className="relative">
-                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                            R$
-                        </span>
-                        <input
-                            id="precoProduto"
-                            type="text"
-                            value={preco}
-                            onChange={handlePriceChange}
-                            placeholder="0,00"
-                            className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                            disabled={loading}
-                        />
-                    </div>
-                </div>
-
-                <div className="relative">
-                    <label htmlFor="categoriaProduto" className="block text-sm font-medium text-gray-300 mb-1">
-                        Categoria <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                        id="categoriaProduto"
-                        value={idCategoria}
-                        onChange={(e) => setIdCategoria(e.target.value)}
-                        className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                        disabled={loading || categorias.length === 0}
-                    >
-                        <option value="">Selecione uma Categoria</option>
-                        {categorias.map((cat) => (
-                            <option key={cat.id} value={cat.id}>
-                                {cat.categoria}
-                            </option>
-                        ))}
-                    </select>
-                    {categorias.length === 0 && (
-                        <p className="mt-1 text-sm text-yellow-400">
-                            Nenhuma categoria disponível. Cadastre uma categoria primeiro.
-                        </p>
-                    )}
-                </div>
-
-                <button
-                    type="submit"
-                    className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
-                        loading || categorias.length === 0
-                            ? 'bg-gray-600 cursor-not-allowed'
-                            : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                        } text-white font-bold`}
-                    disabled={loading || categorias.length === 0}
-                >
-                    {loading ? (
-                        <span className="flex items-center">
-                            <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Cadastrando...
-                        </span>
-                    ) : (
-                        <span className="flex items-center">
-                            <FaPlus className="mr-2" />
-                            Cadastrar Produto
-                        </span>
-                    )}
-                </button>
-            </form>
-            {message && (
-                <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
-                    messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
-                    }`}>
-                    {message}
-                </div>
-            )}
-        </div>
-    );
-
     return (
         <>
             <div className="mb-6 flex justify-between items-center">
@@ -469,7 +386,115 @@ const ProdutoCadastro = () => {
                 icon={<FaBoxOpen />}
                 width="max-w-xl"
             >
-                <ProductForm />
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="relative">
+                        <label htmlFor="nomeProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                            Nome <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="nomeProduto"
+                            type="text"
+                            value={nome}
+                            onChange={(e) => setNome(e.target.value)}
+                            placeholder="Nome do Produto"
+                            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                            disabled={loading}
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <label htmlFor="descricaoProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                            Descrição
+                        </label>
+                        <textarea
+                            id="descricaoProduto"
+                            value={descricao}
+                            onChange={(e) => setDescricao(e.target.value)}
+                            placeholder="Descrição do Produto"
+                            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                            rows="3"
+                            disabled={loading}
+                        />
+                    </div>
+
+                    <div className="relative">
+                        <label htmlFor="precoProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                            Preço <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                R$
+                            </span>
+                            <input
+                                id="precoProduto"
+                                type="text"
+                                value={preco}
+                                onChange={handlePriceChange}
+                                placeholder="0,00"
+                                className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        <label htmlFor="categoriaProduto" className="block text-sm font-medium text-gray-300 mb-1">
+                            Categoria <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            id="categoriaProduto"
+                            value={idCategoria}
+                            onChange={(e) => setIdCategoria(e.target.value)}
+                            className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                            disabled={loading || categorias.length === 0}
+                        >
+                            <option value="">Selecione uma Categoria</option>
+                            {categorias.map((cat) => (
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.categoria}
+                                </option>
+                            ))}
+                        </select>
+                        {categorias.length === 0 && (
+                            <p className="mt-1 text-sm text-yellow-400">
+                                Nenhuma categoria disponível. Cadastre uma categoria primeiro.
+                            </p>
+                        )}
+                    </div>
+
+                    <button
+                        type="submit"
+                        className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                            loading || categorias.length === 0
+                                ? 'bg-gray-600 cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
+                            } text-white font-bold`}
+                        disabled={loading || categorias.length === 0}
+                    >
+                        {loading ? (
+                            <span className="flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Cadastrando...
+                            </span>
+                        ) : (
+                            <span className="flex items-center">
+                                <FaPlus className="mr-2" />
+                                Cadastrar Produto
+                            </span>
+                        )}
+                    </button>
+                </form>
+                {message && (
+                    <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
+                        messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+                        }`}>
+                        {message}
+                    </div>
+                )}
             </Modal>
 
             <div className="w-full mt-8">
