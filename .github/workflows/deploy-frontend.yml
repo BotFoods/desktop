@@ -63,56 +63,56 @@ jobs:
           echo "(DNS e propagação do Load Balancer podem levar um tempo)"
 
       # --- ETAPA: BUILD E DEPLOY DO DESKTOP (ELECTRON) ---
-      - name: Build Electron App
+      # - name: Build Electron App
         # Este script deve gerar o .exe e outros arquivos na pasta de saída configurada
         # Ex: './electron-build-output' ou './dist_electron'
         # A configuração 'publish: never' no electron-builder é recomendada aqui,
         # já que estamos fazendo o upload manual para o GCS.
-        run: npm run electron:build # Seu script de build do Electron
-        env:
-          NODE_ENV: production # Define o ambiente como produção
+        # run: npm run electron:build # Seu script de build do Electron
+        # env:
+          # NODE_ENV: production # Define o ambiente como produção
            # Se seu build do Electron precisar de um GH_TOKEN para algo (ex: rascunho de release no GitHub)
            # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
            # Adicione outras variáveis se o build do Electron precisar
 
-      - name: Upload Electron App to GCS
-        run: |
+      # - name: Upload Electron App to GCS
+        # run: |
           # Ajuste este caminho para a pasta de saída do seu electron-builder
-          ELECTRON_BUILD_OUTPUT_DIR="./dist_electron"
+          # ELECTRON_BUILD_OUTPUT_DIR="./dist_electron"
 
           # Tenta encontrar o arquivo .exe (pode precisar de ajuste se nome com versão)
           # Este comando pega o primeiro .exe encontrado. Se houver mais, refine.
-          EXE_FILE_PATH=$(find "${ELECTRON_BUILD_OUTPUT_DIR}" -name "*.exe" -print -quit)
+          # EXE_FILE_PATH=$(find "${ELECTRON_BUILD_OUTPUT_DIR}" -name "*.exe" -print -quit)
           
           # Caminho para o arquivo latest.yml (se usar electron-updater)
-          YML_FILE_PATH="${ELECTRON_BUILD_OUTPUT_DIR}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+          # YML_FILE_PATH="${ELECTRON_BUILD_OUTPUT_DIR}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
 
-          if [ -z "$EXE_FILE_PATH" ]; then
-            echo "ERRO: Arquivo .exe não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}"
-            exit 1
-          fi
+          # if [ -z "$EXE_FILE_PATH" ]; then
+            # echo "ERRO: Arquivo .exe não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}"
+            # exit 1
+          # fi
 
-          TARGET_EXE_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
-          TARGET_YML_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+          # TARGET_EXE_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
+          # TARGET_YML_GCS_PATH="gs://${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
 
-          echo "Uploading ${EXE_FILE_PATH} to ${TARGET_EXE_GCS_PATH}"
-          gsutil cp "${EXE_FILE_PATH}" "${TARGET_EXE_GCS_PATH}"
-          gsutil acl ch -u AllUsers:R "${TARGET_EXE_GCS_PATH}" # Torna público para download
+          # echo "Uploading ${EXE_FILE_PATH} to ${TARGET_EXE_GCS_PATH}"
+          # gsutil cp "${EXE_FILE_PATH}" "${TARGET_EXE_GCS_PATH}"
+          # gsutil acl ch -u AllUsers:R "${TARGET_EXE_GCS_PATH}" # Torna público para download
 
           # Se o arquivo latest.yml existir, faz o upload também
-          if [ -f "$YML_FILE_PATH" ]; then
-            echo "Uploading ${YML_FILE_PATH} to ${TARGET_YML_GCS_PATH}"
-            gsutil cp "${YML_FILE_PATH}" "${TARGET_YML_GCS_PATH}"
-            gsutil acl ch -u AllUsers:R "${TARGET_YML_GCS_PATH}" # Torna público
-          else
-            echo "Arquivo ${ELECTRON_LATEST_YML_FILENAME} não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}, pulando upload."
-          fi
+          # if [ -f "$YML_FILE_PATH" ]; then
+            # echo "Uploading ${YML_FILE_PATH} to ${TARGET_YML_GCS_PATH}"
+            # gsutil cp "${YML_FILE_PATH}" "${TARGET_YML_GCS_PATH}"
+            # gsutil acl ch -u AllUsers:R "${TARGET_YML_GCS_PATH}" # Torna público
+          # else
+            # echo "Arquivo ${ELECTRON_LATEST_YML_FILENAME} não encontrado em ${ELECTRON_BUILD_OUTPUT_DIR}, pulando upload."
+          # fi
 
-          echo "--- URLs de Download (Exemplos) ---"
-          echo "EXE: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
-          if [ -f "$YML_FILE_PATH" ]; then
-            echo "YML: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
-          fi
+          # echo "--- URLs de Download (Exemplos) ---"
+          # echo "EXE: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_SETUP_FILENAME }}"
+          # if [ -f "$YML_FILE_PATH" ]; then
+            # echo "YML: https://storage.googleapis.com/${{ env.GCS_DESKTOP_BUCKET }}/${{ env.GCS_DESKTOP_FOLDER }}/${{ env.ELECTRON_LATEST_YML_FILENAME }}"
+          # fi
 
       # Opcional: Invalidar Cache do CDN após o deploy do site web
       # Este passo pode ser complexo para configurar corretamente o nome do Load Balancer/URL Map
