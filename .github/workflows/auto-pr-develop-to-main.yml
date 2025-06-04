@@ -44,8 +44,7 @@ jobs:
           - [ ] Testes passando
           - [ ] Migrations validadas (se aplicável)" \
             --head develop \
-            --base main \
-            --label automated-pr
+            --base main
 
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists == 'true'
