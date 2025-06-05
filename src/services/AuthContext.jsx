@@ -77,11 +77,6 @@ export const AuthProvider = ({ children }) => {
       setIsValidating(false);
     }
   }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências
-
-  AuthProvider.propTypes = {
-    children: PropTypes.node.isRequired,
-  };
-
   // useEffect para validar sessão quando o token muda ou a localização muda (exceto login/cardapio)
   useEffect(() => {
     if (token) {
@@ -133,4 +128,8 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

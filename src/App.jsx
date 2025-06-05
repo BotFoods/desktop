@@ -28,54 +28,74 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkout" element={<Checkout />} />
-          <Route path="/" element={<Navigate to="/caixa" />} />
-          <Route
+          <Route path="/" element={<Navigate to="/caixa" />} />          <Route
             path="/caixa"
             element={
+              <PrivateRoute>
+                <Header />
                 <Caixa />
+              </PrivateRoute>
             }
           />
           <Route
             path="/cadastros"
             element={
+              <PrivateRoute>
+                <Header />
                 <Cadastros />
+              </PrivateRoute>
             }
           />
           <Route
             path="/movimentacoes"
             element={
+              <PrivateRoute>
+                <Header />
                 <MovimentacoesCaixa />
+              </PrivateRoute>
             }
           />
           <Route path="*" element={<Navigate to="/caixa" />} />
           <Route
             path="/mesas"
             element={
+              <PrivateRoute>
+                <Header />
                 <Mesas />
+              </PrivateRoute>
             }
           />
           <Route
             path="/pdv/mesa/:mesaId"
             element={
+              <PrivateRoute>
+                <Header />
                 <PdvMesa />
+              </PrivateRoute>
             }
           />
           <Route
             path="/cardapio/:id/:wid"
             element={
-                <Cardapio />
+              <Cardapio />
             }
           />
           <Route
             path="/delivery"
             element={
+              <PrivateRoute>
+                <Header />
                 <Delivery />
+              </PrivateRoute>
             }
           />
           <Route
             path="/configuracoes"
             element={
+              <PrivateRoute>
+                <Header />
                 <Configuracoes />
+              </PrivateRoute>
             }
           />
         </Routes>
