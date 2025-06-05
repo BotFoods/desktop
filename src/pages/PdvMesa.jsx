@@ -97,7 +97,7 @@ const PdvMesa = () => {
     const verificarCaixa = async () => {
       if (!user || !token) return;
       try {
-        const data = await verificarCaixaAberto(user.id, token);
+        const data = await verificarCaixaAberto(user.id, token, user.loja_id);
         if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
           const updatedPdv = { ...pdv };
           updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;

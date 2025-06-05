@@ -4,7 +4,7 @@ import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
 
 const CategoriaCadastro = () => {
-    const { token, validateSession } = useAuth();
+    const { token, validateSession, user } = useAuth();
     const [categoria, setCategoria] = useState('');
     const [categorias, setCategorias] = useState([]);
     const [message, setMessage] = useState('');
@@ -22,9 +22,7 @@ const CategoriaCadastro = () => {
         if (messageDuration) clearTimeout(messageDuration);
         const timer = setTimeout(() => setMessage(''), 5000);
         setMessageDuration(timer);
-    };
-
-    useEffect(() => {
+    };    useEffect(() => {
         const fetchCategorias = async () => {
             setLoading(true);
             const options = {
@@ -36,7 +34,7 @@ const CategoriaCadastro = () => {
             };
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/categorias/`, options);
+                const response = await fetch(`${API_BASE_URL}/api/categorias/?id_loja=${user.loja_id}`, options);
                 const data = await response.json();
                 setCategorias(data.categorias);
             } catch (error) {
@@ -47,12 +45,10 @@ const CategoriaCadastro = () => {
             } finally {
                 setLoading(false);
             }
-        };
-
-        if (token && API_BASE_URL) {
+        };        if (token && API_BASE_URL && user?.loja_id) {
             fetchCategorias();
         }
-    }, [token, API_BASE_URL]);
+    }, [token, API_BASE_URL, user?.loja_id]);
 
     const handleAddCategoria = async () => {
         if (!categoria.trim()) {
@@ -68,7 +64,7 @@ const CategoriaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include',
-            body: JSON.stringify({ categoria, id_loja: 1 })
+            body: JSON.stringify({ categoria, id_loja: user.loja_id })
         };
 
         try {
@@ -99,10 +95,8 @@ const CategoriaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include'
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/categorias/desativar/${id}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/categorias/desativar/${id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             if (data.success) {
                 setCategorias(categorias.map(cat => cat.id === id ? { ...cat, ativo: 0 } : cat));
@@ -126,10 +120,8 @@ const CategoriaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include'
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/categorias/ativar/${id}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/categorias/ativar/${id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             if (data.success) {
                 setCategorias(categorias.map(cat => cat.id === id ? { ...cat, ativo: 1 } : cat));

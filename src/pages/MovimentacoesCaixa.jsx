@@ -58,9 +58,8 @@ const MovimentacoesCaixa = () => {
       setLoading(true);
       setError(null);
       
-      if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
+      if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {        try {
+          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, {
             headers: {
               Authorization: `${token}`,
             },

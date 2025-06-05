@@ -1,9 +1,9 @@
 // services/CaixaService.js
 
-export const verificarCaixaAberto = async (userId, token) => {
+export const verificarCaixaAberto = async (userId, token, lojaId) => {
   const API_BASE_URL = import.meta.env.VITE_API_URL;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/caixas/usuario/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/caixas/usuario/${userId}?id_loja=${lojaId}`, {
         method: 'GET',
         headers: {
           'Authorization': `${token}`,
@@ -21,7 +21,7 @@ export const verificarCaixaAberto = async (userId, token) => {
   export const abrirCaixa = async (userId, valorInicial, token, lojaId) => {
     const API_BASE_URL = import.meta.env.VITE_API_URL;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/caixas/abertura`, {
+      const response = await fetch(`${API_BASE_URL}/api/caixas/abertura?id_loja=${lojaId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

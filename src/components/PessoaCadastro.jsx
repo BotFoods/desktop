@@ -39,10 +39,8 @@ const PessoaCadastro = () => {
                     authorization: `${token}`
                 },
                 credentials: 'include'
-            };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/usuarios`, options);
+            };            try {
+                const response = await fetch(`${API_BASE_URL}/api/usuarios?id_loja=${user.loja_id}`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setUsuarios(data.usuarios.filter(usuario => usuario.id !== loggedUser.id));
@@ -71,10 +69,8 @@ const PessoaCadastro = () => {
                     authorization: `${token}`
                 },
                 credentials: 'include'
-            };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/funcoes`, options);
+            };            try {
+                const response = await fetch(`${API_BASE_URL}/api/funcoes?id_loja=${user.loja_id}`, options);
                 if (response.ok) {
                     const data = await response.json();
                     setFuncoes(data);
@@ -88,15 +84,13 @@ const PessoaCadastro = () => {
             } finally {
                 setLoading(false);
             }
-        };
-
-        if (token) {
+        };        if (token && user?.loja_id) {
             fetchUsuarios();
             fetchFuncoes();
         } else {
             showMessage('Token não disponível. Faça login novamente.', 'error');
         }
-    }, [token, loggedUser, API_BASE_URL]);
+    }, [token, loggedUser, API_BASE_URL, user?.loja_id]);
 
     const showMessage = (text, type = 'success') => {
         setMessage(text);
@@ -163,10 +157,8 @@ const PessoaCadastro = () => {
                 funcao_id: funcao,
                 loja_id: loggedUser.loja_id
             })
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/cadastrar`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/cadastrar?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             
             if (data.success) {
@@ -243,10 +235,8 @@ const PessoaCadastro = () => {
                 usuario: editUser.usuario,
                 funcao_id: editUser.funcao_id
             })
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/atualizar/${editUser.id}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/atualizar/${editUser.id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             
             if (data.success) {
@@ -280,10 +270,8 @@ const PessoaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include'
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/desativar/${id}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/desativar/${id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             
             if (data.success) {
@@ -310,10 +298,8 @@ const PessoaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include'
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/ativar/${id}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/ativar/${id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             
             if (data.success) {

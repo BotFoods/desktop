@@ -8,16 +8,15 @@ const Home = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const { validateSession, token } = useAuth();
+  const { validateSession, token, user } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     validateSession();
   }, [validateSession]);
-
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!token) return;
+      if (!token || !user?.loja_id) return;
       
       setLoading(true);
       try {
@@ -29,7 +28,7 @@ const Home = () => {
           credentials: 'include'
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/produtos`, options);
+        const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, options);
         const data = await response.json();
         
         if (data.success) {
@@ -45,10 +44,8 @@ const Home = () => {
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchProducts();
-  }, [token, API_BASE_URL]);
+    };    fetchProducts();
+  }, [token, API_BASE_URL, user?.loja_id]);
 
   // Filtrar produtos baseado no termo de pesquisa
   const filteredProducts = products.filter(product =>
