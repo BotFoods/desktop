@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 
 const BALCAO_STORAGE_KEY = 'pdv_balcao_aguardando';
 
-const Header = ({ categories, onSelectCategory }) => {
+const Header = ({ categories = [], onSelectCategory = () => {} }) => {
   const { logout, user } = useAuth();
   const [pendingOrders, setPendingOrders] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -244,8 +244,8 @@ const Header = ({ categories, onSelectCategory }) => {
   );
 };
 Header.propTypes = {
-  categories: PropTypes.array.isRequired,
-  onSelectCategory: PropTypes.func.isRequired,
+  categories: PropTypes.array,
+  onSelectCategory: PropTypes.func,
 };
 
 export default Header;
