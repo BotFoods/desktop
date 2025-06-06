@@ -3,6 +3,7 @@ import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
+import LoadingSpinner from '../components/LoadingSpinner';
 import templatePdv from '../templates/templatePDV.json';
 import { FaTrash, FaCashRegister } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,7 @@ const Caixa = () => {
   const [orders, setOrders] = useState([]);
   const [caixaAberto, setCaixaAberto] = useState(false);
   const [valorInicial, setValorInicial] = useState('');
+  const [isInitializing, setIsInitializing] = useState(true);
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : templatePdv;
@@ -53,28 +55,37 @@ const Caixa = () => {
 
     fetchProducts();
   }, [token, navigate, setToken, user]);
-
   useEffect(() => {
     const verificarCaixa = async () => {
       if (!user || !token) return;
-      const data = await verificarCaixaAberto(user.id, token, user.loja_id);
-      if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
-        const updatedPdv = { ...pdv };
-        updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
-        updatedPdv.pdv.caixa.abertura_caixa = data.caixas[0].data_abertura;
-        updatedPdv.pdv.caixa.operador.id = data.caixas[0].id;
-        updatedPdv.pdv.caixa.operador.nome = data.caixas[0].nome;
-        updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
-        updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
-        setPdv(updatedPdv);
-        loadOrders();
-        setCaixaAberto(true);
-      } else {
+      
+      try {
+        const data = await verificarCaixaAberto(user.id, token, user.loja_id);
+        if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
+          const updatedPdv = { ...pdv };
+          updatedPdv.pdv.caixa.id_caixa = data.caixas[0].id;
+          updatedPdv.pdv.caixa.abertura_caixa = data.caixas[0].data_abertura;
+          updatedPdv.pdv.caixa.operador.id = data.caixas[0].id;
+          updatedPdv.pdv.caixa.operador.nome = data.caixas[0].nome;
+          updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
+          updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
+          setPdv(updatedPdv);
+          loadOrders();
+          setCaixaAberto(true);
+        } else {
+          setCaixaAberto(false);
+        }
+      } catch (error) {
+        console.error('Erro ao verificar caixa:', error);
         setCaixaAberto(false);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
-    verificarCaixa();
+    if (user && token) {
+      verificarCaixa();
+    }
   }, [token, user]);
 
   useEffect(() => {
@@ -234,6 +245,18 @@ const Caixa = () => {
       console.error('Erro ao abrir caixa');
     }
   };
+  // Mostrar loading durante a inicialização
+  if (isInitializing) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message="Verificando caixa aberto..."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">

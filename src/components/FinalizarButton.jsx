@@ -3,9 +3,11 @@ import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { FaCheckCircle } from 'react-icons/fa';
 import AlertModal from './AlertModal';
+import LoadingSpinner from './LoadingSpinner';
 
-const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children }) => {
+const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children, onVendaFinalizada }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const { user, token } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -32,8 +34,8 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
   const closeModal = () => {
     setIsModalOpen(false);
   };
-
   const handleOptionClick = async (option) => {
+    setIsProcessing(true);
     const userId = user.id;
 
     // Prepare 'itens' for the payload
@@ -134,17 +136,17 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
           }
         } catch (printError) {
           showAlert('Erro ao conectar com servidor de impressão. Verifique se o servidor está ativo.', 'error', 'Erro de Impressão');
-        }
-
-      } else {
+        }      } else {
          showAlert('Falha ao registrar venda: ' + (result.message || 'Erro desconhecido'), 'error', 'Erro ao Finalizar');
          closeModal();
+         setIsProcessing(false);
          return;
       }
 
     } catch (error) {
       showAlert('Erro ao registrar venda. Verifique sua conexão e tente novamente.', 'error', 'Erro ao Finalizar');
       closeModal();
+      setIsProcessing(false);
       return;
     }
 
@@ -169,15 +171,17 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
       localStorage.setItem(storageKey, JSON.stringify(updatedPdv)); // Update localStorage immediately
 
       return updatedPdv;
-    });
-
-    // For delivery orders, also clear the DELIVERY_STORAGE_KEY
+    });    // For delivery orders, also clear the DELIVERY_STORAGE_KEY
     if (pdv.pdv.venda.tipo === 'delivery') {
       localStorage.removeItem('pdv_delivery');
-    }
-
-    closeModal();
+    }    closeModal();
     showAlert('Venda finalizada com sucesso!', 'success', 'Sucesso');
+    setIsProcessing(false);
+    
+    // Callback para notificar o componente pai sobre a finalização
+    if (onVendaFinalizada) {
+      onVendaFinalizada();
+    }
   };
 
   return (
@@ -196,31 +200,43 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
       
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 text-white">
-          <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>
-          <div className="bg-gray-800 p-6 rounded-lg shadow-xl z-10 w-96">
+          <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>          <div className="bg-gray-800 p-6 rounded-lg shadow-xl z-10 w-96">
             <h2 className="text-xl font-bold mb-6 text-center border-b pb-2 border-gray-700">Escolha a forma de pagamento</h2>
+            {isProcessing && (
+              <div className="mb-4">
+                <LoadingSpinner 
+                  size="md"
+                  message="Processando pagamento..."
+                  className="text-center"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleOptionClick('Crédito')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+                disabled={isProcessing}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
               >
-                Crédito
+                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Crédito'}
               </button>
               <button
                 onClick={() => handleOptionClick('Débito')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+                disabled={isProcessing}
+                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
               >
-                Débito
+                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Débito'}
               </button>
               <button
                 onClick={() => handleOptionClick('Pix')}
-                className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
               >
-                Pix
+                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Pix'}
               </button>
               <button
                 onClick={closeModal}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+                disabled={isProcessing}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
               >
                 Cancelar
               </button>
@@ -285,6 +301,7 @@ FinalizarButton.propTypes = {
   loja_id: PropTypes.number.isRequired, // Added: loja_id is required
   className: PropTypes.string,
   children: PropTypes.node,
+  onVendaFinalizada: PropTypes.func, // Optional callback
 };
 
 export default FinalizarButton;

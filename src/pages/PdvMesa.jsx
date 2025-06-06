@@ -6,6 +6,7 @@ import { FaTrash, FaChair } from 'react-icons/fa';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const PdvMesa = () => {
   const { validateSession, token, user } = useAuth();
@@ -15,6 +16,7 @@ const PdvMesa = () => {
   const [orders, setOrders] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isInitializing, setIsInitializing] = useState(true);
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
@@ -74,7 +76,6 @@ const PdvMesa = () => {
   useEffect(() => {
     validateSession();
   }, []);
-
   useEffect(() => {
     const fetchProducts = async () => {
       if (!user || !token) return;
@@ -107,13 +108,11 @@ const PdvMesa = () => {
           updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
           updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
           setPdv(updatedPdv);
-        } else {
-          setErrorMessage('Nenhum caixa aberto encontrado. Redirecionando para abrir o caixa...');
-          setTimeout(() => navigate('/caixa'), 1500);
         }
       } catch (error) {
-        setErrorMessage(`Erro ao verificar caixa aberto: ${error.message}. Redirecionando...`);
-        setTimeout(() => navigate('/caixa'), 2000);
+        console.error('Erro ao verificar caixa:', error);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -121,6 +120,8 @@ const PdvMesa = () => {
     if (user && user.loja_id) {
         fetchProducts();
         verificarCaixa(); // verificarCaixa might also depend on user.id
+    } else {
+        setIsInitializing(false);
     }
     loadOrders(); // loadOrders depends on mesaId, not directly on user
   }, [token, user, mesaId]); // Added mesaId to dependencies for loadOrders consistency
@@ -277,8 +278,20 @@ const PdvMesa = () => {
       setOrders([]);
     }
   };
-
   const categories = Object.keys(products);
+
+  // Mostrar loading durante a inicialização
+  if (isInitializing) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message={`Carregando Mesa ${mesaId}...`}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">

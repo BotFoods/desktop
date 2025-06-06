@@ -8,6 +8,7 @@ import Cadastros from './pages/Cadastros';
 import Login from './pages/Login';
 import Checkout from './pages/Checkout';
 import PrivateRoute from './routes/PrivateRoute';
+import RequireCaixa from './components/RequireCaixa';
 import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
 import Mesas from './pages/Mesas';
 import PdvMesa from './pages/PdvMesa';
@@ -64,13 +65,14 @@ const AppRoutes = () => {
                 <Mesas />
               </PrivateRoute>
             }
-          />
-          <Route
+          />          <Route
             path="/pdv/mesa/:mesaId"
             element={
               <PrivateRoute>
-                <Header />
-                <PdvMesa />
+                <RequireCaixa>
+                  <Header />
+                  <PdvMesa />
+                </RequireCaixa>
               </PrivateRoute>
             }
           />
@@ -79,13 +81,14 @@ const AppRoutes = () => {
             element={
               <Cardapio />
             }
-          />
-          <Route
+          />          <Route
             path="/delivery"
             element={
               <PrivateRoute>
-                <Header />
-                <Delivery />
+                <RequireCaixa>
+                  <Header />
+                  <Delivery />
+                </RequireCaixa>
               </PrivateRoute>
             }
           />
