@@ -5,7 +5,7 @@ import { FaCheckCircle } from 'react-icons/fa';
 import AlertModal from './AlertModal';
 import LoadingSpinner from './LoadingSpinner';
 
-const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children }) => {
+const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children, onVendaFinalizada }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '', type: 'info' });
@@ -174,11 +174,14 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
     });    // For delivery orders, also clear the DELIVERY_STORAGE_KEY
     if (pdv.pdv.venda.tipo === 'delivery') {
       localStorage.removeItem('pdv_delivery');
-    }
-
-    closeModal();
+    }    closeModal();
     showAlert('Venda finalizada com sucesso!', 'success', 'Sucesso');
     setIsProcessing(false);
+    
+    // Callback para notificar o componente pai sobre a finalização
+    if (onVendaFinalizada) {
+      onVendaFinalizada();
+    }
   };
 
   return (
@@ -298,6 +301,7 @@ FinalizarButton.propTypes = {
   loja_id: PropTypes.number.isRequired, // Added: loja_id is required
   className: PropTypes.string,
   children: PropTypes.node,
+  onVendaFinalizada: PropTypes.func, // Optional callback
 };
 
 export default FinalizarButton;

@@ -9,6 +9,7 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [closementValue, setClosementValue] = useState('');
     const [observacoesInput, setObservacoesInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { token, user } = useAuth();
     const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -51,14 +52,14 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
 
     const validateClosementValue = (value) => {
         return !isNaN(parseFloat(value)) && isFinite(value) && parseFloat(value) > 0;
-    };
-
-    const handleCloseCaixa = () => {
+    };    const handleCloseCaixa = () => {
         // Validação do valor informado
         if (!validateClosementValue(closementValue)) {
             showAlert('Por favor, informe um valor válido para o fechamento.');
             return;
         }
+
+        setIsLoading(true);
 
         // Prepara o valor a ser enviado
         const valorFinalInformado = parseFloat(closementValue.replace(',', '.'));
@@ -94,6 +95,9 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
             .catch(err => {
                 console.error(err);
                 showAlert('Erro ao fechar o caixa. Verifique sua conexão.');
+            })
+            .finally(() => {
+                setIsLoading(false);
             });
     };
 
@@ -121,42 +125,49 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
                             <div>
                                 <label htmlFor="valor_fechamento" className="block text-sm font-medium text-gray-300 mb-1">
                                     Valor de Fechamento Informado <span className="text-red-500">*</span>
-                                </label>
-                                <input
+                                </label>                                <input
                                     type="text"
                                     id="valor_fechamento"
                                     value={closementValue}
                                     onChange={(e) => setClosementValue(e.target.value)}
                                     placeholder="0,00"
-                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                    disabled={isLoading}
+                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
 
                             <div>
                                 <label htmlFor="observacoes" className="block text-sm font-medium text-gray-300 mb-1">
                                     Observações
-                                </label>
-                                <textarea
+                                </label>                                <textarea
                                     id="observacoes"
                                     value={observacoesInput}
                                     onChange={(e) => setObservacoesInput(e.target.value)}
                                     placeholder="Observações sobre o fechamento do caixa"
-                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 h-24"
+                                    disabled={isLoading}
+                                    className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 h-24 disabled:opacity-50 disabled:cursor-not-allowed"
                                 ></textarea>
-                            </div>
-
-                            <div className="flex justify-end space-x-3 mt-6">
+                            </div>                            <div className="flex justify-end space-x-3 mt-6">
                                 <button
                                     onClick={handleCloseModal}
-                                    className="bg-gray-600 hover:bg-gray-700 text-white font-medium px-5 py-2 rounded-md transition duration-150"
+                                    disabled={isLoading}
+                                    className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-5 py-2 rounded-md transition duration-150"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={handleCloseCaixa}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-md transition duration-150"
+                                    disabled={isLoading}
+                                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-5 py-2 rounded-md transition duration-150 flex items-center"
                                 >
-                                    Confirmar Fechamento
+                                    {isLoading ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                            Fechando...
+                                        </>
+                                    ) : (
+                                        'Confirmar Fechamento'
+                                    )}
                                 </button>
                             </div>
                         </div>

@@ -76,7 +76,6 @@ const PdvMesa = () => {
   useEffect(() => {
     validateSession();
   }, []);
-
   useEffect(() => {
     const fetchProducts = async () => {
       if (!user || !token) return;
@@ -97,7 +96,8 @@ const PdvMesa = () => {
     };
 
     const verificarCaixa = async () => {
-      if (!user || !token) return;      try {
+      if (!user || !token) return;
+      try {
         const data = await verificarCaixaAberto(user.id, token, user.loja_id);
         if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
           const updatedPdv = { ...pdv };
@@ -108,17 +108,15 @@ const PdvMesa = () => {
           updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
           updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
           setPdv(updatedPdv);
-        } else {
-          setErrorMessage('Nenhum caixa aberto encontrado. Redirecionando para abrir o caixa...');
-          setTimeout(() => navigate('/caixa'), 1500);
         }
       } catch (error) {
-        setErrorMessage(`Erro ao verificar caixa aberto: ${error.message}. Redirecionando...`);
-        setTimeout(() => navigate('/caixa'), 2000);
+        console.error('Erro ao verificar caixa:', error);
       } finally {
         setIsInitializing(false);
       }
-    };    // Ensure user and user.loja_id are available before dependent operations
+    };
+
+    // Ensure user and user.loja_id are available before dependent operations
     if (user && user.loja_id) {
         fetchProducts();
         verificarCaixa(); // verificarCaixa might also depend on user.id

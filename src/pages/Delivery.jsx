@@ -143,9 +143,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
           updatedPdv.pdv.caixa.operador.cargo = data.caixas[0].descricao;
           updatedPdv.pdv.caixa.operador.pode_cancelar_itens = false;
           setPdv(updatedPdv);
-        } else {
-          console.warn('Nenhum caixa aberto encontrado.');
-          navigate('/caixa');
         }
       } catch (error) {
         console.error('Erro ao verificar caixa aberto:', error);
@@ -480,6 +477,13 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
 
     setPdv(updatedPdv);
   };
+  const handleVendaFinalizada = () => {
+    // Reset do estado após finalização da venda
+    setPdvOpened(false);
+    setIsSearching(true);
+    clearDeliveryData();
+  };
+
   const categories = Object.keys(products);
 
   // Mostrar loading durante a inicialização
@@ -745,24 +749,13 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
                     {orders.reduce((total, order) => total + order.quantity, 0)} itens
                   </div>
                 </div>
-                {orders.length > 0 && user?.loja_id && (
-                  <div className="mt-4">
-                    <FinalizarButton 
-                      pdv={pdv} 
-                      setPdv={setPdv} 
-                      setOrders={setOrders}
-                      loja_id={user.loja_id} 
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow-md w-full"
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
       )}
       
-      {pdvOpened && user?.loja_id && <PdvActions pdv={pdv} setPdv={setPdv} setOrders={setOrders} loja_id={user.loja_id} />}
+      {pdvOpened && user?.loja_id && orders.length > 0 && <PdvActions pdv={pdv} setPdv={setPdv} setOrders={setOrders} loja_id={user.loja_id} onVendaFinalizada={handleVendaFinalizada} />}
     </div>
   );
 };
