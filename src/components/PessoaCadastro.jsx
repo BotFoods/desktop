@@ -73,7 +73,7 @@ const PessoaCadastro = () => {
                 const response = await fetch(`${API_BASE_URL}/api/funcoes?id_loja=${user.loja_id}`, options);
                 if (response.ok) {
                     const data = await response.json();
-                    setFuncoes(data);
+                    setFuncoes(data.funcoes || []);
                 } else {
                     console.error(`Error fetching roles: ${response.status} ${response.statusText}`);
                     showMessage('Erro ao carregar funções', 'error');
@@ -453,10 +453,9 @@ const PessoaCadastro = () => {
                                 value={funcao}
                                 onChange={(e) => setFuncao(e.target.value)}
                                 className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 appearance-none"
-                                disabled={loading}
-                            >
+                                disabled={loading}                            >
                                 <option value="">Selecione uma função</option>
-                                {funcoes.map(funcao => (
+                                {Array.isArray(funcoes) && funcoes.map(funcao => (
                                     <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
                                 ))}
                             </select>
@@ -540,7 +539,7 @@ const PessoaCadastro = () => {
                                             <span className={`px-2 py-1 rounded-full text-xs ${
                                                 user.funcao_id === 1 ? 'bg-blue-500/20 text-blue-300' : 'bg-green-500/20 text-green-300'
                                             }`}>
-                                                {funcoes.find(f => f.id === user.funcao_id)?.descricao || 'N/A'}
+                                                {Array.isArray(funcoes) ? funcoes.find(f => f.id === user.funcao_id)?.descricao || 'N/A' : 'N/A'}
                                             </span>
                                         </td>
                                         <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
@@ -605,7 +604,7 @@ const PessoaCadastro = () => {
                                         <td className="py-3 px-4 border-b border-gray-700">{user.email}</td>
                                         <td className="py-3 px-4 border-b border-gray-700">{user.usuario}</td>
                                         <td className="py-3 px-4 border-b border-gray-700">
-                                            {funcoes.find(f => f.id === user.funcao_id)?.descricao || 'N/A'}
+                                            {Array.isArray(funcoes) ? funcoes.find(f => f.id === user.funcao_id)?.descricao || 'N/A' : 'N/A'}
                                         </td>
                                         <td className="py-3 px-4 border-b border-gray-700 flex justify-center">
                                             <button 
@@ -699,10 +698,9 @@ const PessoaCadastro = () => {
                             <select
                                 value={editUser.funcao_id}
                                 onChange={(e) => setEditUser({ ...editUser, funcao_id: e.target.value })}
-                                className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-                                disabled={loading || funcoes.length === 0}
+                                className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"                                disabled={loading || !Array.isArray(funcoes) || funcoes.length === 0}
                             >
-                                {funcoes.map((funcao) => (
+                                {Array.isArray(funcoes) && funcoes.map((funcao) => (
                                     <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
                                 ))}
                             </select>

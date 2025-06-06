@@ -7,18 +7,19 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(sessionStorage.getItem('token') || null);
+  const [token, setToken] = useState(localStorage.getItem('token') || null); // Mudado para localStorage
   const [isValidating, setIsValidating] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // Novo estado para controlar inicialização
   const [authError, setAuthError] = useState(null); // Adicionado para mensagens de erro
   const navigate = useNavigate();
   const location = useLocation();
-  const lastValidatedToken = useRef(sessionStorage.getItem('token') || null); // Inicializa com o token do sessionStorage
-
+  const lastValidatedToken = useRef(localStorage.getItem('token') || null); // Mudado para localStorage
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    sessionStorage.removeItem('token');
+    localStorage.removeItem('token'); // Mudado para localStorage
     lastValidatedToken.current = null; // Limpa o último token validado
+    setIsInitialized(true); // Marca como inicializado após logout
     
     // Só redirecionar para login se não estiver na página de login e não for cardapio ou checkout
     if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio') && !location.pathname.startsWith('/checkout')) {
@@ -34,11 +35,10 @@ export const AuthProvider = ({ children }) => {
     // Não validar sessão para cardapio, login ou checkout
     if (location.pathname.startsWith('/cardapio') || location.pathname === '/login' || location.pathname.startsWith('/checkout')) {
       return;
-    }
-
-    const storedToken = sessionStorage.getItem('token') || null;
+    }    const storedToken = localStorage.getItem('token') || null; // Mudado para localStorage
 
     if (!storedToken) {
+      setIsInitialized(true); // Marca como inicializado mesmo sem token
       logout();
       return;
     }
@@ -59,13 +59,12 @@ export const AuthProvider = ({ children }) => {
           'Authorization': `${storedToken}`,
         },
         credentials: 'include',
-      });
-
-      if (response.ok) {
+      });      if (response.ok) {
         const data = await response.json();
         setUser(data.user_data);
         setToken(storedToken); // Garante que o token no estado é o validado
         lastValidatedToken.current = storedToken; // Atualiza o último token validado
+        setIsInitialized(true); // Marca como inicializado após validação bem-sucedida
       } else {
         setAuthError('Sessão expirada ou inválida');
         logout();
@@ -76,8 +75,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsValidating(false);
     }
-  }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências
-  // useEffect para validar sessão quando o token muda ou a localização muda (exceto login/cardapio)
+  }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências  // useEffect para validar sessão quando o token muda ou a localização muda (exceto login/cardapio)
   useEffect(() => {
     if (token) {
       // Se temos um token, tentamos validar a sessão.
@@ -85,26 +83,30 @@ export const AuthProvider = ({ children }) => {
       validateSession();
     } else if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio') && !location.pathname.startsWith('/checkout')) {
       // Se não há token e não estamos em login/cardapio/checkout, redireciona para login.
+      setIsInitialized(true); // Marca como inicializado mesmo sem redirecionamento
       navigate('/login');
+    } else {
+      // Se estamos em rotas públicas, marca como inicializado
+      setIsInitialized(true);
     }
   }, [token, location.pathname, validateSession, navigate]);
 
-
   // Função para login (exemplo, você já tem isso no Login.jsx, mas centralizar pode ser bom)
   const login = useCallback((userData, authToken) => {
-    sessionStorage.setItem('token', authToken);
+    localStorage.setItem('token', authToken); // Mudado para localStorage
     setToken(authToken);
     setUser(userData);
     setAuthError(null);
+    setIsInitialized(true); // Marca como inicializado após login
     lastValidatedToken.current = authToken; // Define o token como validado
     navigate('/caixa'); // ou para a rota desejada após login
   }, [navigate]);
-
   // O valor fornecido pelo contexto
   const contextValue = {
     user,
     token,
     isValidating,
+    isInitialized, // Novo estado disponível para componentes
     authError, // Adicionado para disponibilizar mensagens de erro
     login, // Adicionado login ao contexto
     logout,

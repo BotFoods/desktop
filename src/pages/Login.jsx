@@ -87,9 +87,8 @@ const Login = () => {
       });
       
       const data = await response.json();
-      
-      if (data.auth) {
-        sessionStorage.setItem('token', data.token);
+        if (data.auth) {
+        localStorage.setItem('token', data.token); // Mudado para localStorage
         setUser(data.user_data);
         setToken(data.token);
         navigate('/caixa');
