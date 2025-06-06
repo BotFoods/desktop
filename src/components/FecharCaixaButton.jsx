@@ -81,7 +81,7 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
             body: JSON.stringify(payload)
         };
 
-        fetch(`${API_BASE_URL}/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}`, options)
+        fetch(`${API_BASE_URL}/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, options)
             .then(response => response.json())
             .then(response => {
                 console.log(response);

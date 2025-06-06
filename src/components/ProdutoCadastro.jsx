@@ -34,10 +34,8 @@ const ProdutoCadastro = () => {
                     authorization: `${token}`
                 },
                 credentials: 'include',
-            };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/categorias/`, options);
+            };            try {
+                const response = await fetch(`${API_BASE_URL}/api/categorias/?id_loja=${user.loja_id}`, options);
                 const data = await response.json();
                 setCategorias(data.categorias.filter(cat => cat.ativo === 1));
             } catch (error) {
@@ -62,8 +60,7 @@ const ProdutoCadastro = () => {
                 credentials: 'include',
             };
 
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user?.loja_id || 1}`, options);
+            try {                const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, options);
                 const data = await response.json();
                 setProdutos(data);
             } catch (error) {
@@ -103,10 +100,8 @@ const ProdutoCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include',
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user?.loja_id || 1}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/produtos?loja_id=${user.loja_id}`, options);
             const data = await response.json();
             setProdutos(data);
         } catch (error) {
@@ -160,13 +155,12 @@ const ProdutoCadastro = () => {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
             },
-            credentials: 'include',
-            body: JSON.stringify({
+            credentials: 'include',            body: JSON.stringify({
                 nome,
                 descricao,
                 preco: precoFormatado,
                 id_categoria: idCategoria,
-                loja_id: 1,
+                loja_id: user.loja_id, // SEGURANÇA: Usar loja_id do usuário logado
                 sku: '',
                 codigo_barras: '',
                 disponibilidade: 1
@@ -239,13 +233,12 @@ const ProdutoCadastro = () => {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
             },
-            credentials: 'include',
-            body: JSON.stringify({
+            credentials: 'include',            body: JSON.stringify({
                 id: editProduct.id,
                 nome: editProduct.nome || editProduct.name,
                 descricao: editProduct.descricao,
                 preco: precoFormatado,
-                loja_id: 1,
+                loja_id: user.loja_id, // SEGURANÇA: Usar loja_id do usuário logado
                 id_categoria: editProduct.id_categoria
             })
         };
@@ -304,10 +297,8 @@ const ProdutoCadastro = () => {
             body: JSON.stringify({
                 disponibilidade: novaDisponibilidade
             })
-        };
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${productId}`, options);
+        };        try {
+            const response = await fetch(`${API_BASE_URL}/api/produtos/disponibilidade/${productId}?loja_id=${user.loja_id}`, options);
             const data = await response.json();
 
             if (data.success) {

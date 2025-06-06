@@ -4,14 +4,13 @@ import Header from '../components/Header';
 import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle, FaPlus, FaMinus, FaWallet, FaFileInvoiceDollar } from 'react-icons/fa';
 
 const MovimentacoesCaixa = () => {
-  const { token, validateSession } = useAuth();
+  const { token, user } = useAuth(); // Removido validateSession redundante
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [filteredMovimentacoes, setFilteredMovimentacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [sessionValidated, setSessionValidated] = useState(false);
   const [activeTab, setActiveTab] = useState('todas');
   const [pdv] = useState(() => {
     const pdv_salvo = localStorage.getItem('pdv');
@@ -41,26 +40,16 @@ const MovimentacoesCaixa = () => {
     },
     { entradas: 0, saidas: 0 }
   );
-
-  // Handle session validation only once when component mounts
-  useEffect(() => {
-    if (!sessionValidated) {
-      validateSession();
-      setSessionValidated(true);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);  // Empty dependency array to run only on mount
-
   useEffect(() => {
     const fetchMovimentacoes = async () => {
-      if (!token) return; // Skip if no token is available
+      if (!token || !user?.loja_id) return; // Skip if no token or user loja_id is available
       
       setLoading(true);
       setError(null);
       
       if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}`, {
+          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, {
             headers: {
               Authorization: `${token}`,
             },
@@ -89,13 +78,11 @@ const MovimentacoesCaixa = () => {
       }
       
       setLoading(false);
-    };
-
-    // Only fetch data if we have a token (after validation)
-    if (token) {
+    };    // Only fetch data if we have a token and user (after validation)
+    if (token && user?.loja_id) {
       fetchMovimentacoes();
     }
-  }, [token, pdv, API_BASE_URL]);
+  }, [token, user, pdv, API_BASE_URL]);
 
   // Filter movimentacoes when search term or filter type or active tab changes
   useEffect(() => {

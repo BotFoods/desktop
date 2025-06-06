@@ -52,12 +52,10 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children 
         valor_troco: 0.0, // Assuming troco is handled or calculated elsewhere if necessary
         // autorizacao_cartao is optional and not used by the new SP
       },
-    ];
-
-    const vendaData = {
+    ];    const vendaData = {
       usuarioId: userId,
       caixaId: pdv.pdv.caixa.id_caixa,
-      lojaId: loja_id,
+      lojaId: user.loja_id, // SEGURANÇA: Usar loja_id do usuário logado
       vendaOrigemId: pdv.pdv.venda.mesa ? 2 : 1, // Added: 1 for PDV, 2 for Mesa (ensure these IDs are correct)
       clienteId: pdv.pdv.venda.dados_cliente?.id_cliente || null, // Optional
       cpfCnpjCliente: pdv.pdv.venda.dados_cliente?.cpf || null, // Optional
