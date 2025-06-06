@@ -8,11 +8,11 @@ import { verificarCaixaAberto } from '../services/CaixaService';
 import { useNavigate } from 'react-router-dom';
 import FinalizarButton from '../components/FinalizarButton';
 import AlertModal from '../components/AlertModal';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const DELIVERY_STORAGE_KEY = 'pdv_delivery';
 
-const Delivery = () => {
-  const { validateSession, token, user } = useAuth();
+const Delivery = () => {  const { validateSession, token, user } = useAuth();
   const navigate = useNavigate();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -20,6 +20,8 @@ const Delivery = () => {
   const [searchPhone, setSearchPhone] = useState('');
   const [isSearching, setIsSearching] = useState(true);
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
   const [customerDetails, setCustomerDetails] = useState({
     name: '',
     phone: '',
@@ -128,9 +130,7 @@ const Delivery = () => {
       } catch (error) {
         console.error('Erro ao buscar produtos:', error);
       }
-    };
-
-    const verificarCaixa = async () => {
+    };    const verificarCaixa = async () => {
       if (!user || !token) return;
       try {
         const data = await verificarCaixaAberto(user.id, token, user.loja_id);
@@ -149,6 +149,8 @@ const Delivery = () => {
         }
       } catch (error) {
         console.error('Erro ao verificar caixa aberto:', error);
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -156,6 +158,8 @@ const Delivery = () => {
       fetchProducts();
       verificarCaixa();
       loadOrders();
+    } else {
+      setIsInitializing(false);
     }
   }, [token, user]);
 
@@ -240,13 +244,13 @@ const Delivery = () => {
     setIsCreatingCustomer(false);
     setPdvOpened(false);
   };
-
   const searchCustomer = async () => {
     if (!searchPhone.trim()) {
       showAlert('Por favor, informe um telefone para busca', 'error');
       return;
     }
 
+    setIsSearchingCustomer(true);
     try {
       const response = await fetch(
         `${API_BASE_URL}/api/clientes/por-telefone/${searchPhone}/${user.loja_id}`, 
@@ -284,8 +288,7 @@ const Delivery = () => {
           setPdv(updatedPdv);
           
           // Abrir o PDV diretamente
-          setPdvOpened(true);
-          setIsSearching(false);
+          setPdvOpened(true);          setIsSearching(false);
         } else {
           // Cliente não encontrado, mostrar formulário de cadastro
           setIsCreatingCustomer(true);
@@ -298,6 +301,8 @@ const Delivery = () => {
     } catch (error) {
       console.error('Erro ao buscar cliente:', error);
       showAlert('Erro ao buscar cliente. Por favor, tente novamente.', 'error');
+    } finally {
+      setIsSearchingCustomer(false);
     }
   };
 
@@ -475,8 +480,20 @@ const Delivery = () => {
 
     setPdv(updatedPdv);
   };
-
   const categories = Object.keys(products);
+
+  // Mostrar loading durante a inicialização
+  if (isInitializing) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message="Verificando caixa e carregando produtos..."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
@@ -514,12 +531,18 @@ const Delivery = () => {
                 className="bg-gray-700 text-white w-full pl-10 pr-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
-            <button
+              <button
               onClick={searchCustomer}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
+              disabled={isSearchingCustomer}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center transition-colors"
             >
-              <FaSearch className="mr-2" /> Buscar Cliente
+              {isSearchingCustomer ? (
+                <LoadingSpinner size="sm" showMessage={false} />
+              ) : (
+                <>
+                  <FaSearch className="mr-2" /> Buscar Cliente
+                </>
+              )}
             </button>
             
             {orders.length > 0 && (

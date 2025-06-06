@@ -6,6 +6,7 @@ import { FaTrash, FaChair } from 'react-icons/fa';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const PdvMesa = () => {
   const { validateSession, token, user } = useAuth();
@@ -15,6 +16,7 @@ const PdvMesa = () => {
   const [orders, setOrders] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isInitializing, setIsInitializing] = useState(true);
   const navigate = useNavigate();
   const [pdv, setPdv] = useState(() => {
     const pdv_salvo = localStorage.getItem(`pdv_mesa_${mesaId}`);
@@ -95,8 +97,7 @@ const PdvMesa = () => {
     };
 
     const verificarCaixa = async () => {
-      if (!user || !token) return;
-      try {
+      if (!user || !token) return;      try {
         const data = await verificarCaixaAberto(user.id, token, user.loja_id);
         if (data.success && data.caixas.length > 0 && data.caixas[0].data_fechamento === null) {
           const updatedPdv = { ...pdv };
@@ -114,13 +115,15 @@ const PdvMesa = () => {
       } catch (error) {
         setErrorMessage(`Erro ao verificar caixa aberto: ${error.message}. Redirecionando...`);
         setTimeout(() => navigate('/caixa'), 2000);
+      } finally {
+        setIsInitializing(false);
       }
-    };
-
-    // Ensure user and user.loja_id are available before dependent operations
+    };    // Ensure user and user.loja_id are available before dependent operations
     if (user && user.loja_id) {
         fetchProducts();
         verificarCaixa(); // verificarCaixa might also depend on user.id
+    } else {
+        setIsInitializing(false);
     }
     loadOrders(); // loadOrders depends on mesaId, not directly on user
   }, [token, user, mesaId]); // Added mesaId to dependencies for loadOrders consistency
@@ -277,8 +280,20 @@ const PdvMesa = () => {
       setOrders([]);
     }
   };
-
   const categories = Object.keys(products);
+
+  // Mostrar loading durante a inicialização
+  if (isInitializing) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message={`Carregando Mesa ${mesaId}...`}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
