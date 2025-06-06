@@ -10,7 +10,17 @@ import {
 // Helper function to format phone number for API calls
 const formatPhoneNumber = (phone) => {
     if (!phone) return '';
-    // Remove all non-digit characters
+    // Remove all non-digit characters and add +55 prefix if not already present
+    phone = phone.replace(/\D/g, '');
+    if (phone.length === 11 && !phone.startsWith('55')) {
+        phone = '55' + phone; // Add country code if missing
+    }
+    // Ensure the phone number is in the format expected by the API
+    if (phone.length < 10 || phone.length > 15) {
+        console.warn('Número de telefone inválido:', phone);
+        return '';
+    }
+    // Return the phone number with only digits
     return phone.replace(/\D/g, '');
 };
 
