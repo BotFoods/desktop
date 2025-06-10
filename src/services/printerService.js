@@ -1,5 +1,7 @@
 // PrinterService for Electron Renderer Process
 // This service communicates with the API and main process via IPC
+// Note: We don't import node-thermal-printer directly in the renderer process
+// as it depends on Node.js core modules not available in the browser environment
 
 export class PrinterService {
     static PRINTER_TYPES = {
@@ -438,6 +440,110 @@ export class PrinterService {
                 return 'Impressão simulada com sucesso (modo desenvolvimento)';
             default:
                 throw new Error('Operação não suportada');
+        }
+    }
+
+    /**
+     * Método para impressão direta sem depender do servidor local
+     * @param {string} text - Texto a ser impresso
+     * @param {string} printerType - Tipo da impressora (balcao, caixa, cozinha, delivery)
+     * @param {function} onSuccess - Callback chamado em caso de sucesso
+     * @param {function} onError - Callback chamado em caso de erro
+     */    async printDirectly(text, printerType, onSuccess = null, onError = null) {
+        try {
+            const printerConfig = this.getPrinter(printerType);
+            if (!printerConfig) {
+                throw new Error(`Impressora ${printerType} não configurada`);
+            }
+
+            // Estratégia de impressão baseada no ambiente
+            if (this.isElectronEnvironment()) {
+                // No ambiente Electron, tentamos usar o IPC primeiro
+                try {
+                    // Delegar a impressão para o processo principal
+                    const result = await this._printDirectImplementation(text, printerConfig, onSuccess, onError);
+                    return result;
+                } catch (error) {
+                    console.error(`Erro ao imprimir via processo principal: ${error.message}`);
+                    console.log("Tentando fallback para servidor de impressão local...");
+                    
+                    // Se falhar, tentamos o servidor legado
+                    return await this._printViaLegacyServer(text, printerConfig, onSuccess, onError);
+                }
+            } else {
+                // Em ambiente web ou desenvolvimento, usar apenas o servidor legado
+                console.log("Ambiente não-Electron, tentando servidor de impressão local...");
+                return await this._printViaLegacyServer(text, printerConfig, onSuccess, onError);
+            }
+        } catch (error) {
+            console.error(`Erro geral de impressão: ${error.message}`);
+            if (onError) onError(error);
+            throw error;
+        }
+    }    /**
+     * Implementação interna para impressão direta - agora delegada ao processo principal
+     */
+    async _printDirectImplementation(text, printerConfig, onSuccess, onError) {
+        try {
+            // Verificar se está em ambiente Electron
+            if (!this.isElectronEnvironment()) {
+                throw new Error('Impressão direta só é possível no ambiente Electron');
+            }
+              // Enviar para o processo principal via IPC
+            const printResult = await this.electronAPI.printer.print({
+                text,
+                printerConfig
+            });
+            
+            // Registra no log e atualiza status
+            this.updatePrinterStatus(printerConfig.type, 'success');
+            await this.logPrintTest(printerConfig.type, 'success', null);
+            
+            // Callback de sucesso
+            const result = printResult || { success: true, message: 'Impressão realizada com sucesso' };
+            if (onSuccess) onSuccess(result);
+            return result;
+        } catch (error) {
+            // Registra erro no log e atualiza status
+            this.updatePrinterStatus(printerConfig.type, 'error');
+            await this.logPrintTest(printerConfig.type, 'error', error.message);
+            
+            // Callback de erro
+            if (onError) onError(error);
+            throw error;
+        }
+    }
+
+    /**
+     * Método de fallback para impressão via servidor local (legado)
+     */
+    async _printViaLegacyServer(text, printerConfig, onSuccess, onError) {
+        try {
+            const response = await fetch('http://localhost:5000/imprimir', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    text,
+                    printer_ip: printerConfig.ip || "192.168.1.100",
+                    printer_port: printerConfig.port || 9100
+                }),
+            });
+            
+            const result = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(result.error || 'Erro desconhecido no servidor de impressão');
+            }
+            
+            // Callback de sucesso
+            if (onSuccess) onSuccess(result);
+            return result;
+        } catch (error) {
+            // Callback de erro
+            if (onError) onError(error);
+            throw error;
         }
     }
 }

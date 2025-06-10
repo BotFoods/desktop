@@ -242,6 +242,97 @@ app.on('window-all-closed', () => {
   }
 });
 
+// Add a new IPC handler for direct printing
+ipcMain.handle('printer:print', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!data || !data.printerConfig || !data.text) {
+        reject(new Error('Dados de impressão inválidos'));
+        return;
+      }
+      
+      const { printerConfig, text } = data;
+      let device;
+      
+      switch (printerConfig.connectionType) {
+        case 'usb':
+          if (!printerConfig.vendorId || !printerConfig.productId) {
+            reject(new Error('Vendor ID e Product ID são obrigatórios para conexão USB'));
+            return;
+          }
+          device = new escpos.USB(
+            parseInt(printerConfig.vendorId, 16),
+            parseInt(printerConfig.productId, 16)
+          );
+          break;
+          
+        case 'network':
+          if (!printerConfig.ip || !printerConfig.port) {
+            reject(new Error('IP e porta são obrigatórios para conexão de rede'));
+            return;
+          }
+          device = new escpos.Network(printerConfig.ip, parseInt(printerConfig.port));
+          break;
+          
+        case 'serial':
+          if (!printerConfig.serialPort) {
+            reject(new Error('Porta serial é obrigatória para conexão serial'));
+            return;
+          }
+          device = new escpos.Serial(printerConfig.serialPort, {
+            baudRate: parseInt(printerConfig.baudRate) || 9600
+          });
+          break;
+          
+        default:
+          reject(new Error(`Tipo de conexão não suportado: ${printerConfig.connectionType}`));
+          return;
+      }
+
+      const printer = new escpos.Printer(device);
+      
+      device.open((error) => {
+        if (error) {
+          reject(new Error(`Erro ao conectar: ${error.message}`));
+          return;
+        }
+
+        try {
+          // Imprimir o texto formatado
+          printer
+            .font('a')
+            .align('lt')
+            .style('normal')
+            .size(0, 0);
+            
+          // Dividir o texto por linhas e imprimir cada linha
+          const lines = text.split('\n');
+          lines.forEach(line => {
+            if (line.trim().length > 0) {
+              printer.text(line);
+            } else {
+              printer.text(' ');  // linha vazia
+            }
+          });
+          
+          // Finalizar a impressão
+          printer
+            .cut()
+            .close();
+
+          resolve({ success: true, message: 'Impressão realizada com sucesso' });
+          
+        } catch (printError) {
+          reject(new Error(`Erro na impressão: ${printError.message}`));
+        }
+      });
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
+});
+
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();
 });

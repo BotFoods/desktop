@@ -65,26 +65,27 @@ const AguardarButton = ({ pdv, setPdv, setOrders, className, children }) => {
 
       kitchenText += `----------------------------------------\n`;
       kitchenText += `Observações: ${pdv.pdv.venda.observacoes || 'Nenhuma'}\n`;
-      kitchenText += `----------------------------------------\n\n\n\n`; // Extra lines for paper cut
-
-      // Send to print server
-      const printResponse = await fetch('http://localhost:5000/imprimir', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: kitchenText,
-          printer_ip: "192.168.1.101", // Assuming kitchen printer has different IP
-          printer_port: 9100
-        }),
-      });
-
-      const printResult = await printResponse.json();
-      
-      if (!printResponse.ok) {
-        console.error('Erro ao imprimir na cozinha:', printResult.error || 'Erro desconhecido');
-        // We don't throw an error here to allow the process to continue even if printing fails
+      kitchenText += `----------------------------------------\n\n\n\n`; // Extra lines for paper cut      // Imprimir na impressora da cozinha usando o serviço de impressão direta com timeout
+      try {
+        const printerService = (await import('../services/printerService')).default;
+        
+        // Configurar timeout mais longo para permitir tentativas de fallback
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
+        );
+        
+        await Promise.race([
+          printerService.printDirectly(
+            kitchenText,
+            'cozinha',
+            () => console.log('Impressão na cozinha realizada com sucesso'),
+            (error) => console.warn('Aviso: Falha na impressão da cozinha:', error.message)
+          ),
+          timeoutPromise
+        ]);
+      } catch (printError) {
+        console.error('Erro ao imprimir na cozinha:', printError.message);
+        // Não lançamos erro aqui para permitir continuar o processo mesmo se a impressão falhar
       }
       
       return true;
