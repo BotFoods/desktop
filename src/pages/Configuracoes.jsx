@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import { useAuth } from '../services/AuthContext';
+import PrinterManager from '../components/printer/PrinterManager';
 import { 
     FaWhatsapp, FaPhone, FaEdit, FaLink, FaUnlink, 
     FaCog, FaPrint, FaCreditCard, FaUser, 
@@ -373,50 +374,8 @@ const Configuracoes = () => {
                             </div>
                         )}
                     </div>
-                );
-            case 'impressora':
-                return (
-                    <div className="w-full max-w-lg bg-gray-800 p-8 rounded-lg shadow-xl">
-                        <h1 className="text-3xl font-bold mb-4 text-center text-white flex items-center justify-center">
-                            <FaPrint className="mr-2 text-blue-500" />
-                            Configurações de Impressora
-                        </h1>
-                        
-                        <p className="text-gray-400 text-center mb-8">
-                            Configure sua impressora térmica para impressão de cupons e comandas.
-                        </p>
-                        
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
-                                IP da Impressora
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Ex: 192.168.1.100"
-                                className="p-3 rounded bg-gray-600 text-white w-full focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
-                        
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-300 mb-2">
-                                Porta
-                            </label>
-                            <input
-                                type="number"
-                                placeholder="Ex: 9100"
-                                className="p-3 rounded bg-gray-600 text-white w-full focus:ring-2 focus:ring-blue-500 outline-none"
-                            />
-                        </div>
-                        
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition duration-150 ease-in-out">
-                            Salvar Configurações
-                        </button>
-                        
-                        <button className="w-full mt-3 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded transition duration-150 ease-in-out">
-                            Testar Impressora
-                        </button>
-                    </div>
-                );
+                );            case 'impressora':
+                return <PrinterManager />;
             case 'pagamento':
                 return (
                     <div className="w-full max-w-lg bg-gray-800 p-8 rounded-lg shadow-xl">

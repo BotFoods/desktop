@@ -114,29 +114,31 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
         receiptText += `Valor Total: R$ ${parseFloat(pdv.pdv.venda.total_venda).toFixed(2)}\n`;
         receiptText += `Forma Pagamento: ${option}\n`;
         receiptText += `----------------------------------------\n`;
-        receiptText += `        Obrigado pela preferencia!\n\n\n\n`; // Add extra lines for paper cut
-
-        // Send to print server
+        receiptText += `        Obrigado pela preferencia!\n\n\n\n`; // Add extra lines for paper cut        // Imprimir usando o novo serviço de impressão direta com timeout
         try {
-          const printResponse = await fetch('http://localhost:5000/imprimir', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              text: receiptText,
-              printer_ip: "192.168.1.100", // Replace with actual or configured IP
-              printer_port: 9100 // Replace with actual or configured port
-            }),
-          });
-          const printResult = await printResponse.json();
+          const printerService = (await import('../services/printerService')).default;
           
-          if (!printResponse.ok) {
-             showAlert('Erro ao enviar para impressão: ' + (printResult.error || 'Erro desconhecido'), 'error', 'Erro de Impressão');
-          }
+          // Configurar timeout mais longo para permitir tentativas de fallback
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
+          );
+          
+          await Promise.race([
+            printerService.printDirectly(
+              receiptText, 
+              'caixa',
+              (result) => console.log('Impressão do cupom realizada com sucesso'),
+              (error) => {
+                console.error('Erro ao imprimir cupom:', error);
+                showAlert('Erro ao enviar para impressão: ' + error.message, 'error', 'Erro de Impressão');
+              }
+            ),
+            timeoutPromise
+          ]);
         } catch (printError) {
-          showAlert('Erro ao conectar com servidor de impressão. Verifique se o servidor está ativo.', 'error', 'Erro de Impressão');
-        }      } else {
+          console.error('Falha geral na impressão:', printError);
+          showAlert('Erro ao imprimir comprovante. Verifique se a impressora está configurada e ativa.', 'error', 'Erro de Impressão');
+        }} else {
          showAlert('Falha ao registrar venda: ' + (result.message || 'Erro desconhecido'), 'error', 'Erro ao Finalizar');
          closeModal();
          setIsProcessing(false);

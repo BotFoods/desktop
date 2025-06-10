@@ -65,36 +65,31 @@ const PrepararButton = ({ pdv, setPdv, className, children }) => {
       kitchenText += `----------------------------------------\n`;
       kitchenText += `Observações: ${pdv.pdv.venda.observacoes || 'Nenhuma'}\n`;
       kitchenText += `----------------------------------------\n\n\n\n`; // Linhas extras para corte do papel
-
+      
+      // Usar o serviço de impressão direta com timeout
+      const printerService = (await import('../services/printerService')).default;
+        // Configurar timeout manual (tempo mais longo para dar tempo de fallback)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
+      );
+      
+      // Executar impressão com timeout
       try {
-        // Enviar para o servidor de impressão com timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 segundos de timeout
-        
-        const printResponse = await fetch('http://localhost:5000/imprimir', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            text: kitchenText,
-            printer_ip: "192.168.1.101", // IP da impressora da cozinha
-            printer_port: 9100
-          }),
-          signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (printResponse.ok) {
-          // Impressão realizada com sucesso - não precisa de mensagem extra
-          return true;
-        } else {
-          setPrintError('Impressão falhou, mas os produtos foram marcados como impressos.');
-        }
-      } catch (fetchError) {
-        console.error('Erro na comunicação com servidor de impressão:', fetchError);
-        setPrintError('Servidor de impressão não disponível, mas os produtos foram marcados como impressos.');
+        await Promise.race([
+          printerService.printDirectly(
+            kitchenText,
+            'cozinha',
+            () => console.log('Impressão na cozinha realizada com sucesso'),
+            (error) => {
+              console.warn('Aviso: Erro na impressão da cozinha:', error.message);
+              setPrintError('Impressão falhou, mas os produtos foram marcados como impressos.');
+            }
+          ),
+          timeoutPromise
+        ]);
+      } catch (raceError) {
+        console.error('Erro durante impressão ou timeout:', raceError);
+        setPrintError('Impressão falhou por timeout ou erro, mas os produtos serão marcados como impressos.');
       }
       
       return true;
