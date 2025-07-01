@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './services/AuthContext';
+import { NotificationProvider } from './services/NotificationContext';
 import Header from './components/Header';
 import Home from './pages/Home';
 import Caixa from './pages/Caixa';
 import Cadastros from './pages/Cadastros';
 import Login from './pages/Login';
 import Checkout from './pages/Checkout';
+import ConfiguracaoPagamento from './pages/ConfiguracaoPagamento';
 import PrivateRoute from './routes/PrivateRoute';
 import RequireCaixa from './components/RequireCaixa';
 import MovimentacoesCaixa from './pages/MovimentacoesCaixa';
@@ -25,10 +27,16 @@ const AppRoutes = () => {
 
   return (
     <AuthProvider navigate={navigate}>
-      <div className="bg-gray-900 text-white min-h-screen">
+      <NotificationProvider>
+        <div className="bg-gray-900 text-white min-h-screen">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/checkout" element={<Checkout />} />
+          <Route path="/configuracao-pagamento" element={
+            <PrivateRoute>
+              <ConfiguracaoPagamento />
+            </PrivateRoute>
+          } />
           <Route path="/" element={<Navigate to="/caixa" />} />          <Route
             path="/caixa"
             element={
@@ -103,6 +111,7 @@ const AppRoutes = () => {
           />
         </Routes>
       </div>
+      </NotificationProvider>
     </AuthProvider>
   );
 };

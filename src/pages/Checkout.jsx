@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FaRegCheckCircle, FaRegClock, FaSpinner, FaStore, FaEnvelope, FaKey, FaWhatsapp } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
+import PaymentProcessing from '../components/PaymentProcessing';
 
 // Componente principal da página de checkout
 const Checkout = () => {
@@ -13,6 +14,7 @@ const Checkout = () => {
   const [whatsapp, setWhatsapp] = useState('');
   const [step, setStep] = useState(1); // Controla qual passo está sendo exibido
   const [isTransitioning, setIsTransitioning] = useState(false); // Controla a animação de transição
+  const [showPaymentProcessing, setShowPaymentProcessing] = useState(false); // Controla quando mostrar processamento de pagamento
   const [selectedPlan] = useState('price_standard');
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -54,7 +56,7 @@ const Checkout = () => {
     }, 300);
   };
 
-  // Função para criar a loja e finalizar
+  // Função para criar a loja - agora apenas valida e vai para processamento
   const handleCreateStore = async (e) => {
     e.preventDefault();
     
@@ -63,49 +65,32 @@ const Checkout = () => {
       return;
     }
     
-    setLoading(true);
     setError(null);
-    
-    // Buscar o plano selecionado
-    const selectedPlanData = plans.find(plan => plan.id === selectedPlan);
-    
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/pagamentos/assinaturas/criar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          clienteEmail: email,
-          nomeLoja,
-          senha,
-          whatsapp,
-          pricePlanId: selectedPlanData.priceId,
-          descricao: `Assinatura ${selectedPlanData.name} - BotFoods`,
-          metadata: {
-            plano: 'standard',
-            origem: 'desktop'
-          }
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setCompleted(true);
-        // Redireciona para login após 3 segundos
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 3000);
-      } else {
-        setError(data.message || 'Erro ao criar loja. Por favor, tente novamente.');
-      }
-    } catch (err) {
-      console.error('Erro na criação da loja:', err);
-      setError('Falha na conexão com o servidor. Por favor, verifique sua internet e tente novamente.');
-    } finally {
-      setLoading(false);
-    }
+    setShowPaymentProcessing(true); // Mostrar tela de processamento de pagamento
+  };
+
+  // Função para lidar com sucesso do pagamento
+  const handlePaymentSuccess = (data) => {
+    console.log('Loja criada com sucesso:', data);
+    setCompleted(true);
+    setShowPaymentProcessing(false);
+    // Redireciona para login após 3 segundos
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 3000);
+  };
+
+  // Função para lidar com erro do pagamento
+  const handlePaymentError = (error) => {
+    console.error('Erro no processamento:', error);
+    setError(error.message || 'Erro ao processar assinatura');
+    setShowPaymentProcessing(false);
+  };
+
+  // Função para voltar do processamento de pagamento
+  const handleBackFromPayment = () => {
+    setShowPaymentProcessing(false);
+    setError(null);
   };
 
   // Exibir a página adequada com base no estado da assinatura
@@ -178,6 +163,30 @@ const Checkout = () => {
       );
     }
     
+    // Se deve mostrar o processamento de pagamento
+    if (showPaymentProcessing) {
+      const selectedPlanData = plans.find(plan => plan.id === selectedPlan);
+      
+      return (
+        <PaymentProcessing
+          customerData={{
+            email,
+            nomeLoja,
+            senha,
+            whatsapp
+          }}
+          subscriptionData={{
+            planName: selectedPlanData?.name || 'BotFood Standard',
+            price: selectedPlanData?.price || 'R$ 199,00',
+            priceId: selectedPlanData?.priceId || 'price_1RTYq9ENjNaLcfKyIsdpbF3A'
+          }}
+          onSuccess={handlePaymentSuccess}
+          onError={handlePaymentError}
+          onBack={handleBackFromPayment}
+        />
+      );
+    }
+
     // Formulário inicial
     return (
       <div className="max-w-4xl mx-auto">

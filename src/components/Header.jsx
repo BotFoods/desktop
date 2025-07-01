@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import CategoryMenu from './CategoryMenu';
+import NotificationBanner, { NotificationBadge } from './NotificacaoAssinatura';
+import AvisoPagamentoPDV from './AvisoPagamentoPDV';
 import { useAuth } from '../services/AuthContext';
 import { FaBell, FaUser, FaHourglassHalf } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
@@ -149,6 +151,10 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
                     {pendingOrders.length}
                   </span>
                 )}
+                {/* Badge de notificações do sistema */}
+                <div className="absolute top-1 right-1">
+                  <NotificationBadge />
+                </div>
               </button>
               
               {showDropdown && (
@@ -239,7 +245,9 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
           </div>
         </div>
       </header>
+      <AvisoPagamentoPDV />
       <CategoryMenu categories={categories} onSelectCategory={onSelectCategory} />
+      <NotificationBanner />
     </>
   );
 };
