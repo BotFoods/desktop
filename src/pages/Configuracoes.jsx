@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useAuth } from '../services/AuthContext';
 import PrinterManager from '../components/printer/PrinterManager';
+import StatusAssinatura from '../components/StatusAssinatura';
 import { 
     FaWhatsapp, FaPhone, FaEdit, FaLink, FaUnlink, 
     FaCog, FaPrint, FaCreditCard, FaUser, 
-    FaStore, FaReceipt, FaTags, FaDatabase 
+    FaStore, FaReceipt, FaTags, FaDatabase, FaStripe 
 } from 'react-icons/fa';
 
 // Helper function to format phone number for API calls
@@ -33,6 +35,7 @@ const Configuracoes = () => {
     const [isEditingPhoneNumber, setIsEditingPhoneNumber] = useState(false);
     const [activeSection, setActiveSection] = useState('whatsapp');
     const { token, user } = useAuth();
+    const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
     
     const WHATSAPP_STORAGE_KEY = 'whatsapp_config';
@@ -378,7 +381,7 @@ const Configuracoes = () => {
                 return <PrinterManager />;
             case 'pagamento':
                 return (
-                    <div className="w-full max-w-lg bg-gray-800 p-8 rounded-lg shadow-xl">
+                    <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-xl">
                         <h1 className="text-3xl font-bold mb-4 text-center text-white flex items-center justify-center">
                             <FaCreditCard className="mr-2 text-yellow-500" />
                             Métodos de Pagamento
@@ -387,6 +390,34 @@ const Configuracoes = () => {
                         <p className="text-gray-400 text-center mb-8">
                             Configure os métodos de pagamento disponíveis no PDV.
                         </p>
+
+                        {/* Status da Assinatura */}
+                        <div className="mb-8">
+                            <StatusAssinatura />
+                        </div>
+
+                        {/* Configuração de Pagamento Online - Stripe */}
+                        <div className="mb-8 p-4 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg">
+                            <div className="flex items-center mb-3">
+                                <FaStripe className="mr-2 text-white text-xl" />
+                                <h3 className="text-white font-semibold">Gestão de Assinatura</h3>
+                            </div>
+                            <p className="text-white text-sm mb-4 opacity-90">
+                                Configure seu método de pagamento para a assinatura do BotFood e gerencie seus dados de cobrança.
+                            </p>
+                            <button 
+                                onClick={() => navigate('/configuracao-pagamento')}
+                                className="w-full bg-white text-purple-600 font-bold py-2 px-4 rounded-lg hover:bg-gray-100 transition duration-150 ease-in-out flex items-center justify-center"
+                            >
+                                <FaCreditCard className="mr-2" />
+                                Gerenciar Assinatura e Pagamento
+                            </button>
+                        </div>
+
+                        {/* Separador */}
+                        <div className="border-t border-gray-600 mb-6 pt-6">
+                            <h3 className="text-white font-semibold mb-4 text-center">Métodos do PDV Local</h3>
+                        </div>
                         
                         <div className="space-y-4 mb-6">
                             <div className="flex items-center p-3 bg-gray-700 rounded-lg">
