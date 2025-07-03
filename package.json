@@ -15,7 +15,9 @@
     "build": "vite build",
     "build:gcp": "./build-gcp.sh",
     "electron:build": "cross-env NODE_ENV=production electron-builder --config electron-builder.json",
-    "start": "electron .",
+    "electron:build:win": "cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
+    "start": "cross-env NODE_ENV=production electron .",
+    "start:dev": "cross-env NODE_ENV=development electron .",
     "lint": "eslint .",
     "preview": "vite preview"
   },
