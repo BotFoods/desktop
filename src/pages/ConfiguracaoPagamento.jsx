@@ -9,6 +9,7 @@ import {
   useElements
 } from '@stripe/react-stripe-js';
 import { useAuth } from '../services/AuthContext';
+import StatusAssinatura from '../components/StatusAssinatura';
 import { 
   FaLock, 
   FaSpinner, 
@@ -213,58 +214,10 @@ const PaymentSetupForm = ({
     }
   };
 
-  const calcularDiasRestantes = () => {
-    if (!subscriptionData.trial_end) return 0;
-    const trialEnd = new Date(subscriptionData.trial_end);
-    const now = new Date();
-    const diffTime = trialEnd - now;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
-  };
-
-  const diasRestantes = calcularDiasRestantes();
-
   return (
     <div className="space-y-6">
       {/* Status da assinatura */}
-      <div className="bg-gray-700 rounded-lg p-4 border border-gray-600">
-        <h3 className="text-white font-medium mb-3 flex items-center">
-          <FaInfoCircle className="text-blue-500 mr-2" />
-          Status da Sua Assinatura
-        </h3>
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-gray-300">Plano:</span>
-            <span className="text-white font-medium">BotFood Standard</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-300">Valor mensal:</span>
-            <span className="text-white font-medium">R$ 199,00</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-gray-300">Status:</span>
-            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-              subscriptionData.subscription_status === 'trialing' 
-                ? 'bg-blue-900 text-blue-300' 
-                : 'bg-green-900 text-green-300'
-            }`}>
-              {subscriptionData.subscription_status === 'trialing' ? 'Em teste' : 'Ativa'}
-            </span>
-          </div>
-          
-          {subscriptionData.subscription_status === 'trialing' && (
-            <div className="bg-blue-900/20 border border-blue-800 rounded-lg p-3">
-              <div className="flex items-center mb-2">
-                <FaClock className="text-blue-400 mr-2" />
-                <span className="text-blue-400 font-medium">Período de teste</span>
-              </div>
-              <p className="text-blue-300 text-sm">
-                Restam {diasRestantes} dia{diasRestantes !== 1 ? 's' : ''} do seu período de teste gratuito.
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      <StatusAssinatura />
 
       {/* Método de Pagamento Atual (se existir) */}
       {existingPaymentMethod && !isEditingPayment && (
