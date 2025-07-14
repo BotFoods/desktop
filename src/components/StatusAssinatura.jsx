@@ -32,8 +32,10 @@ const StatusAssinatura = () => {
             });
 
             if (response.ok) {
-                const data = await response.json();
-                setAssinatura(data);
+                const result = await response.json();
+                // A API retorna os dados dentro de result.data quando success é true
+                const subscriptionData = result.success ? result.data : result;
+                setAssinatura(subscriptionData);
                 setError(null);
             } else if (response.status === 401) {
                 setError('Sessão expirada. Faça login novamente.');
@@ -65,6 +67,15 @@ const StatusAssinatura = () => {
         }).format(valor / 100);
     };
 
+    const calcularDiasRestantes = () => {
+        if (!assinatura?.trial_end) return 0;
+        const trialEnd = new Date(assinatura.trial_end);
+        const now = new Date();
+        const diffTime = trialEnd - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
     const getStatusInfo = (status) => {
         switch (status) {
             case 'trialing':
@@ -89,6 +100,7 @@ const StatusAssinatura = () => {
                     bgColor: 'bg-red-500/20'
                 };
             case 'canceled':
+            case 'cancelled':
                 return {
                     label: 'Cancelada',
                     color: 'text-gray-400',
@@ -136,8 +148,9 @@ const StatusAssinatura = () => {
         );
     }
 
-    const statusInfo = getStatusInfo(assinatura.status);
+    const statusInfo = getStatusInfo(assinatura.subscription_status);
     const StatusIcon = statusInfo.icon;
+    const diasRestantes = calcularDiasRestantes();
 
     return (
         <div className="p-4 bg-gray-700 rounded-lg border border-gray-600">
@@ -154,15 +167,13 @@ const StatusAssinatura = () => {
             <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                     <span className="text-gray-400">Plano:</span>
-                    <span className="text-white">{assinatura.plano || 'Básico'}</span>
+                    <span className="text-white">BotFood Standard</span>
                 </div>
 
-                {assinatura.valor && (
-                    <div className="flex justify-between">
-                        <span className="text-gray-400">Valor:</span>
-                        <span className="text-white">{formatarValor(assinatura.valor)}/mês</span>
-                    </div>
-                )}
+                <div className="flex justify-between">
+                    <span className="text-gray-400">Valor:</span>
+                    <span className="text-white">R$ 199,00/mês</span>
+                </div>
 
                 {assinatura.trial_end && (
                     <div className="flex justify-between">
@@ -178,22 +189,31 @@ const StatusAssinatura = () => {
                     </div>
                 )}
 
-                {assinatura.payment_method && (
+                {assinatura.assinatura?.metadados_stripe?.payment_method && (
                     <div className="flex justify-between">
                         <span className="text-gray-400">Método de pagamento:</span>
                         <div className="flex items-center text-white">
                             <FaCreditCard className="mr-1" />
-                            <span>**** {assinatura.payment_method.last4}</span>
+                            <span>**** {assinatura.assinatura.metadados_stripe.payment_method.last4}</span>
                         </div>
                     </div>
                 )}
             </div>
 
-            {assinatura.status === 'trialing' && !assinatura.payment_method && (
-                <div className="mt-3 p-2 bg-yellow-500/20 border border-yellow-500 rounded">
-                    <p className="text-yellow-400 text-xs">
-                        Configure seu método de pagamento antes do fim do período de teste.
+            {assinatura.subscription_status === 'trialing' && (
+                <div className="mt-3 p-3 bg-blue-900/20 border border-blue-800 rounded-lg">
+                    <div className="flex items-center mb-2">
+                        <FaClock className="text-blue-400 mr-2" />
+                        <span className="text-blue-400 font-medium">Período de teste</span>
+                    </div>
+                    <p className="text-blue-300 text-sm">
+                        Restam {diasRestantes} dia{diasRestantes !== 1 ? 's' : ''} do seu período de teste gratuito.
                     </p>
+                    {!assinatura.payment_method_configured && (
+                        <p className="text-yellow-400 text-xs mt-2">
+                            Configure seu método de pagamento antes do fim do período de teste.
+                        </p>
+                    )}
                 </div>
             )}
         </div>
