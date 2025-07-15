@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle, FaPlus, FaMinus, FaWallet, FaFileInvoiceDollar } from 'react-icons/fa';
+import InformarcoesRodape from '../components/InformacoesRodape';
 
 const MovimentacoesCaixa = () => {
   const { token, user } = useAuth(); // Removido validateSession redundante
@@ -230,23 +231,7 @@ const MovimentacoesCaixa = () => {
           </nav>
 
           {/* Informações de Suporte no Rodapé */}
-          <div className="absolute bottom-0 left-0 w-full p-4 bg-gray-800 border-t border-gray-700">
-            <div className="space-y-2 text-xs text-gray-400">
-              <p className="flex justify-between">
-                <span>Suporte:</span>
-                <a href="mailto:suporte@botfood.com" className="text-blue-400 hover:text-blue-300">
-                  suporte@botfood.com
-                </a>
-              </p>
-              <p className="flex justify-between">
-                <span>Contato:</span>
-                <span>(11) 9999-8888</span>
-              </p>
-              <p className="text-center mt-3 text-gray-500">
-                &copy; {new Date().getFullYear()} BotFood - Todos os direitos reservados
-              </p>
-            </div>
-          </div>
+          <InformarcoesRodape />
         </div>
 
         <div className="ml-64 pt-16 p-6 flex-grow flex flex-col">
