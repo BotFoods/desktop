@@ -340,7 +340,7 @@ const Mesas = () => {
                 return (
                   <div
                     key={mesa.id}
-                    onClick={() => isAtiva && handleMesaClick(mesa.id)}
+                    onClick={() => isAtiva && handleMesaClick(mesa.numero_mesa)}
                     onContextMenu={(e) => handleContextMenu(e, mesa.id)}
                     className={`bg-gray-800 p-6 rounded-lg shadow-md flex flex-col items-center relative 
                       ${isAtiva ? 'cursor-pointer hover:scale-105 hover:shadow-lg' : 'cursor-not-allowed opacity-80'} 

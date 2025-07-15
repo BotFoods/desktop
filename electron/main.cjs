@@ -1,5 +1,12 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
+
+// Ocultar console em produção (Windows)
+if (process.platform === 'win32' && process.env.NODE_ENV === 'production') {
+  // Redirecionar stdout e stderr para evitar console
+  process.stdout.write = () => {};
+  process.stderr.write = () => {};
+}
 
 // Import printer libraries for main process
 const escpos = require('escpos');
@@ -13,19 +20,36 @@ escpos.Network = Network;
 escpos.Serial = Serial;
 
 function createWindow() {
+  // Remove o menu principal
+  Menu.setApplicationMenu(null);
+  
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    icon: path.join(__dirname, '../public/botfood-icon.png'), // Ícone do BotFood
+    show: false, // Não mostrar até estar pronto
+    titleBarStyle: 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: process.env.NODE_ENV === 'development', // DevTools apenas em desenvolvimento
     },
+  });
+
+  // Mostrar a janela quando estiver pronta para evitar flash
+  win.once('ready-to-show', () => {
+    win.show();
+    // Focar na janela
+    win.focus();
   });
 
   const isDev = process.env.VITE_DEV_SERVER_URL;
   if (isDev) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL);
+    // Abrir DevTools apenas em desenvolvimento
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'));

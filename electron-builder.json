@@ -10,21 +10,28 @@
   ],
   "mac": {
     "category": "public.app-category.business",
-    "icon": "public/logo_chatgpt.png",
+    "icon": "public/botfood-icon.png",
     "target": ["zip"]
   },
   "win": {
-    "icon": "public/logo_chatgpt.png",
-    "target": ["nsis"]
+    "icon": "public/botfood-icon.png",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64", "ia32"]
+      }
+    ]
   },
   "linux": {
-    "icon": "public/logo_chatgpt.png",
+    "icon": "public/botfood-icon.png",
     "target": ["AppImage", "deb"],
     "category": "Office"
   },
   "nsis": {
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
   },
   "publish": null
 }
