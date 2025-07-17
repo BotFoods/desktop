@@ -288,7 +288,7 @@ const ProdutoCadastro = () => {
         setLoading(true);
 
         const options = {
-            method: 'PUT',
+            method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
