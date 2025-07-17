@@ -73,7 +73,8 @@ const PessoaCadastro = () => {
                 const response = await fetch(`${API_BASE_URL}/api/funcoes?id_loja=${user.loja_id}`, options);
                 if (response.ok) {
                     const data = await response.json();
-                    setFuncoes(data.funcoes || []);
+                    // Filtrar apenas funções ativas
+                    setFuncoes((data.funcoes || []).filter(funcao => funcao.ativo === 1));
                 } else {
                     console.error(`Error fetching roles: ${response.status} ${response.statusText}`);
                     showMessage('Erro ao carregar funções', 'error');
@@ -162,15 +163,20 @@ const PessoaCadastro = () => {
             const data = await response.json();
             
             if (data.success) {
-                const novoUsuario = { 
-                    id: data.id, 
-                    nome, 
-                    email, 
-                    usuario, 
-                    funcao_id: funcao,
-                    status: 1
-                };
-                setUsuarios([...usuarios, novoUsuario]);
+                // Recarregar a lista de usuários para garantir sincronização
+                const fetchResponse = await fetch(`${API_BASE_URL}/api/usuarios?id_loja=${user.loja_id}`, {
+                    method: 'GET',
+                    headers: {
+                        authorization: `${token}`
+                    },
+                    credentials: 'include'
+                });
+                
+                if (fetchResponse.ok) {
+                    const fetchData = await fetchResponse.json();
+                    setUsuarios(fetchData.usuarios.filter(usuario => usuario.id !== loggedUser.id));
+                }
+                
                 setNome('');
                 setEmail('');
                 setUsuario('');
@@ -196,7 +202,8 @@ const PessoaCadastro = () => {
             nome: userToEdit.nome,
             email: userToEdit.email,
             usuario: userToEdit.usuario,
-            funcao_id: userToEdit.funcao_id
+            funcao_id: userToEdit.funcao_id,
+            senha: '' // Campo para nova senha
         });
         setIsEditModalOpen(true);
     };
@@ -221,6 +228,19 @@ const PessoaCadastro = () => {
 
         setLoading(true);
 
+        const bodyData = {
+            id: editUser.id,
+            nome: editUser.nome,
+            email: editUser.email,
+            usuario: editUser.usuario,
+            funcao_id: editUser.funcao_id
+        };
+
+        // Incluir senha apenas se foi fornecida
+        if (editUser.senha && editUser.senha.trim()) {
+            bodyData.senha = editUser.senha;
+        }
+
         const options = {
             method: 'PUT',
             headers: {
@@ -228,15 +248,9 @@ const PessoaCadastro = () => {
                 authorization: `${token}`
             },
             credentials: 'include',
-            body: JSON.stringify({
-                id: editUser.id,
-                nome: editUser.nome,
-                email: editUser.email,
-                usuario: editUser.usuario,
-                funcao_id: editUser.funcao_id
-            })
+            body: JSON.stringify(bodyData)
         };        try {
-            const response = await fetch(`${API_BASE_URL}/api/usuarios/atualizar/${editUser.id}?id_loja=${user.loja_id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/alterar/${editUser.id}?id_loja=${user.loja_id}`, options);
             const data = await response.json();
             
             if (data.success) {
@@ -259,10 +273,6 @@ const PessoaCadastro = () => {
     };
 
     const handleDeleteUsuario = async (id) => {
-        if (!window.confirm('Tem certeza que deseja desativar este usuário?')) {
-            return;
-        }
-
         setLoading(true);
         const options = {
             method: 'GET',
@@ -276,7 +286,7 @@ const PessoaCadastro = () => {
             
             if (data.success) {
                 setUsuarios(usuarios.map(user => 
-                    user.id === id ? { ...user, status: 0 } : user
+                    user.id === id ? { ...user, ativo: 0 } : user
                 ));
                 showMessage('Usuário desativado com sucesso!');
             } else {
@@ -304,7 +314,7 @@ const PessoaCadastro = () => {
             
             if (data.success) {
                 setUsuarios(usuarios.map(user => 
-                    user.id === id ? { ...user, status: 1 } : user
+                    user.id === id ? { ...user, ativo: 1 } : user
                 ));
                 showMessage('Usuário reativado com sucesso!');
             } else {
@@ -327,8 +337,8 @@ const PessoaCadastro = () => {
         setIsFormModalOpen(true);
     };
 
-    const usuariosAtivos = usuarios.filter(user => user.status === 1);
-    const usuariosInativos = usuarios.filter(user => user.status === 0);
+    const usuariosAtivos = usuarios.filter(user => user.ativo === 1);
+    const usuariosInativos = usuarios.filter(user => user.ativo === 0);
 
     return (
         <>
@@ -704,6 +714,25 @@ const PessoaCadastro = () => {
                                     <option key={funcao.id} value={funcao.id}>{funcao.descricao}</option>
                                 ))}
                             </select>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Nova Senha <span className="text-gray-500">(deixe em branco para não alterar)</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <FaLock className="text-gray-400" />
+                                </div>
+                                <input
+                                    type="password"
+                                    value={editUser.senha || ''}
+                                    onChange={(e) => setEditUser({ ...editUser, senha: e.target.value })}
+                                    placeholder="Nova senha (opcional)"
+                                    className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                    disabled={loading}
+                                />
+                            </div>
                         </div>
                         
                         <div className="flex space-x-3 pt-2">

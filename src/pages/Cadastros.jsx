@@ -3,7 +3,8 @@ import Header from '../components/Header';
 import CategoriaCadastro from '../components/CategoriaCadastro';
 import ProdutoCadastro from '../components/ProdutoCadastro';
 import PessoaCadastro from '../components/PessoaCadastro';
-import { FaBox, FaTags, FaUsers } from 'react-icons/fa';
+import FuncaoCadastro from '../components/FuncaoCadastro';
+import { FaBox, FaTags, FaUsers, FaUserTie } from 'react-icons/fa';
 import InformarcoesRodape from '../components/InformacoesRodape';
 
 const Cadastros = () => {
@@ -20,6 +21,8 @@ const Cadastros = () => {
                 return <ProdutoCadastro />;
             case 'Pessoas':
                 return <PessoaCadastro />;
+            case 'Funcoes':
+                return <FuncaoCadastro />;
             default:
                 return <ProdutoCadastro />;
         }
@@ -33,6 +36,8 @@ const Cadastros = () => {
                 return 'Cadastrar Produtos';
             case 'Pessoas':
                 return 'Cadastrar Pessoas';
+            case 'Funcoes':
+                return 'Cadastrar Funções';
             default:
                 return '';
         }
@@ -91,6 +96,17 @@ const Cadastros = () => {
                             >
                                 <FaUsers />
                                 <span>Pessoas</span>
+                            </button>
+                            <button 
+                                onClick={() => setSelectedCategory('Funcoes')}
+                                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                                    selectedCategory === 'Funcoes' 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'hover:bg-gray-700 hover:text-white'
+                                }`}
+                            >
+                                <FaUserTie />
+                                <span>Funções</span>
                             </button>
                         </div>
                     </nav>
