@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { FaEdit, FaTrash, FaUndo, FaPlus, FaUser, FaUserPlus, FaLock, FaEnvelope, FaIdCard, FaUserTie } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
+import ProtectedRoute from './ProtectedRoute';
+import usePermissions from '../hooks/usePermissions';
 
 const PessoaCadastro = () => {
     const { validateSession, token, user } = useAuth();
@@ -770,4 +772,12 @@ const PessoaCadastro = () => {
     );
 };
 
-export default PessoaCadastro;
+const ProtectedPessoaCadastro = () => {
+    return (
+        <ProtectedRoute ownerOnly={true}>
+            <PessoaCadastro />
+        </ProtectedRoute>
+    );
+};
+
+export default ProtectedPessoaCadastro;

@@ -7,9 +7,11 @@ import StatusAssinatura from '../components/StatusAssinatura';
 import { 
     FaWhatsapp, FaPhone, FaEdit, FaLink, FaUnlink, 
     FaCog, FaPrint, FaCreditCard, FaUser, 
-    FaStore, FaReceipt, FaTags, FaDatabase, FaStripe 
+    FaStore, FaReceipt, FaTags, FaDatabase, FaStripe, FaKey
 } from 'react-icons/fa';
 import InformarcoesRodape from '../components/InformacoesRodape';
+import PermissoesCadastro from '../components/PermissoesCadastro';
+import usePermissions from '../hooks/usePermissions';
 
 // Helper function to format phone number for API calls
 const formatPhoneNumber = (phone) => {
@@ -36,6 +38,7 @@ const Configuracoes = () => {
     const [isEditingPhoneNumber, setIsEditingPhoneNumber] = useState(false);
     const [activeSection, setActiveSection] = useState('whatsapp');
     const { token, user } = useAuth();
+    const { isOwner } = usePermissions();
     const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
     
@@ -490,6 +493,8 @@ const Configuracoes = () => {
                         </button>
                     </div>
                 );
+            case 'permissoes':
+                return <PermissoesCadastro />;
             default:
                 return (
                     <div className="w-full max-w-lg bg-gray-800 p-8 rounded-lg shadow-xl">
@@ -565,6 +570,19 @@ const Configuracoes = () => {
                                 <FaUser className="text-xl" />
                                 <span>Perfil</span>
                             </button>
+                            {isOwner() && (
+                                <button 
+                                    onClick={() => setActiveSection('permissoes')}
+                                    className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                                        activeSection === 'permissoes' 
+                                            ? 'bg-orange-600 text-white' 
+                                            : 'hover:bg-gray-700 hover:text-white'
+                                    }`}
+                                >
+                                    <FaKey className="text-xl" />
+                                    <span>Permissões</span>
+                                </button>
+                            )}
                             <button 
                                 className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
                             >
