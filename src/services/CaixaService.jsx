@@ -1,43 +1,31 @@
 // services/CaixaService.js
+import { apiGet, apiPost } from './ApiService';
 
 export const verificarCaixaAberto = async (userId, token, lojaId) => {
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/caixas/usuario/${userId}?id_loja=${lojaId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `${token}`,
-        },
-        credentials: 'include',
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Erro ao verificar caixa aberto:', error);
-      return { success: false, caixas: [] };
-    }
-  };
-  
-  export const abrirCaixa = async (userId, valorInicial, token, lojaId) => {
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/caixas/abertura?id_loja=${lojaId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `${token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          usuario_abertura_id: userId,
-          valor_inicial: valorInicial,
-          loja_id: lojaId, // Corrected to use lojaId parameter
-        }),
-      });
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Erro ao abrir caixa:', error);
-      return { success: false };
-    }
-  };
+  try {
+    const data = await apiGet(`/api/caixas/usuario/${userId}?id_loja=${lojaId}`, token);
+    return data;
+  } catch (error) {
+    console.error('Erro ao verificar caixa aberto:', error);
+    return { success: false, caixas: [] };
+  }
+};
+
+export const abrirCaixa = async (userId, valorInicial, token, lojaId) => {
+  try {
+    const data = await apiPost(`/api/caixas/abertura?id_loja=${lojaId}`, {
+      usuario_abertura_id: userId,
+      valor_inicial: valorInicial,
+      loja_id: lojaId,
+    }, token);
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao abrir caixa:', error);
+    return { 
+      success: false, 
+      message: 'Erro de conexão ao tentar abrir o caixa.',
+      _isNetworkError: true 
+    };
+  }
+};

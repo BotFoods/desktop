@@ -3,6 +3,9 @@ import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import AlertModal from './AlertModal';
+import ApiErrorModal from './ApiErrorModal';
+import useApiError from '../hooks/useApiError';
+import { apiPatch } from '../services/ApiService';
 import { FaCashRegister } from 'react-icons/fa';
 
 const FecharCaixaButton = ({ pdv, className, children }) => {
@@ -11,10 +14,10 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
     const [observacoesInput, setObservacoesInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { token, user } = useAuth();
+    const { errorInfo, handleApiError, closeError } = useApiError();
     const navigate = useNavigate();
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
     
-    // Estado para o modal de alerta
+    // Estado para o modal de alerta (mantido para outros tipos de alertas)
     const [alertInfo, setAlertInfo] = useState({
         isOpen: false,
         title: 'Atenção',
@@ -52,7 +55,7 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
 
     const validateClosementValue = (value) => {
         return !isNaN(parseFloat(value)) && isFinite(value) && parseFloat(value) > 0;
-    };    const handleCloseCaixa = () => {
+    };    const handleCloseCaixa = async () => {
         // Validação do valor informado
         if (!validateClosementValue(closementValue)) {
             showAlert('Por favor, informe um valor válido para o fechamento.');
@@ -72,33 +75,27 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
             observacoes: observacoesInput,
         };
 
-        const options = {
-            method: 'PATCH',
-            headers: {
-                authorization: token,
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify(payload)
-        };
+        try {
+            const data = await apiPatch(
+                `/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`,
+                payload,
+                token
+            );
 
-        fetch(`${API_BASE_URL}/api/caixas/fechamento/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, options)
-            .then(response => response.json())
-            .then(response => {
-                console.log(response);
-                if (response.success) {
-                    navigate(0); // Reload the page
-                } else {
-                    showAlert(response.message || 'Erro ao fechar o caixa.');
-                }
-            })
-            .catch(err => {
-                console.error(err);
-                showAlert('Erro ao fechar o caixa. Verifique sua conexão.');
-            })
-            .finally(() => {
-                setIsLoading(false);
-            });
+            if (data.success) {
+                navigate(0); // Reload the page
+            } else if (data._isApiError) {
+                // Usar o novo sistema de tratamento de erro para erros de API
+                await handleApiError(data._response || data, 'Erro ao fechar o caixa');
+            } else {
+                showAlert(data.message || 'Erro ao fechar o caixa.');
+            }
+        } catch (error) {
+            console.error('Erro ao fechar caixa:', error);
+            showAlert('Erro ao fechar o caixa. Verifique sua conexão.');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -182,6 +179,17 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
                 title={alertInfo.title}
                 message={alertInfo.message}
                 type={alertInfo.type}
+            />
+
+            {/* Modal de erro da API */}
+            <ApiErrorModal
+                isOpen={errorInfo.isOpen}
+                onClose={closeError}
+                title={errorInfo.title}
+                message={errorInfo.message}
+                type={errorInfo.type}
+                requiredPermission={errorInfo.requiredPermission}
+                isOwnerOnly={errorInfo.isOwnerOnly}
             />
         </>
     );
