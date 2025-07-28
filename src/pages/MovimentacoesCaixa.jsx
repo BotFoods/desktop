@@ -3,9 +3,14 @@ import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
 import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle, FaPlus, FaMinus, FaWallet, FaFileInvoiceDollar } from 'react-icons/fa';
 import InformarcoesRodape from '../components/InformacoesRodape';
+import ApiErrorModal from '../components/ApiErrorModal';
+import useApiError from '../hooks/useApiError';
+import { apiGet } from '../services/ApiService';
+import AccessDeniedPage from '../components/AccessDeniedPage';
 
 const MovimentacoesCaixa = () => {
   const { token, user } = useAuth(); // Removido validateSession redundante
+  const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [filteredMovimentacoes, setFilteredMovimentacoes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +22,6 @@ const MovimentacoesCaixa = () => {
     const pdv_salvo = localStorage.getItem('pdv');
     return pdv_salvo ? JSON.parse(pdv_salvo) : null;
   });
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // Calculate totals
   const totals = filteredMovimentacoes.reduce(
@@ -50,27 +54,28 @@ const MovimentacoesCaixa = () => {
       
       if (pdv && pdv.pdv && pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/movimentacoes/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, {
-            headers: {
-              Authorization: `${token}`,
-            },
-            credentials: 'include',
-          });
+          const data = await apiGet(`/api/movimentacoes/${pdv.pdv.caixa.id_caixa}?id_loja=${user.loja_id}`, token);
           
-          if (!response.ok) {
-            throw new Error(`Erro na resposta: ${response.status}`);
-          }
-          
-          const data = await response.json();
           if (data.success && data.movimentacoes) {
             setMovimentacoes(data.movimentacoes);
             setFilteredMovimentacoes(data.movimentacoes);
+            setError(null);
+          } else if (data._isApiError && data._status === 403) {
+            // Usar o novo sistema para erros de permissão com bloqueio de página
+            await handleApiError(data._response || data, 'Erro ao carregar movimentações', {
+              blockPage: true,
+              pageName: 'movimentações do caixa'
+            });
           } else {
-            throw new Error(data.message || 'Erro ao buscar movimentações');
+            const errorMessage = data.message || 'Erro ao buscar movimentações';
+            console.error('Erro ao buscar movimentações:', errorMessage);
+            setError(errorMessage);
+            setMovimentacoes([]);
+            setFilteredMovimentacoes([]);
           }
         } catch (error) {
           console.error('Erro ao buscar movimentações:', error);
-          setError(error.message || 'Erro ao buscar movimentações');
+          setError('Erro de conexão ao buscar movimentações');
           setMovimentacoes([]);
           setFilteredMovimentacoes([]);
         }
@@ -79,11 +84,13 @@ const MovimentacoesCaixa = () => {
       }
       
       setLoading(false);
-    };    // Only fetch data if we have a token and user (after validation)
+    };
+
+    // Only fetch data if we have a token and user (after validation)
     if (token && user?.loja_id) {
       fetchMovimentacoes();
     }
-  }, [token, user, pdv, API_BASE_URL]);
+  }, [token, user, pdv, handleApiError]);
 
   // Filter movimentacoes when search term or filter type or active tab changes
   useEffect(() => {
@@ -176,9 +183,22 @@ const MovimentacoesCaixa = () => {
     return tipo && typeof tipo === 'string' && (tipo.startsWith('ENTRADA_') || tipo === 'ENTRADA');
   };
 
+  // Se o acesso foi negado, mostrar página de acesso negado
+  if (accessDenied.isBlocked) {
+    return (
+      <AccessDeniedPage
+        requiredPermission={accessDenied.requiredPermission}
+        isOwnerOnly={accessDenied.isOwnerOnly}
+        pageName={accessDenied.pageName}
+        originalError={accessDenied.originalError}
+      />
+    );
+  }
+
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
       <Header />
+      
       <div className="flex-grow flex my-3">
         {/* Sidebar de Movimentações */}
         <div className="fixed top-16 bottom-0 left-0 w-64 bg-gray-800 text-gray-300 overflow-y-auto">
@@ -361,6 +381,17 @@ const MovimentacoesCaixa = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de erro da API */}
+      <ApiErrorModal
+        isOpen={errorInfo.isOpen}
+        onClose={closeError}
+        title={errorInfo.title}
+        message={errorInfo.message}
+        type={errorInfo.type}
+        requiredPermission={errorInfo.requiredPermission}
+        isOwnerOnly={errorInfo.isOwnerOnly}
+      />
     </div>
   );
 };

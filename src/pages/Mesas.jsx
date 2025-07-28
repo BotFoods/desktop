@@ -6,12 +6,16 @@ import AddMesaModal from '../components/AddMesaModal';
 // Importando ícones adicionais para as ações de desativar/ativar
 import { FaBan, FaCheck, FaEllipsisV } from 'react-icons/fa';
 import AlertModal from '../components/AlertModal';
+import ApiErrorModal from '../components/ApiErrorModal';
+import AccessDeniedPage from '../components/AccessDeniedPage';
+import useApiError from '../hooks/useApiError';
+import { apiGet, apiPost, apiPatch } from '../services/ApiService';
 
 const Mesas = () => {
   const { token, user } = useAuth();
+  const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
   const [mesas, setMesas] = useState([]);
   const navigate = useNavigate();
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [apiError, setApiError] = useState('');
@@ -28,37 +32,36 @@ const Mesas = () => {
   const fetchMesas = useCallback(async () => {
     if (!user || !user.loja_id) {
       console.error("User or user.loja_id is undefined. Cannot fetch mesas.");
-      // Optionally, set an error state here to inform the user
-      // setApiError("Não foi possível carregar as mesas. Informações do usuário ausentes.");
+      setApiError("Não foi possível carregar as mesas. Informações do usuário ausentes.");
       return;
     }
 
-    const options = {
-      method: 'GET',
-      headers: {
-        authorization: token,
-      },
-      credentials: 'include',
-    };
-
     try {
-      // Add id_loja as a query parameter
-      const response = await fetch(`${API_BASE_URL}/api/mesas?id_loja=${user.loja_id}`, options);
-      const data = await response.json();
+      const data = await apiGet(`/api/mesas?id_loja=${user.loja_id}`, token);
+      
       if (data.success) {
         setMesas(data.mesas);
+        setApiError('');
+      } else if (data._isApiError && data._status === 403) {
+        // Usar o novo sistema para erros de permissão com bloqueio de página
+        await handleApiError(data._response || data, 'Erro ao carregar mesas', {
+          blockPage: true,
+          pageName: 'mesas'
+        });
       } else if (data.auth === false) {
         console.error('Acesso negado');
         navigate('/login');
       } else {
         console.error('Erro ao buscar mesas:', data.message || data);
-        setMesas([]); // Clear mesas on error or set an error state
+        setApiError(data.message || 'Erro ao carregar mesas');
+        setMesas([]);
       }
     } catch (error) {
       console.error('Erro ao buscar mesas:', error);
-      setMesas([]); // Clear mesas on network error
+      setApiError('Erro de conexão ao carregar mesas');
+      setMesas([]);
     }
-  }, [token, navigate, API_BASE_URL, user]);
+  }, [token, navigate, user, handleApiError]);
 
   useEffect(() => {
     if (user && user.loja_id) { // Ensure user and loja_id are available before fetching
@@ -218,17 +221,10 @@ const Mesas = () => {
     closeContextMenu();
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/mesas/desativar/${mesaId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({ id_loja: user.loja_id }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
+      const data = await apiPatch(`/api/mesas/desativar/${mesaId}`, 
+        { id_loja: user.loja_id }, 
+        token
+      );
 
       if (data.success) {
         // Atualiza o estado da mesa localmente
@@ -236,8 +232,11 @@ const Mesas = () => {
           mesa.id === mesaId ? { ...mesa, ativo: false } : mesa
         ));
         showAlert(data.message || "Mesa desativada com sucesso!", "success");
+      } else if (data._isApiError && data._status === 403) {
+        // Usar o novo sistema para erros de permissão
+        await handleApiError(data._response || data, 'Erro ao desativar mesa');
       } else {
-        showAlert(data.error || "Erro ao desativar mesa", "error");
+        showAlert(data.error || data.message || "Erro ao desativar mesa", "error");
       }
     } catch (error) {
       console.error("Erro ao desativar mesa:", error);
@@ -297,6 +296,18 @@ const Mesas = () => {
     
     return Boolean(mesa.ativo); // Para casos booleanos ou outros tipos
   };
+
+  // Se o acesso foi negado, mostrar página de acesso negado
+  if (accessDenied.isBlocked) {
+    return (
+      <AccessDeniedPage
+        requiredPermission={accessDenied.requiredPermission}
+        isOwnerOnly={accessDenied.isOwnerOnly}
+        pageName={accessDenied.pageName}
+        originalError={accessDenied.originalError}
+      />
+    );
+  }
 
   return (
     <div className="bg-gray-900 text-white flex flex-col min-h-screen">
@@ -432,6 +443,17 @@ const Mesas = () => {
         title={alertInfo.title}
         message={alertInfo.message}
         type={alertInfo.type}
+      />
+
+      {/* Modal de erro da API */}
+      <ApiErrorModal
+        isOpen={errorInfo.isOpen}
+        onClose={closeError}
+        title={errorInfo.title}
+        message={errorInfo.message}
+        type={errorInfo.type}
+        requiredPermission={errorInfo.requiredPermission}
+        isOwnerOnly={errorInfo.isOwnerOnly}
       />
     </div>
   );

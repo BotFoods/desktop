@@ -4,13 +4,17 @@ import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ApiErrorModal from '../components/ApiErrorModal';
+import AccessDeniedPage from '../components/AccessDeniedPage';
 import templatePdv from '../templates/templatePDV.json';
 import { FaTrash, FaCashRegister } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { verificarCaixaAberto, abrirCaixa } from '../services/CaixaService';
+import useApiError from '../hooks/useApiError';
 
 const Caixa = () => {
   const { validateSession, token, setToken, user } = useAuth(); 
+  const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
   const [orders, setOrders] = useState([]);
@@ -225,11 +229,15 @@ const Caixa = () => {
 
   const handleAbrirCaixa = async () => {
     if (!user || !user.id || typeof user.loja_id === 'undefined') { // Check specifically for undefined
-      console.error('Informações do usuário ou loja_id ausentes para abrir o caixa.');
-      // Optionally, display an error message to the user
+      await handleApiError({
+        success: false,
+        message: 'Informações do usuário ou loja_id ausentes para abrir o caixa.'
+      }, 'Erro de validação');
       return;
     }
+    
     const data = await abrirCaixa(user.id, valorInicial, token, user.loja_id); // Pass user.loja_id
+    
     if (data.success) {
       const updatedPdv = { ...pdv };
       updatedPdv.pdv.caixa.id_caixa = user.id;
@@ -242,9 +250,27 @@ const Caixa = () => {
       setCaixaAberto(true);
       navigate(0);
     } else {
-      console.error('Erro ao abrir caixa');
+      // Tratar erro da API usando o novo sistema
+      if (data._response) {
+        await handleApiError(data._response, 'Erro ao abrir caixa');
+      } else {
+        await handleApiError(data, 'Erro ao abrir caixa');
+      }
     }
   };
+  
+  // Se o acesso foi negado, mostrar página de acesso negado
+  if (accessDenied.isBlocked) {
+    return (
+      <AccessDeniedPage
+        requiredPermission={accessDenied.requiredPermission}
+        isOwnerOnly={accessDenied.isOwnerOnly}
+        pageName={accessDenied.pageName}
+        originalError={accessDenied.originalError}
+      />
+    );
+  }
+
   // Mostrar loading durante a inicialização
   if (isInitializing) {
     return (
@@ -408,6 +434,17 @@ const Caixa = () => {
           loja_id={user.loja_id} 
         />
       )}
+
+      {/* Modal de erro da API */}
+      <ApiErrorModal
+        isOpen={errorInfo.isOpen}
+        onClose={closeError}
+        title={errorInfo.title}
+        message={errorInfo.message}
+        type={errorInfo.type}
+        requiredPermission={errorInfo.requiredPermission}
+        isOwnerOnly={errorInfo.isOwnerOnly}
+      />
     </div>
   );
 };

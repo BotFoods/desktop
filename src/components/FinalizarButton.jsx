@@ -3,14 +3,17 @@ import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { FaCheckCircle } from 'react-icons/fa';
 import AlertModal from './AlertModal';
+import ApiErrorModal from './ApiErrorModal';
 import LoadingSpinner from './LoadingSpinner';
+import useApiError from '../hooks/useApiError';
+import { apiPost } from '../services/ApiService';
 
 const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children, onVendaFinalizada }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '', type: 'info' });
   const { user, token } = useAuth();
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
+  const { errorInfo, handleApiError, closeError } = useApiError();
 
   // Função para mostrar alerta
   const showAlert = (message, type = 'info', title = 'Atenção') => {
@@ -67,18 +70,9 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/vendas/registrar`, {
-        method: 'POST',
-        headers: {
-          authorization: token,
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(vendaData),
-      });
-      const result = await response.json();
+      const data = await apiPost('/api/vendas/registrar', vendaData, token);
 
-      if (response.ok && result.cupomId) { // Check for cupomId for success
+      if (data.success && data.cupomId) { // Check for cupomId for success
         // Construct receipt text
         const now = new Date();
         let receiptText = `        Comprovante de Venda\n`;
@@ -138,14 +132,22 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
         } catch (printError) {
           console.error('Falha geral na impressão:', printError);
           showAlert('Erro ao imprimir comprovante. Verifique se a impressora está configurada e ativa.', 'error', 'Erro de Impressão');
-        }} else {
-         showAlert('Falha ao registrar venda: ' + (result.message || 'Erro desconhecido'), 'error', 'Erro ao Finalizar');
-         closeModal();
-         setIsProcessing(false);
-         return;
+        }
+      } else if (data._isApiError && data._status === 403) {
+        // Usar o novo sistema para erros de permissão
+        await handleApiError(data._response || data, 'Erro ao registrar venda');
+        closeModal();
+        setIsProcessing(false);
+        return;
+      } else {
+        showAlert('Falha ao registrar venda: ' + (data.message || 'Erro desconhecido'), 'error', 'Erro ao Finalizar');
+        closeModal();
+        setIsProcessing(false);
+        return;
       }
 
     } catch (error) {
+      console.error('Erro ao registrar venda:', error);
       showAlert('Erro ao registrar venda. Verifique sua conexão e tente novamente.', 'error', 'Erro ao Finalizar');
       closeModal();
       setIsProcessing(false);
@@ -254,6 +256,17 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
         title={alertInfo.title}
         message={alertInfo.message}
         type={alertInfo.type}
+      />
+
+      {/* Modal de erro da API */}
+      <ApiErrorModal
+        isOpen={errorInfo.isOpen}
+        onClose={closeError}
+        title={errorInfo.title}
+        message={errorInfo.message}
+        type={errorInfo.type}
+        requiredPermission={errorInfo.requiredPermission}
+        isOwnerOnly={errorInfo.isOwnerOnly}
       />
     </>
   );
