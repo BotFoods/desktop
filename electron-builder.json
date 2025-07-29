@@ -44,6 +44,6 @@
   "publish": {
     "provider": "github",
     "owner": "BotFoods",
-    "repo": "botfoods-desktop"
+    "repo": "desktop"
   }
 }
