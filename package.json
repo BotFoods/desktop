@@ -14,12 +14,22 @@
     "web": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173\"",
     "build": "vite build",
     "build:gcp": "./build-gcp.sh",
+    "build:electron": "vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.json",
+    "build:electron:win": "vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
+    "build:electron:portable": "vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json --x64 --ia32",
     "electron:build": "cross-env NODE_ENV=production electron-builder --config electron-builder.json",
     "electron:build:win": "cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
     "start": "cross-env NODE_ENV=production electron .",
     "start:dev": "cross-env NODE_ENV=development electron .",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "version:patch": "npm version patch && git push origin develop && git push origin --tags",
+    "version:minor": "npm version minor && git push origin develop && git push origin --tags",
+    "version:major": "npm version major && git push origin develop && git push origin --tags",
+    "release:patch": "npm run version:patch && git checkout main && git merge develop && git push origin main",
+    "release:minor": "npm run version:minor && git checkout main && git merge develop && git push origin main",
+    "release:major": "npm run version:major && git checkout main && git merge develop && git push origin main",
+    "release:prepare": "vite build && cross-env NODE_ENV=production electron-builder --win --publish=never"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.7.0",
