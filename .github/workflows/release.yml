@@ -9,6 +9,10 @@ on:
       - 'electron/**'
       - 'public/**'
   workflow_dispatch:
+    
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   check-version:
