@@ -1,0 +1,131 @@
+name: Build and Release Desktop App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'src/**'
+      - 'electron/**'
+      - 'public/**'
+  workflow_dispatch:
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    outputs:
+      should-release: ${{ steps.version-check.outputs.changed }}
+      version: ${{ steps.version-check.outputs.version }}
+      current-version: ${{ steps.version-check.outputs.current }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+    
+    - name: Check if version changed
+      id: version-check
+      run: |
+        if [ ! -f "package.json" ]; then
+          echo "Package.json not found"
+          echo "changed=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+        
+        CURRENT_VERSION=$(node -p "require('./package.json').version")
+        echo "current=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        
+        if git show HEAD~1:package.json >/dev/null 2>&1; then
+          PREVIOUS_VERSION=$(git show HEAD~1:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          
+          if [ "$CURRENT_VERSION" != "$PREVIOUS_VERSION" ]; then
+            echo "Version changed from $PREVIOUS_VERSION to $CURRENT_VERSION"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Version not changed: $CURRENT_VERSION"
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "Previous version not found, assuming first release"
+          echo "changed=true" >> $GITHUB_OUTPUT
+          echo "version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        fi
+
+  build-and-release:
+    needs: check-version
+    if: needs.check-version.outputs.should-release == 'true'
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build web application
+      run: npm run build
+      
+    - name: Build Electron application
+      run: npm run build:electron:portable
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: List built files
+      run: |
+        echo "Files in dist_electron:"
+        dir dist_electron
+        
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        echo "RELEASE_NOTES<<EOF" >> $env:GITHUB_ENV
+        echo "## 🚀 BotFoods Desktop ${{ needs.check-version.outputs.version }}" >> $env:GITHUB_ENV
+        echo "" >> $env:GITHUB_ENV
+        echo "### ✨ Novidades desta versão:" >> $env:GITHUB_ENV
+        echo "- Melhorias na interface do usuário" >> $env:GITHUB_ENV
+        echo "- Correções de bugs e otimizações" >> $env:GITHUB_ENV
+        echo "- Suporte aprimorado para impressoras térmicas" >> $env:GITHUB_ENV
+        echo "" >> $env:GITHUB_ENV
+        echo "### 📥 Como instalar:" >> $env:GITHUB_ENV
+        echo "1. **Portable (Recomendado)**: Baixe o arquivo \`BotFoods-Desktop-*-Portable.exe\` - não requer instalação" >> $env:GITHUB_ENV
+        echo "2. **Instalador**: Baixe o arquivo \`BotFoods-Desktop-*-Setup.exe\` para instalação completa" >> $env:GITHUB_ENV
+        echo "" >> $env:GITHUB_ENV
+        echo "### 🔧 Requisitos do sistema:" >> $env:GITHUB_ENV
+        echo "- Windows 10/11 (64-bit)" >> $env:GITHUB_ENV
+        echo "- 4GB RAM mínimo" >> $env:GITHUB_ENV
+        echo "- 500MB espaço livre em disco" >> $env:GITHUB_ENV
+        echo "" >> $env:GITHUB_ENV
+        echo "### 🆘 Suporte:" >> $env:GITHUB_ENV
+        echo "Em caso de problemas, entre em contato através do nosso sistema de suporte." >> $env:GITHUB_ENV
+        echo "EOF" >> $env:GITHUB_ENV
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ needs.check-version.outputs.version }}
+        name: BotFoods Desktop ${{ needs.check-version.outputs.version }}
+        body: ${{ env.RELEASE_NOTES }}
+        files: |
+          dist_electron/*.exe
+          dist_electron/*.zip
+        draft: false
+        prerelease: false
+        make_latest: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: electron-builds
+        path: |
+          dist_electron/*.exe
+          dist_electron/*.zip
+        retention-days: 30
