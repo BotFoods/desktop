@@ -4,8 +4,8 @@ const path = require('path');
 // Ocultar console em produção (Windows)
 if (process.platform === 'win32' && process.env.NODE_ENV === 'production') {
   // Redirecionar stdout e stderr para evitar console
-  process.stdout.write = () => {};
-  process.stderr.write = () => {};
+  // process.stdout.write = () => {};
+  // process.stderr.write = () => {};
 }
 
 // Import printer libraries for main process
@@ -35,7 +35,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.cjs'),
       nodeIntegration: false,
       contextIsolation: true,
-      devTools: process.env.NODE_ENV === 'development', // DevTools apenas em desenvolvimento
+      devTools: true, // DevTools habilitado para depuração
     },
   });
 
@@ -53,6 +53,7 @@ function createWindow() {
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'));
+    win.webContents.openDevTools();
   }
 }
 
