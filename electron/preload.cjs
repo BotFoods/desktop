@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Identificador para detectar ambiente Electron
+  isElectron: true,
+  
   // Printer APIs
   printer: {
     scanUSB: () => ipcRenderer.invoke('printer:scan-usb'),

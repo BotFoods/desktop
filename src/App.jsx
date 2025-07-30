@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './services/AuthContext';
 import { NotificationProvider } from './services/NotificationContext';
 import Header from './components/Header';
@@ -116,6 +116,12 @@ const AppRoutes = () => {
     </AuthProvider>
   );
 };
+
+// Detecta se está rodando no Electron verificando a presença da API exposta pelo preload
+const isElectron = window && window.electronAPI !== undefined;
+
+// Escolhe o roteador apropriado com base no ambiente
+const Router = isElectron ? HashRouter : BrowserRouter;
 
 const App = () => (
   <Router>
