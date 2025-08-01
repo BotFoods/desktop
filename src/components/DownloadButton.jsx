@@ -1,7 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { FiDownload, FiMonitor, FiCheckCircle, FiRefreshCw } from 'react-icons/fi';
 
-const DownloadButton = () => {
+const DownloadButton = ({ simplified = false, className = '', buttonText }) => {
+  // Verifica se está no ambiente Electron
+  const isElectron = window && window.electronAPI !== undefined;
+  
+  // Não renderiza o componente se estiver no Electron
+  if (isElectron) {
+    return null;
+  }
+  
+  // Se for simplified=true, mostra apenas o botão de download direto
+  if (simplified) {
+    // URL direta para o download do aplicativo
+    const downloadUrl = 'https://storage.botfoods.com.br/downloads/BotFoods-Desktop-Setup.exe';
+    
+    return (
+      <a 
+        href={downloadUrl} 
+        className={`flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors ${className}`}
+        target="_blank" 
+        rel="noopener noreferrer"
+      >
+        <FiMonitor className="mr-1" />
+        <FiDownload className="mr-1" />
+        {buttonText || 'Baixar aplicativo desktop'}
+      </a>
+    );
+  }
+  
+  // Versão completa do componente com info da versão
   const [downloadInfo, setDownloadInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
@@ -259,6 +287,14 @@ const DownloadButton = () => {
       </div>
     </div>
   );
+};
+
+import PropTypes from 'prop-types';
+
+DownloadButton.propTypes = {
+  simplified: PropTypes.bool,
+  className: PropTypes.string,
+  buttonText: PropTypes.string
 };
 
 export default DownloadButton;

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import CategoryMenu from './CategoryMenu';
 import NotificationBanner, { NotificationBadge } from './NotificacaoAssinatura';
 import AvisoPagamentoPDV from './AvisoPagamentoPDV';
+import DownloadButton from './DownloadButton';
 import { useAuth } from '../services/AuthContext';
 import { FaBell, FaUser, FaHourglassHalf } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
@@ -221,6 +222,13 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
                 </div>
               )}
             </div>
+            
+            {/* Botão de download - só aparece na versão web */}
+            <DownloadButton 
+              simplified={true} 
+              className="mr-3" 
+              buttonText="Baixar app"
+            />
             
             <div className="border-l border-gray-700 pl-3 ml-1 flex items-center">
               {user && (
