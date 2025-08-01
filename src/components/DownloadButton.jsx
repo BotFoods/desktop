@@ -13,7 +13,7 @@ const DownloadButton = ({ simplified = false, className = '', buttonText }) => {
   // Se for simplified=true, mostra apenas o botão de download direto
   if (simplified) {
     // URL direta para o download do aplicativo
-    const downloadUrl = 'https://storage.botfoods.com.br/downloads/BotFoods-Desktop-Setup.exe';
+    const downloadUrl = 'https://github.com/BotFoods/desktop/releases/download/v1.0.11/BotFoods-Desktop-1.0.11-Setup.exe';
     
     return (
       <a 
