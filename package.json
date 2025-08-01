@@ -14,9 +14,9 @@
     "web": "concurrently \"vite\" \"cross-env VITE_DEV_SERVER_URL=http://localhost:5173\"",
     "build": "vite build",
     "build:gcp": "./build-gcp.sh",
-    "build:electron": "vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.json",
-    "build:electron:win": "vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
-    "build:electron:portable": "vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json --x64 --ia32",
+    "build:electron": "cross-env NODE_ENV=production vite build && cross-env NODE_ENV=production electron-builder --config electron-builder.json",
+    "build:electron:win": "cross-env NODE_ENV=production vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
+    "build:electron:portable": "cross-env NODE_ENV=production vite build && cross-env NODE_ENV=production electron-builder --win --config electron-builder.json --x64 --ia32",
     "electron:build": "cross-env NODE_ENV=production electron-builder --config electron-builder.json",
     "electron:build:win": "cross-env NODE_ENV=production electron-builder --win --config electron-builder.json",
     "start": "cross-env NODE_ENV=production electron .",
@@ -29,7 +29,7 @@
     "release:patch": "npm run version:patch && git checkout main && git merge develop && git push origin main",
     "release:minor": "npm run version:minor && git checkout main && git merge develop && git push origin main",
     "release:major": "npm run version:major && git checkout main && git merge develop && git push origin main",
-    "release:prepare": "vite build && cross-env NODE_ENV=production electron-builder --win --publish=never"
+    "release:prepare": "cross-env NODE_ENV=production VITE_API_URL=https://botfoods-api-prod-388663121982.southamerica-east1.run.app/api/login vite build && cross-env NODE_ENV=production electron-builder --win --publish=never"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^3.7.0",

@@ -75,11 +75,14 @@ jobs:
       
     - name: Build web application
       run: npm run build
+      env:
+        VITE_API_URL: ${{ secrets.VITE_API_URL_PROD }}
       
     - name: Build Electron application
       run: npm run build:electron:portable
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VITE_API_URL: ${{ secrets.VITE_API_URL_PROD }}
         
     - name: List built files
       run: |
