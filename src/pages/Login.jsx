@@ -3,6 +3,7 @@ import { FaStore, FaUser, FaLock, FaSignInAlt, FaExternalLinkAlt } from 'react-i
 import { useAuth } from '../services/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo_chatgpt.png';
+import DownloadButton from '../components/DownloadButton';
 
 const STORAGE_KEY = 'botfoods_loja';
 
@@ -230,6 +231,15 @@ const Login = () => {
               <span>Cadastrar sua loja no BotFood</span>
               <FaExternalLinkAlt size={12} />
             </a>
+          </div>
+          
+          {/* Componente de download */}
+          <div className="mt-6 flex justify-center">
+            <DownloadButton 
+              simplified={true}
+              className="w-full max-w-sm py-3"
+              buttonText="Baixe o aplicativo para Windows"
+            />
           </div>
         </form>
         
