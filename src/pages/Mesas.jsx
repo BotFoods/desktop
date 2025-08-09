@@ -9,7 +9,7 @@ import AlertModal from '../components/AlertModal';
 import ApiErrorModal from '../components/ApiErrorModal';
 import AccessDeniedPage from '../components/AccessDeniedPage';
 import useApiError from '../hooks/useApiError';
-import { apiGet, apiPost, apiPatch } from '../services/ApiService';
+import { apiGet, apiPost, apiPut } from '../services/ApiService';
 
 const Mesas = () => {
   const { token, user } = useAuth();
@@ -143,34 +143,23 @@ const Mesas = () => {
     }
 
     const novaMesa = {
-      numero_mesa: numeroMesaFinal, // Ensure this is an integer
-      capacidade: capacidadeFinal,  // Ensure this is an integer
-      id_loja: user.loja_id,        // Add id_loja
-      // 'status' and 'ativo' will be handled by backend defaults as per schema
-    };
-
-    const options = {
-      method: 'POST',
-      headers: {
-        authorization: token, // Just the token
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(novaMesa),
-      credentials: 'include', // As requested
+      numero_mesa: numeroMesaFinal,
+      capacidade: capacidadeFinal,
+      id_loja: user.loja_id,
     };
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/mesas/adicionar`, options);
-      const data = await response.json(); 
+      const data = await apiPost('/api/mesas/adicionar', novaMesa, token);
 
-      // Updated success condition based on the new API response format
       if (data.success === true && data.mesa && data.mesa.id) { 
         fetchMesas(); 
         setIsModalOpen(false); 
         setApiError(''); 
+      } else if (data._isApiError && data._status === 403) {
+        // Usar o novo sistema para erros de permissão
+        await handleApiError(data._response || data, 'Erro ao adicionar mesa');
       } else if (data.auth === false) {
         setApiError('Acesso negado. Por favor, faça login novamente.');
-        // Optionally navigate to login: navigate('/login');
       } else {
         // Use message from API if available, otherwise a generic one
         const errorMessage = data.message || `Erro ao adicionar mesa. Verifique os dados e tente novamente.`;
@@ -221,7 +210,7 @@ const Mesas = () => {
     closeContextMenu();
 
     try {
-      const data = await apiPatch(`/api/mesas/desativar/${mesaId}`, 
+      const data = await apiPut(`/api/mesas/desativar/${mesaId}`, 
         { id_loja: user.loja_id }, 
         token
       );
@@ -254,17 +243,10 @@ const Mesas = () => {
     closeContextMenu();
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/mesas/ativar/${mesaId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        body: JSON.stringify({ id_loja: user.loja_id }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
+      const data = await apiPut(`/api/mesas/ativar/${mesaId}`, 
+        { id_loja: user.loja_id }, 
+        token
+      );
 
       if (data.success) {
         // Atualiza o estado da mesa localmente
@@ -272,8 +254,11 @@ const Mesas = () => {
           mesa.id === mesaId ? { ...mesa, ativo: true } : mesa
         ));
         showAlert(data.message || "Mesa ativada com sucesso!", "success");
+      } else if (data._isApiError && data._status === 403) {
+        // Usar o novo sistema para erros de permissão
+        await handleApiError(data._response || data, 'Erro ao ativar mesa');
       } else {
-        showAlert(data.error || "Erro ao ativar mesa", "error");
+        showAlert(data.error || data.message || "Erro ao ativar mesa", "error");
       }
     } catch (error) {
       console.error("Erro ao ativar mesa:", error);

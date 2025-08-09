@@ -121,7 +121,10 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
             printerService.printDirectly(
               receiptText, 
               'caixa',
-              (result) => console.log('Impressão do cupom realizada com sucesso'),
+              (result) => {
+                // Apenas registra o sucesso no console, sem exibir alerta
+                console.log('Impressão do cupom realizada com sucesso');
+              },
               (error) => {
                 console.error('Erro ao imprimir cupom:', error);
                 showAlert('Erro ao enviar para impressão: ' + error.message, 'error', 'Erro de Impressão');
@@ -131,7 +134,12 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
           ]);
         } catch (printError) {
           console.error('Falha geral na impressão:', printError);
-          showAlert('Erro ao imprimir comprovante. Verifique se a impressora está configurada e ativa.', 'error', 'Erro de Impressão');
+          // Mensagem mais detalhada em caso de falha geral na impressão
+          if (printError.message === 'Timeout na impressão') {
+            showAlert('A impressão demorou muito para responder. Verifique se a impressora está ligada e conectada.', 'error', 'Erro de Impressão');
+          } else {
+            showAlert('Erro ao imprimir comprovante. Verifique se a impressora está configurada e ativa.', 'error', 'Erro de Impressão');
+          }
         }
       } else if (data._isApiError && data._status === 403) {
         // Usar o novo sistema para erros de permissão
