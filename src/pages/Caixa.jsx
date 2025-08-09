@@ -96,6 +96,46 @@ const Caixa = () => {
     localStorage.setItem('pdv', JSON.stringify(pdv));
   }, [pdv]);
 
+  // Listen for balcao order restoration events
+  useEffect(() => {
+    const handleOrderRestore = (event) => {
+      const { pdvData } = event.detail;
+      
+      if (pdvData && pdvData.pdv && pdvData.pdv.venda) {
+        // Ensure we maintain caixa information from current session
+        const updatedPdvData = { ...pdvData };
+        if (pdv.pdv.caixa && pdv.pdv.caixa.id_caixa) {
+          updatedPdvData.pdv.caixa = { ...pdv.pdv.caixa };
+        }
+        
+        // Update PDV state with the restored order
+        setPdv(updatedPdvData);
+        
+        // Update orders list based on the restored PDV data
+        const restoredOrders = updatedPdvData.pdv.venda.produtos.map((product) => ({
+          id: product.id_produto,
+          name: product.nome,
+          price: product.preco_unitario,
+          quantity: product.quantidade,
+          subtotal: product.subtotal,
+          status: product.status || { impresso: false, cancelado: false }
+        }));
+        
+        setOrders(restoredOrders);
+        
+        console.log('Pedido do balcão restaurado com sucesso');
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('restore-balcao-order', handleOrderRestore);
+
+    // Cleanup event listener on component unmount
+    return () => {
+      window.removeEventListener('restore-balcao-order', handleOrderRestore);
+    };
+  }, [pdv.pdv.caixa]); // Add dependency to ensure we have current caixa info
+
   const categories = Object.keys(products);
 
   const loadOrders = () => {

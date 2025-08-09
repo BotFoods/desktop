@@ -78,20 +78,31 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
       pdvData.pdv.venda.status_venda = '';
     }
     
+    // Always set the PDV data in localStorage first
+    localStorage.setItem('pdv', JSON.stringify(pdvData));
+    
+    // Create a custom event to notify the Caixa component about the order restoration
+    const orderRestoreEvent = new CustomEvent('restore-balcao-order', {
+      detail: { pdvData }
+    });
+    
     // Check if we need to navigate to caixa
     const currentPath = window.location.pathname;
     if (currentPath !== '/caixa') {
+      // Navigate to caixa first
       navigate('/caixa');
       
-      // We need to defer setting the PDV state to ensure the component is mounted
+      // Dispatch the event after navigation with a delay to ensure component is mounted
+      // Use a longer delay when navigating to allow component to fully initialize
       setTimeout(() => {
-        localStorage.setItem('pdv', JSON.stringify(pdvData));
-        window.location.reload(); // Force reload to update PDV state
-      }, 100);
+        window.dispatchEvent(orderRestoreEvent);
+      }, 500);
     } else {
-      // We're already on the caixa page, just update the state
-      localStorage.setItem('pdv', JSON.stringify(pdvData));
-      window.location.reload(); // Force reload to update PDV state
+      // We're already on the caixa page, dispatch the event immediately with a short delay
+      // to ensure any current state changes are complete
+      setTimeout(() => {
+        window.dispatchEvent(orderRestoreEvent);
+      }, 100);
     }
   };
   
@@ -135,9 +146,9 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
           <div className="flex space-x-2 items-center">
             <Link to="/caixa" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Balcão</Link>
             <Link to="/mesas" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Mesas</Link>
-            <Link to="/cadastros" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Cadastros</Link>
-            <Link to="/movimentacoes" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Movimentações</Link>
             <Link to="/delivery" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Delivery</Link>
+            <Link to="/movimentacoes" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Movimentações</Link>
+            <Link to="/cadastros" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Cadastros</Link>
             <Link to="/configuracoes" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Configurações</Link>
             
             <div className="relative ml-2" ref={dropdownRef}>

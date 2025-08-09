@@ -10,6 +10,7 @@ import ApiErrorModal from '../components/ApiErrorModal';
 import AccessDeniedPage from '../components/AccessDeniedPage';
 import useApiError from '../hooks/useApiError';
 import { apiGet, apiPost, apiPut } from '../services/ApiService';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Mesas = () => {
   const { token, user } = useAuth();
@@ -28,14 +29,18 @@ const Mesas = () => {
     message: '',
     type: 'info'
   });
+  // Estado para controlar o carregamento
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchMesas = useCallback(async () => {
     if (!user || !user.loja_id) {
       console.error("User or user.loja_id is undefined. Cannot fetch mesas.");
       setApiError("Não foi possível carregar as mesas. Informações do usuário ausentes.");
+      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
     try {
       const data = await apiGet(`/api/mesas?id_loja=${user.loja_id}`, token);
       
@@ -60,6 +65,8 @@ const Mesas = () => {
       console.error('Erro ao buscar mesas:', error);
       setApiError('Erro de conexão ao carregar mesas');
       setMesas([]);
+    } finally {
+      setIsLoading(false);
     }
   }, [token, navigate, user, handleApiError]);
 
@@ -301,7 +308,7 @@ const Mesas = () => {
         <div className="ml-64 pt-16 my-3 p-8 flex-grow">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-center">Mesas</h1>
-            {mesas.length > 0 && (
+            {!isLoading && mesas.length > 0 && (
               <button
                 onClick={handleOpenAddMesaModal}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out flex items-center"
@@ -310,7 +317,13 @@ const Mesas = () => {
               </button>
             )}
           </div>
-          {mesas.length === 0 ? (
+          {isLoading ? (
+            <LoadingSpinner
+              size="lg"
+              message="Carregando mesas..."
+              className="mt-16"
+            />
+          ) : mesas.length === 0 ? (
             <div className="flex flex-col items-center justify-center text-center p-10 bg-gray-800 rounded-lg shadow-xl mx-auto max-w-xl">
               <h2 className="text-2xl font-semibold mb-3">Nenhuma mesa cadastrada</h2>
               <p className="text-gray-400 mb-6">
