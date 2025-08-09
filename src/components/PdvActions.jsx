@@ -11,7 +11,9 @@ const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id, onVendaFi
   const isBalcao = !pdv.pdv.venda.mesa && pdv.pdv.venda.tipo !== 'delivery';
   // Check if we're in a delivery context
   const isDelivery = pdv.pdv.venda.tipo === 'delivery';
-  
+  // Check if we're in a "mesa" context
+  const isMesa = pdv.pdv.venda.mesa;
+
   return (
     <div className="fixed bottom-0 left-0 right-0 ml-64 bg-gray-800 text-white shadow-lg py-3 border-t border-gray-700 z-30">
       <div className="flex justify-center items-center gap-4">        <FinalizarButton 
@@ -38,7 +40,7 @@ const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id, onVendaFi
         </CancelarButton>
         
         {/* Only show Preparar button when not in delivery context */}
-        {!isDelivery && (
+        {isMesa && (
           <PrepararButton 
             pdv={pdv} 
             setPdv={setPdv} 
@@ -55,7 +57,7 @@ const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id, onVendaFi
             pdv={pdv}
             setPdv={setPdv}
             setOrders={setOrders}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out shadow-md"
+            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out shadow-md cursor-pointer"
           >
             <FaHourglassHalf className="mr-1" />
             <span>Aguardar</span>

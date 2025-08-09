@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import Header from '../components/Header';
-import { FaTrash, FaChair } from 'react-icons/fa';
+import { FaTrash, FaChair, FaPlus, FaMinus } from 'react-icons/fa';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
@@ -200,6 +200,43 @@ const PdvMesa = () => {
     setPdv(updatedPdv);
   };
 
+  // Função para remover completamente um item, independente da quantidade
+  const removeItemCompletely = (productId) => {
+    let prevOrders = [...orders];
+    const existingProductIndexOrder = prevOrders.findIndex(
+      (order) => order.id === productId && !order.status?.impresso
+    );
+
+    if (existingProductIndexOrder !== -1) {
+      // Remover o item completamente dos pedidos
+      prevOrders.splice(existingProductIndexOrder, 1);
+      setOrders(prevOrders);
+      
+      // Remover o item completamente do PDV
+      const updatedPdv = { ...pdv };
+      const existingProductIndex = updatedPdv.pdv.venda.produtos.findIndex(
+        (order) => order.id_produto === productId && !order.status?.impresso
+      );
+      
+      if (existingProductIndex !== -1) {
+        updatedPdv.pdv.venda.produtos.splice(existingProductIndex, 1);
+        
+        // Atualizar totais
+        updatedPdv.pdv.venda.total_venda = updatedPdv.pdv.venda.produtos.reduce(
+          (total, item) => total + item.subtotal,
+          0
+        );
+        updatedPdv.pdv.totais.quantidade_itens = updatedPdv.pdv.venda.produtos.reduce(
+          (total, item) => total + item.quantidade,
+          0
+        );
+        updatedPdv.pdv.totais.valor_total = updatedPdv.pdv.venda.total_venda;
+        
+        setPdv(updatedPdv);
+      }
+    }
+  };
+
   const removeFromOrder = (productId) => {
     let prevOrders = [...orders];
     const existingProductIndexOrder = prevOrders.findIndex(
@@ -368,19 +405,57 @@ const PdvMesa = () => {
                           R$ {parseFloat(order.price).toFixed(2)} un = R$ {order.subtotal.toFixed(2)}
                         </div>
                       </div>
-                      <button
-                        className={`text-red-400 hover:text-red-600 transition-colors p-2 rounded-full hover:bg-gray-700 ${order.status?.impresso ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (!order.status?.impresso) {
-                            removeFromOrder(order.id);
-                          }
-                        }}
-                        disabled={order.status?.impresso}
-                        title={order.status?.impresso ? "Item impresso na cozinha" : "Remover item"}
-                      >
-                        <FaTrash />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        {!order.status?.impresso && (
+                          <>
+                            <button
+                              className="text-red-400 hover:text-red-600 transition-colors p-1 rounded-full hover:bg-gray-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Sempre remove, independente da quantidade
+                                removeFromOrder(order.id);
+                              }}
+                              title="Diminuir quantidade"
+                            >
+                              <FaMinus size={14} />
+                            </button>
+
+                            <span className="font-semibold px-1 w-6 text-center">{order.quantity}</span>
+
+                            <button
+                              className="text-green-400 hover:text-green-600 transition-colors p-1 rounded-full hover:bg-gray-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Adicionamos o produto com as mesmas propriedades do order atual
+                                const product = {
+                                  id: order.id,
+                                  name: order.name,
+                                  price: order.price
+                                };
+                                addToOrder(product);
+                              }}
+                              title="Aumentar quantidade"
+                            >
+                              <FaPlus size={14} />
+                            </button>
+                          </>
+                        )}
+
+                        <button
+                          className={`text-red-400 hover:text-red-600 transition-colors p-1 ml-2 rounded-full hover:bg-gray-700 ${order.status?.impresso ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!order.status?.impresso) {
+                              // Usar a nova função para remover completamente
+                              removeItemCompletely(order.id);
+                            }
+                          }}
+                          disabled={order.status?.impresso}
+                          title={order.status?.impresso ? "Item impresso na cozinha" : "Remover item completo"}
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>

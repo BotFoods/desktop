@@ -11,7 +11,7 @@ const InformarcoesRodape = () => {
                 </p>
                 <p className="flex justify-between">
                     <span>Contato:</span>
-                    <span>(11) 98635-2205</span>
+                    <span>(12) 93618-0756</span>
                 </p>
                 <p className="text-center mt-3 text-gray-500">
                     &copy; {currentYear} BotFood - Todos os direitos reservados

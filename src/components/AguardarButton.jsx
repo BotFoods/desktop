@@ -160,7 +160,7 @@ const AguardarButton = ({ pdv, setPdv, setOrders, className, children }) => {
     <>
       <button 
         onClick={handleAguardarClick}
-        className={className || "bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out"}
+        className={className || "bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out cursor-pointer"}
         disabled={pdv.pdv.venda.produtos.length === 0}
       >
         {children || (
@@ -192,13 +192,13 @@ const AguardarButton = ({ pdv, setPdv, setOrders, className, children }) => {
             <div className="flex justify-between mt-6">
               <button
                 onClick={handleCloseModal}
-                className="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-5 rounded-md transition-colors"
+                className="bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-5 rounded-md transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmAguardar}
-                className={`bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md transition-colors flex items-center ${isPrinting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                className={`bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-5 rounded-md transition-colors flex items-center ${isPrinting ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                 disabled={isPrinting}
               >
                 {isPrinting ? (
