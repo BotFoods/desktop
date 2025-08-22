@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { FaClock, FaPrint } from 'react-icons/fa';
+import printManager from '../services/printManager';
 
 const PrepararButton = ({ pdv, setPdv, className, children }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -23,79 +24,29 @@ const PrepararButton = ({ pdv, setPdv, className, children }) => {
     setPrintError(null);
   };
   
-  // Função para imprimir o pedido na cozinha
+  // Função para imprimir o pedido na cozinha usando o novo sistema abstrato
   const printKitchenOrder = async () => {
     setIsPrinting(true);
     
     try {
-      // Determinar o tipo de pedido
-      let orderType = "BALCÃO";
-      if (pdv.pdv.venda.mesa) {
-        orderType = `MESA #${pdv.pdv.venda.mesa}`;
-      } else if (pdv.pdv.venda.tipo === 'delivery') {
-        orderType = "DELIVERY";
-      }
-      
-      // Construir o texto do pedido para a cozinha
-      let kitchenText = `        PEDIDO PARA PREPARO\n`;
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `Data: ${new Date().toLocaleDateString()} Hora: ${new Date().toLocaleTimeString()}\n`;
-      kitchenText += `Tipo: ${orderType}\n`;
-      
-      // Adicionar dados do cliente para delivery
-      if (pdv.pdv.venda.tipo === 'delivery' && pdv.pdv.venda.dados_cliente) {
-        kitchenText += `Cliente: ${pdv.pdv.venda.dados_cliente.nome || 'N/A'}\n`;
-        kitchenText += `Telefone: ${pdv.pdv.venda.dados_cliente.telefone || 'N/A'}\n`;
-        kitchenText += `Endereço: ${pdv.pdv.venda.dados_cliente.endereco || 'N/A'}\n`;
-      }
-      
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `Qtd  Descrição\n`;
-      kitchenText += `----------------------------------------\n`;
+      // Preparar dados do pedido para impressão usando o novo sistema abstrato
+      const orderData = {
+        pedidoId: pdv.pdv.venda.id || `PDV-${Date.now()}`,
+        tipo: pdv.pdv.venda.tipo,
+        mesa: pdv.pdv.venda.mesa,
+        produtos: pdv.pdv.venda.produtos.filter(produto => !produto.status?.impresso), // Apenas não impressos
+        dados_cliente: pdv.pdv.venda.dados_cliente,
+        observacoes: pdv.pdv.venda.observacoes
+      };
 
-      // Apenas imprimir produtos que ainda não foram impressos
-      const unprintedProducts = pdv.pdv.venda.produtos.filter(produto => !produto.status?.impresso);
+      // Usar o novo sistema abstrato de impressão
+      await printManager.printForKitchen(orderData);
       
-      unprintedProducts.forEach(item => {
-        const qty = item.quantidade.toString().padEnd(4);
-        const name = item.nome.substring(0, 30).padEnd(30);
-        kitchenText += `${qty} ${name}\n`;
-      });
-
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `Observações: ${pdv.pdv.venda.observacoes || 'Nenhuma'}\n`;
-      kitchenText += `----------------------------------------\n\n\n\n`; // Linhas extras para corte do papel
-      
-      // Usar o serviço de impressão direta com timeout
-      const printerService = (await import('../services/printerService')).default;
-        // Configurar timeout manual (tempo mais longo para dar tempo de fallback)
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
-      );
-      
-      // Executar impressão com timeout
-      try {
-        await Promise.race([
-          printerService.printDirectly(
-            kitchenText,
-            'cozinha',
-            () => console.log('Impressão na cozinha realizada com sucesso'),
-            (error) => {
-              console.warn('Aviso: Erro na impressão da cozinha:', error.message);
-              setPrintError('Impressão falhou, mas os produtos foram marcados como impressos.');
-            }
-          ),
-          timeoutPromise
-        ]);
-      } catch (raceError) {
-        console.error('Erro durante impressão ou timeout:', raceError);
-        setPrintError('Impressão falhou por timeout ou erro, mas os produtos serão marcados como impressos.');
-      }
-      
+      console.log('✅ Impressão da cozinha realizada com sucesso');
       return true;
-    } catch (printError) {
-      console.error('Erro ao preparar impressão:', printError);
-      setPrintError('Erro ao preparar impressão, mas os produtos foram marcados como impressos.');
+    } catch (error) {
+      console.error('❌ Erro na impressão da cozinha:', error);
+      setPrintError('Impressão falhou, mas os produtos foram marcados como impressos.');
       return false;
     } finally {
       setIsPrinting(false);

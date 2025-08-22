@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { FaSave, FaTimes, FaSearch, FaUsb, FaWifi, FaPhone } from 'react-icons/fa';
-import printerService from '../../services/printerService';
+import { FaSave, FaTimes, FaSearch, FaUsb, FaWifi, FaPhone, FaPrint, FaSync } from 'react-icons/fa';
+import { printerService } from '../../services/printerService';
 
 const PrinterConfigModal = ({ 
     isOpen, 
     onClose, 
     onSave, 
     editingPrinter = null,
-    existingPrinters = []
+    existingPrinters = [],
+    serviceStatus: parentServiceStatus = null,
+    availablePrinters: parentAvailablePrinters = []
 }) => {
     const [formData, setFormData] = useState({
         type: '',
-        connectionType: 'network',
+        connectionType: 'system', // Padrão para serviço externo
+        printerName: '', // Nome da impressora selecionada
         ip: '',
         port: '9100',
         vendorId: '',
@@ -24,14 +27,31 @@ const PrinterConfigModal = ({
     });
 
     const [loading, setLoading] = useState(false);
+    const [loadingPrinters, setLoadingPrinters] = useState(false);
     const [usbDevices, setUsbDevices] = useState([]);
+    const [availablePrinters, setAvailablePrinters] = useState([]);
+    const [serviceStatus, setServiceStatus] = useState(null);
     const [errors, setErrors] = useState({});    useEffect(() => {
-        if (editingPrinter) {
+        if (isOpen) {
+            // Usar dados do parent se disponíveis, senão buscar
+            if (parentServiceStatus && parentAvailablePrinters.length > 0) {
+                setServiceStatus(parentServiceStatus);
+                setAvailablePrinters(parentAvailablePrinters);
+                setLoadingPrinters(false);
+            } else {
+                checkServiceAndLoadPrinters();
+            }
+        }
+    }, [isOpen, parentServiceStatus, parentAvailablePrinters]);
+
+    useEffect(() => {
+        if (editingPrinter && printerService) {
             const config = printerService.getPrinterConfig(editingPrinter);
             if (config) {
                 setFormData({
                     type: editingPrinter,
-                    connectionType: config.connectionType || 'network',
+                    connectionType: config.connectionType || 'system',
+                    printerName: config.printerName || config.name || '',
                     ip: config.ip || '',
                     port: config.port || '9100',
                     vendorId: config.vendorId || '',
@@ -49,7 +69,8 @@ const PrinterConfigModal = ({
         } else {
             setFormData({
                 type: '',
-                connectionType: 'network',
+                connectionType: 'system',
+                printerName: '',
                 ip: '',
                 port: '9100',
                 vendorId: '',
@@ -58,9 +79,34 @@ const PrinterConfigModal = ({
                 baudRate: '9600',
                 encoding: 'UTF8',
                 width: '48',
-                description: ''            });
+                description: ''
+            });
         }
     }, [editingPrinter]);
+
+    const checkServiceAndLoadPrinters = async () => {
+        setLoadingPrinters(true);
+        try {
+            // Verificar status do serviço
+            const status = await printerService.checkPrinterServiceStatus();
+            setServiceStatus(status);
+
+            if (status.available) {
+                // Carregar impressoras disponíveis
+                const printers = await printerService.loadAvailablePrinters();
+                setAvailablePrinters(printers);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar serviço de impressão:', error);
+            setServiceStatus({ available: false, error: error.message });
+        } finally {
+            setLoadingPrinters(false);
+        }
+    };
+
+    const refreshPrinters = async () => {
+        await checkServiceAndLoadPrinters();
+    };
 
     const handleInputChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -83,6 +129,12 @@ const PrinterConfigModal = ({
             newErrors.type = 'Tipo de impressora é obrigatório';
         } else if (!editingPrinter && existingPrinters.includes(formData.type)) {
             newErrors.type = 'Este tipo de impressora já está configurado';
+        }
+
+        if (formData.connectionType === 'system') {
+            if (!formData.printerName) {
+                newErrors.printerName = 'Impressora é obrigatória';
+            }
         }
 
         if (formData.connectionType === 'network') {
@@ -126,8 +178,12 @@ const PrinterConfigModal = ({
         // Extract type from formData and pass separately
         const { type, ...config } = formData;
         onSave(type, config);
-    };    const availableTypes = Object.keys(printerService.getPrinterTypes())
-        .filter(type => editingPrinter === type || !existingPrinters.includes(type));
+    };
+
+    const availableTypes = printerService ? 
+        Object.keys(printerService.getPrinterTypes()).filter(type => 
+            editingPrinter === type || !existingPrinters.includes(type)
+        ) : [];
 
     if (!isOpen) return null;
 
@@ -163,7 +219,7 @@ const PrinterConfigModal = ({
                             <option value="">Selecione o tipo</option>
                             {availableTypes.map(type => (
                                 <option key={type} value={type}>
-                                    {printerService.getPrinterTypeName(type)}
+                                    {printerService ? printerService.getPrinterTypeName(type) : type}
                                 </option>
                             ))}
                         </select>
@@ -175,8 +231,9 @@ const PrinterConfigModal = ({
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                             Tipo de Conexão *
                         </label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-4 gap-3">
                             {[
+                                { value: 'system', label: 'Sistema', icon: FaPrint },
                                 { value: 'network', label: 'Rede', icon: FaWifi },
                                 { value: 'usb', label: 'USB', icon: FaUsb },
                                 { value: 'serial', label: 'Serial', icon: FaPhone }
@@ -197,6 +254,127 @@ const PrinterConfigModal = ({
                             ))}
                         </div>
                     </div>
+
+                    {/* Status do Serviço de Impressão */}
+                    {formData.connectionType === 'system' && (
+                        <div className="bg-gray-700 p-4 rounded-lg">
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-medium text-gray-300">
+                                    Status do Serviço de Impressão
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={refreshPrinters}
+                                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                                    disabled={loadingPrinters}
+                                >
+                                    <FaSync className={loadingPrinters ? 'animate-spin' : ''} />
+                                </button>
+                            </div>
+                            
+                            {serviceStatus ? (
+                                <div className={`text-sm ${serviceStatus.available ? 'text-green-400' : 'text-red-400'}`}>
+                                    {serviceStatus.available ? (
+                                        <>
+                                            <div className="flex items-center mb-1">
+                                                <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                                ✅ Serviço Online - Versão {serviceStatus.version} (Porta {serviceStatus.port})
+                                            </div>
+                                            {!loadingPrinters && (
+                                                <div className="text-gray-300 text-xs">
+                                                    {availablePrinters.length > 0 
+                                                        ? `${availablePrinters.length} impressora(s) disponível(is)`
+                                                        : 'Nenhuma impressora encontrada'
+                                                    }
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center">
+                                            <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                            ❌ Serviço Offline - {serviceStatus.error}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-gray-400 text-sm flex items-center">
+                                    <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
+                                    Verificando status do serviço...
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Seleção de Impressora do Sistema */}
+                    {formData.connectionType === 'system' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Impressora *
+                            </label>
+                            
+                            {loadingPrinters ? (
+                                <div className="p-3 rounded bg-gray-600 text-white w-full flex items-center justify-center">
+                                    <FaSync className="animate-spin mr-2" />
+                                    Carregando impressoras...
+                                </div>
+                            ) : (
+                                <select
+                                    value={formData.printerName}
+                                    onChange={(e) => handleInputChange('printerName', e.target.value)}
+                                    className={`p-3 rounded bg-gray-600 text-white w-full focus:ring-2 focus:ring-blue-500 outline-none ${
+                                        errors.printerName ? 'border border-red-500' : ''
+                                    }`}
+                                    disabled={!serviceStatus?.available}
+                                >
+                                    <option value="">
+                                        {serviceStatus?.available 
+                                            ? availablePrinters.length > 0 
+                                                ? 'Selecione uma impressora' 
+                                                : 'Nenhuma impressora encontrada'
+                                            : 'Serviço indisponível'
+                                        }
+                                    </option>
+                                    {Array.isArray(availablePrinters) && availablePrinters.map((printer, index) => {
+                                        // Garantir que printer seja uma string válida
+                                        let printerName = '';
+                                        
+                                        if (typeof printer === 'string') {
+                                            printerName = printer;
+                                        } else if (printer && typeof printer === 'object') {
+                                            printerName = printer.displayName || printer.name || `Impressora ${index + 1}`;
+                                        } else {
+                                            printerName = `Impressora ${index + 1}`;
+                                        }
+                                        
+                                        // Verificar se o nome é válido
+                                        if (!printerName || printerName.trim() === '') {
+                                            return null;
+                                        }
+                                        
+                                        return (
+                                            <option key={`printer-${index}-${printerName}`} value={printerName}>
+                                                {printerName}
+                                            </option>
+                                        );
+                                    }).filter(Boolean)}
+                                </select>
+                            )}
+                            
+                            {errors.printerName && <p className="text-red-400 text-sm mt-1">{errors.printerName}</p>}
+                            
+                            {!serviceStatus?.available && !loadingPrinters && (
+                                <p className="text-yellow-400 text-sm mt-2">
+                                    ⚠️ Certifique-se de que o serviço de impressão está rodando na porta 8000
+                                </p>
+                            )}
+                            
+                            {serviceStatus?.available && availablePrinters.length === 0 && !loadingPrinters && (
+                                <p className="text-yellow-400 text-sm mt-2">
+                                    ⚠️ Nenhuma impressora encontrada no sistema
+                                </p>
+                            )}
+                        </div>
+                    )}
 
                     {/* Configurações de Rede */}
                     {formData.connectionType === 'network' && (
