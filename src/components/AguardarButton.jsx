@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
 import { FaHourglassHalf, FaPrint } from 'react-icons/fa';
 import AlertModal from './AlertModal';
+import printManager from '../services/printManager';
 
 const BALCAO_STORAGE_KEY = 'pdv_balcao_aguardando';
 
@@ -42,55 +43,27 @@ const AguardarButton = ({ pdv, setPdv, setOrders, className, children }) => {
     setAlertInfo(prev => ({ ...prev, isOpen: false }));
   };
   
-  // Print order to kitchen
+  // Print order to kitchen using the new abstract system
   const printKitchenOrder = async (orderId) => {
     setIsPrinting(true);
     
     try {
-      // Construct receipt text for kitchen
-      let kitchenText = `        PEDIDO PARA PREPARO\n`;
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `PEDIDO: #${orderId}\n`;
-      kitchenText += `Data: ${new Date().toLocaleDateString()} Hora: ${new Date().toLocaleTimeString()}\n`;
-      kitchenText += `Tipo: BALCÃO (CLIENTE AGUARDANDO)\n`;
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `Qtd  Descrição\n`;
-      kitchenText += `----------------------------------------\n`;
+      // Preparar dados do pedido para impressão
+      const orderData = {
+        pedidoId: orderId,
+        tipo: 'balcao', // Cliente aguardando no balcão
+        produtos: pdv.pdv.venda.produtos,
+        observacoes: pdv.pdv.venda.observacoes
+      };
 
-      pdv.pdv.venda.produtos.forEach(item => {
-        const qty = item.quantidade.toString().padEnd(4);
-        const name = item.nome.substring(0, 30).padEnd(30);
-        kitchenText += `${qty} ${name}\n`;
-      });
-
-      kitchenText += `----------------------------------------\n`;
-      kitchenText += `Observações: ${pdv.pdv.venda.observacoes || 'Nenhuma'}\n`;
-      kitchenText += `----------------------------------------\n\n\n\n`; // Extra lines for paper cut      // Imprimir na impressora da cozinha usando o serviço de impressão direta com timeout
-      try {
-        const printerService = (await import('../services/printerService')).default;
-        
-        // Configurar timeout mais longo para permitir tentativas de fallback
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
-        );
-        
-        await Promise.race([
-          printerService.printDirectly(
-            kitchenText,
-            'cozinha',
-            () => console.log('Impressão na cozinha realizada com sucesso'),
-            (error) => console.warn('Aviso: Falha na impressão da cozinha:', error.message)
-          ),
-          timeoutPromise
-        ]);
-      } catch (printError) {
-        console.error('Erro ao imprimir na cozinha:', printError.message);
-        // Não lançamos erro aqui para permitir continuar o processo mesmo se a impressão falhar
-      }
+      // Usar o novo sistema abstrato de impressão
+      await printManager.printForKitchen(orderData);
       
+      console.log('✅ Impressão da cozinha realizada com sucesso');
       return true;
-    } catch (printError) {
-      console.error('Erro ao conectar com servidor de impressão:', printError);
+    } catch (error) {
+      console.error('❌ Erro na impressão da cozinha:', error);
+      // Não lançamos erro aqui para permitir continuar o processo mesmo se a impressão falhar
       return false;
     } finally {
       setIsPrinting(false);

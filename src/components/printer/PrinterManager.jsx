@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaPlus, FaPrint, FaCheck, FaExclamationTriangle, FaTrash, FaEdit, FaCog, FaTimes, FaUsb, FaWifi, FaPlug } from 'react-icons/fa';
+import { FaPlus, FaPrint, FaCheck, FaExclamationTriangle, FaTrash, FaEdit, FaCog, FaTimes, FaUsb, FaWifi, FaPlug, FaSync, FaServer } from 'react-icons/fa';
 import PrinterConfigCard from './PrinterConfigCard';
 import PrinterConfigModal from './PrinterConfigModal';
 import { printerService } from '../../services/printerService';
@@ -9,9 +9,29 @@ const PrinterManager = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrinter, setEditingPrinter] = useState(null);
     const [testingPrinter, setTestingPrinter] = useState(null);
-    const [message, setMessage] = useState(null);    useEffect(() => {
-        loadPrinters();
+    const [message, setMessage] = useState(null);
+    const [serviceStatus, setServiceStatus] = useState(null);
+    const [availablePrinters, setAvailablePrinters] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true); // Loading inicial
+
+    useEffect(() => {
+        initializeComponent();
     }, []);
+
+    const initializeComponent = async () => {
+        setInitialLoading(true);
+        try {
+            await Promise.all([
+                loadPrinters(),
+                checkServiceStatus()
+            ]);
+        } catch (error) {
+            console.error('Erro na inicialização:', error);
+        } finally {
+            setInitialLoading(false);
+        }
+    };
 
     const loadPrinters = async () => {
         try {
@@ -23,13 +43,48 @@ const PrinterManager = () => {
         }
     };
 
+    const checkServiceStatus = async () => {
+        setLoading(true);
+        try {
+            const status = await printerService.checkPrinterServiceStatus();
+            setServiceStatus(status);
+            
+            if (status.available) {
+                const printers = await printerService.loadAvailablePrinters();
+                setAvailablePrinters(printers);
+            }
+        } catch (error) {
+            console.error('Erro ao verificar serviço:', error);
+            setServiceStatus({ available: false, error: error.message });
+        }
+        setLoading(false);
+    };
+
+    const refreshService = async () => {
+        await checkServiceStatus();
+    };
+
     // Abrir modal para nova impressora
-    const handleAddPrinter = () => {
+    const handleAddPrinter = async () => {
         setEditingPrinter(null);
+        // Verificar se precisamos atualizar as impressoras disponíveis
+        if (!serviceStatus || availablePrinters.length === 0) {
+            setLoading(true);
+            await checkServiceStatus();
+            setLoading(false);
+        }
         setIsModalOpen(true);
-    };    // Abrir modal para editar impressora
-    const handleEditPrinter = (type, config) => {
+    };
+
+    // Abrir modal para editar impressora
+    const handleEditPrinter = async (type, config) => {
         setEditingPrinter(type);
+        // Verificar se precisamos atualizar as impressoras disponíveis
+        if (!serviceStatus || availablePrinters.length === 0) {
+            setLoading(true);
+            await checkServiceStatus();
+            setLoading(false);
+        }
         setIsModalOpen(true);
     };    // Salvar configuração da impressora
     const handleSavePrinter = async (type, config) => {
@@ -96,6 +151,25 @@ const PrinterManager = () => {
 
     const printerTypes = printerService.getPrinterTypes();
 
+    // Loading inicial
+    if (initialLoading) {
+        return (
+            <div className="w-full max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <FaSync className="animate-spin text-blue-500 text-4xl mb-4 mx-auto" />
+                        <h2 className="text-xl font-semibold text-white mb-2">
+                            Carregando Sistema de Impressão
+                        </h2>
+                        <p className="text-gray-400">
+                            Verificando serviços e configurações...
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="w-full max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
             <div className="flex items-center justify-between mb-6">
@@ -105,11 +179,69 @@ const PrinterManager = () => {
                 </h1>
                 <button
                     onClick={handleAddPrinter}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex items-center transition duration-150"
+                    className={`font-bold py-2 px-4 rounded flex items-center transition duration-150 ${
+                        loading 
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                    disabled={loading}
                 >
-                    <FaPlus className="mr-2" />
-                    Nova Impressora
+                    {loading ? (
+                        <>
+                            <FaSync className="animate-spin mr-2" />
+                            Carregando...
+                        </>
+                    ) : (
+                        <>
+                            <FaPlus className="mr-2" />
+                            Nova Impressora
+                        </>
+                    )}
                 </button>
+            </div>
+
+            {/* Status do Serviço de Impressão */}
+            <div className="mb-6 bg-gray-700 p-4 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold text-white flex items-center">
+                        <FaServer className="mr-2 text-green-500" />
+                        Serviço de Impressão
+                    </h2>
+                    <button
+                        onClick={refreshService}
+                        className="p-2 text-gray-400 hover:text-white transition-colors rounded"
+                        disabled={loading}
+                        title="Atualizar status"
+                    >
+                        <FaSync className={`${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+                
+                {serviceStatus ? (
+                    <div className={`text-sm ${serviceStatus.available ? 'text-green-400' : 'text-red-400'}`}>
+                        {serviceStatus.available ? (
+                            <>
+                                <div className="flex items-center mb-2">
+                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                                    Serviço Online
+                                </div>
+                                <div className="text-gray-300">
+                                    Impressoras disponíveis: {availablePrinters.length}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center">
+                                <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                                Serviço Offline - {serviceStatus.error}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="text-gray-400 text-sm flex items-center">
+                        <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2 animate-pulse"></span>
+                        Verificando status do serviço...
+                    </div>
+                )}
             </div>
 
             {/* Mensagem de status */}
@@ -221,8 +353,9 @@ const PrinterManager = () => {
                     }}
                     onSave={handleSavePrinter}
                     editingPrinter={editingPrinter}
-                    printerTypes={printerTypes}
                     existingPrinters={Object.keys(printers)}
+                    serviceStatus={serviceStatus}
+                    availablePrinters={availablePrinters}
                 />
             )}
         </div>

@@ -184,21 +184,28 @@ const Configuracoes = () => {
                     authorization: token,
                 },
                 credentials: 'include',
-                body: JSON.stringify({ id: formattedPhoneNumber }),
+                body: JSON.stringify({ newNumber: formattedPhoneNumber }),
             };
 
-            const changeResponse = await fetch(`${API_BASE_URL}/api/change`, changeOptions);
-            if (changeResponse.ok) {
-                setStatusMessage({ type: 'success', text: 'Número do WhatsApp alterado com sucesso. Atualize os dados do usuário para ver a mudança refletida permanentemente.' });
+            const changeResponse = await fetch(`${API_BASE_URL}/api/change-number`, changeOptions);
+            const responseData = await changeResponse.json();
+            
+            if (changeResponse.ok && responseData.success) {
+                setStatusMessage({ type: 'success', text: responseData.message || 'Número do WhatsApp alterado com sucesso.' });
                 setIsEditingPhoneNumber(false);
+                
+                // Atualizar o estado local do usuário com o novo número
+                if (user) {
+                    user.contato_loja = formattedPhoneNumber;
+                    setEditablePhoneNumber(formattedPhoneNumber);
+                }
             } else {
-                const errorData = await changeResponse.json().catch(() => ({}));
-                console.error('Erro ao alterar número do WhatsApp:', errorData);
-                setStatusMessage({ type: 'error', text: `Erro ao alterar número do WhatsApp: ${errorData.message || 'Tente novamente.'}` });
+                console.error('Erro ao alterar número do WhatsApp:', responseData);
+                setStatusMessage({ type: 'error', text: responseData.message || 'Erro ao alterar número do WhatsApp. Tente novamente.' });
             }
         } catch (error) {
             console.error('Error during WhatsApp number change:', error);
-            setStatusMessage({ type: 'error', text: 'Erro ao alterar número do WhatsApp.' });
+            setStatusMessage({ type: 'error', text: 'Erro ao alterar número do WhatsApp. Verifique sua conexão e tente novamente.' });
         } finally {
             setLoading(false);
         }

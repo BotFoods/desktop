@@ -11,7 +11,8 @@ const CheckoutModal = ({
   contatoLoja, 
   onIncreaseQuantity, 
   onDecreaseQuantity, 
-  onRemoveProduct 
+  onRemoveProduct,
+  onOrderSuccess 
 }) => {
   const [cep, setCep] = useState('');
   const [address, setAddress] = useState({
@@ -122,16 +123,23 @@ const CheckoutModal = ({
       });
 
       if (response.ok) {
-        // Construir a URL base do WhatsApp
-        const whatsappUrl = `https://wa.me/${contatoLoja}`; // Sem texto pré-preenchido
-        
-        // Abrir link do WhatsApp em nova aba
-        window.open(whatsappUrl, '_blank');
-
-        onClose(); // Fechar o modal
-        // Limpar o cardápio
-        onRemoveProduct(); // Limpar o carrinho
-        
+        // Em vez de abrir o WhatsApp e fechar o modal aqui,
+        // vamos notificar o componente pai sobre o sucesso do pedido
+        // e deixar que ele gerencie o fluxo de UI
+        if (onOrderSuccess) {
+          onOrderSuccess({
+            total,
+            address,
+            paymentMethod,
+            products: selectedProducts,
+          });
+        } else {
+          // Fallback para o comportamento anterior se onOrderSuccess não estiver definido
+          const whatsappUrl = `https://wa.me/${contatoLoja}`;
+          window.open(whatsappUrl, '_blank');
+          onClose();
+          onRemoveProduct();
+        }
       } else {
         console.error('Erro ao enviar pedido para o backend:', await response.text());
         setErrorMessage('Houve um erro ao registrar seu pedido. Tente novamente.'); // Informar erro ao usuário
@@ -341,6 +349,7 @@ CheckoutModal.propTypes = {
   onIncreaseQuantity: PropTypes.func.isRequired,
   onDecreaseQuantity: PropTypes.func.isRequired,
   onRemoveProduct: PropTypes.func.isRequired,
+  onOrderSuccess: PropTypes.func,
 };
 
 export default CheckoutModal;

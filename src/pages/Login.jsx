@@ -139,7 +139,7 @@ const Login = () => {
                   placeholder="Nome da Loja"
                   value={loja}
                   onChange={(e) => setLoja(e.target.value)}
-                  className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                  className="w-full p-3 pl-10 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50"
                   ref={lojaInputRef}
                   disabled={loading || lojaSalva}
                 />

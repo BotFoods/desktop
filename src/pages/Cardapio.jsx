@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'; // Adicionado useMemo
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import CheckoutModal from './CheckoutModal';
+import OrderSuccessModal from '../components/OrderSuccessModal';
 import { FaShoppingCart, FaBars, FaPlusCircle } from 'react-icons/fa'; // Adicionar Ícones
 
 const Cardapio = () => {
@@ -15,7 +16,9 @@ const Cardapio = () => {
   const [contatoLoja, setContatoLoja] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState({}); 
+  const [filteredProducts, setFilteredProducts] = useState({});
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [orderDetails, setOrderDetails] = useState(null);
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -101,8 +104,39 @@ const Cardapio = () => {
     setSelectedProducts((prev) => prev.filter(item => item.product.id !== productId));
   };
 
+  // Função para limpar o carrinho completamente
+  const clearCart = () => {
+    setSelectedProducts([]);
+  };
+
+  // Função para lidar com o pedido finalizado com sucesso
+  const handleOrderSuccess = (orderData) => {
+    // Gerar um número de pedido aleatório (normalmente viria do backend)
+    const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Preparar detalhes do pedido para o modal de sucesso
+    setOrderDetails({
+      orderNumber,
+      total: orderData.total,
+      paymentMethod: orderData.paymentMethod,
+      contatoLoja: contatoLoja
+    });
+    
+    // Fechar o modal de checkout e abrir o modal de sucesso
+    setIsModalOpen(false);
+    setSuccessModalOpen(true);
+    
+    // Limpar o carrinho
+    clearCart();
+  };
+
   const handleOpenModal = () => {
     setIsModalOpen(true);
+  };
+  
+  // Função para fechar o modal de sucesso
+  const handleCloseSuccessModal = () => {
+    setSuccessModalOpen(false);
   };
 
   const handleCloseModal = () => {
@@ -255,7 +289,17 @@ const Cardapio = () => {
           onIncreaseQuantity={handleAddProduct} // Reutiliza handleAddProduct para aumentar
           onDecreaseQuantity={handleDecreaseQuantity} // Passa a função de diminuir
           onRemoveProduct={handleRemoveProduct} // Passa a função de remover
+          onOrderSuccess={handleOrderSuccess} // Passa a função para lidar com pedido finalizado
         />
+        
+        {/* Modal de sucesso do pedido */}
+        {orderDetails && (
+          <OrderSuccessModal
+            isOpen={successModalOpen}
+            onClose={handleCloseSuccessModal}
+            orderDetails={orderDetails}
+          />
+        )}
       </div>
     </div>
   );

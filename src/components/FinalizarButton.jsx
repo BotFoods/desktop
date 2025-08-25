@@ -7,6 +7,7 @@ import ApiErrorModal from './ApiErrorModal';
 import LoadingSpinner from './LoadingSpinner';
 import useApiError from '../hooks/useApiError';
 import { apiPost } from '../services/ApiService';
+import printManager from '../services/printManager';
 
 const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children, onVendaFinalizada }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,69 +74,24 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
       const data = await apiPost('/api/vendas/registrar', vendaData, token);
 
       if (data.success && data.cupomId) { // Check for cupomId for success
-        // Construct receipt text
-        const now = new Date();
-        let receiptText = `        Comprovante de Venda\n`;
-        receiptText += `----------------------------------------\n`;
-        receiptText += `Data: ${now.toLocaleDateString()} Hora: ${now.toLocaleTimeString()}\n`;
-        receiptText += `Operador: ${pdv.pdv.caixa.operador?.nome || 'N/A'}\n`; 
-
-        // Add customer information if available (for delivery receipts)
-        if (pdv.pdv.venda.tipo === 'delivery' && pdv.pdv.venda.dados_cliente) {
-          receiptText += `----------------------------------------\n`;
-          receiptText += `Cliente: ${pdv.pdv.venda.dados_cliente.nome || 'N/A'}\n`;
-          receiptText += `Telefone: ${pdv.pdv.venda.dados_cliente.telefone || 'N/A'}\n`;
-          receiptText += `Endereco: ${pdv.pdv.venda.dados_cliente.endereco || 'N/A'}\n`;
-        }
-        
-        if (pdv.pdv.venda.mesa) {
-          receiptText += `Mesa: ${pdv.pdv.venda.mesa}\n`;
-        }
-        receiptText += `----------------------------------------\n`;
-        receiptText += `Qtd  Descricao       Unit    Total\n`;
-        receiptText += `----------------------------------------\n`;
-
-        pdv.pdv.venda.produtos.forEach(item => {
-          const qty = item.quantidade.toString().padEnd(4);
-          const name = item.nome.substring(0, 15).padEnd(15); // Truncate and pad
-          const unitPrice = parseFloat(item.preco_unitario).toFixed(2).padStart(7);
-          const subTotal = parseFloat(item.subtotal).toFixed(2).padStart(7);
-          receiptText += `${qty} ${name} ${unitPrice} ${subTotal}\n`;
-        });
-
-        receiptText += `----------------------------------------\n`;
-        receiptText += `Total Itens: ${pdv.pdv.totais.quantidade_itens}\n`;
-        receiptText += `Valor Total: R$ ${parseFloat(pdv.pdv.venda.total_venda).toFixed(2)}\n`;
-        receiptText += `Forma Pagamento: ${option}\n`;
-        receiptText += `----------------------------------------\n`;
-        receiptText += `        Obrigado pela preferencia!\n\n\n\n`; // Add extra lines for paper cut        // Imprimir usando o novo serviço de impressão direta com timeout
+        // Imprimir cupom fiscal usando o novo sistema abstrato
         try {
-          const printerService = (await import('../services/printerService')).default;
-          
-          // Configurar timeout mais longo para permitir tentativas de fallback
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout na impressão')), 5000)
-          );
-          
-          await Promise.race([
-            printerService.printDirectly(
-              receiptText, 
-              'caixa',
-              (result) => {
-                // Apenas registra o sucesso no console, sem exibir alerta
-                console.log('Impressão do cupom realizada com sucesso');
-              },
-              (error) => {
-                console.error('Erro ao imprimir cupom:', error);
-                showAlert('Erro ao enviar para impressão: ' + error.message, 'error', 'Erro de Impressão');
-              }
-            ),
-            timeoutPromise
-          ]);
+          const saleData = {
+            vendaId: data.cupomId,
+            produtos: pdv.pdv.venda.produtos,
+            total: pdv.pdv.venda.total_venda,
+            forma_pagamento: option,
+            cliente: pdv.pdv.venda.dados_cliente,
+            vendedor: pdv.pdv.caixa.operador?.nome || 'Sistema',
+            mesa: pdv.pdv.venda.mesa,
+            tipo: pdv.pdv.venda.tipo
+          };
+
+          await printManager.printSaleReceipt(saleData);
+          console.log('✅ Impressão do cupom fiscal realizada com sucesso');
         } catch (printError) {
-          console.error('Falha geral na impressão:', printError);
-          // Mensagem mais detalhada em caso de falha geral na impressão
-          if (printError.message === 'Timeout na impressão') {
+          console.error('❌ Erro na impressão:', printError);
+          if (printError.message.includes('Timeout')) {
             showAlert('A impressão demorou muito para responder. Verifique se a impressora está ligada e conectada.', 'error', 'Erro de Impressão');
           } else {
             showAlert('Erro ao imprimir comprovante. Verifique se a impressora está configurada e ativa.', 'error', 'Erro de Impressão');
