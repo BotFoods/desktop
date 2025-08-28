@@ -15,6 +15,10 @@ const CheckoutModal = ({
   onOrderSuccess 
 }) => {
   const [cep, setCep] = useState('');
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    phone: ''
+  });
   const [address, setAddress] = useState({
     street: '',
     neighborhood: '',
@@ -90,9 +94,21 @@ const CheckoutModal = ({
 
   // Atualizar handleFinalizeOrder para enviar a estrutura correta
   const handleFinalizeOrder = async () => {
-    // Validar se o endereço e forma de pagamento foram preenchidos (opcional, mas recomendado)
-    if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state || !paymentMethod) {
-        setErrorMessage('Por favor, preencha o endereço completo e a forma de pagamento.');
+    // Validar se todos os campos obrigatórios foram preenchidos
+    if (!customerInfo.name.trim()) {
+        setErrorMessage('Por favor, preencha seu nome completo.');
+        return;
+    }
+    if (!customerInfo.phone.trim()) {
+        setErrorMessage('Por favor, preencha seu telefone.');
+        return;
+    }
+    if (!address.street || !address.number || !address.neighborhood || !address.city || !address.state) {
+        setErrorMessage('Por favor, preencha o endereço completo.');
+        return;
+    }
+    if (!paymentMethod) {
+        setErrorMessage('Por favor, selecione uma forma de pagamento.');
         return;
     }
     setErrorMessage(''); // Limpa erro se tudo estiver ok
@@ -106,7 +122,7 @@ const CheckoutModal = ({
         quantity: item.quantity, // Incluir quantidade
       })),
       total,
-      address,
+      address: { ...address, ...customerInfo },
       paymentMethod,
       number: wid, 
       id: contatoLoja
@@ -129,7 +145,7 @@ const CheckoutModal = ({
         if (onOrderSuccess) {
           onOrderSuccess({
             total,
-            address,
+            address: { ...address, ...customerInfo },
             paymentMethod,
             products: selectedProducts,
           });
@@ -223,6 +239,34 @@ const CheckoutModal = ({
                 ))}
               </ul>
               <h3 className="text-lg font-semibold mb-4 text-right">Total: R$ {total.toFixed(2)}</h3>
+
+              <h2 className="text-lg font-bold mb-2">Dados do Cliente</h2>
+              <div className="mb-2">
+                <label className="block text-sm font-medium mb-1">Nome Completo *</label>
+                <input
+                  type="text"
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo({ ...customerInfo, name: e.target.value })}
+                  className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-700 text-white"
+                  placeholder="Seu nome completo"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Telefone *</label>
+                <input
+                  type="tel"
+                  value={customerInfo.phone}
+                  onChange={(e) => {
+                    const formatted = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    setCustomerInfo({ ...customerInfo, phone: formatted });
+                  }}
+                  className="w-full border border-gray-600 rounded px-2 py-1 bg-gray-700 text-white"
+                  placeholder="11999999999"
+                  required
+                />
+                <small className="text-gray-400">Digite apenas números (DDD + telefone)</small>
+              </div>
 
               <h2 className="text-lg font-bold mb-2">Endereço de Entrega</h2>
               {/* ... Formulário de Endereço existente ... */}

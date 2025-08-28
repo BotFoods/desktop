@@ -3,8 +3,9 @@ import CancelarButton from './CancelarButton';
 import FinalizarButton from './FinalizarButton';
 import FecharCaixaButton from './FecharCaixaButton';
 import AguardarButton from './AguardarButton';
+import DeliveryButton from './DeliveryButton';
 import PropTypes from 'prop-types';
-import { FaCheckCircle, FaTimesCircle, FaClock, FaHourglassHalf, FaCashRegister } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaClock, FaHourglassHalf, FaCashRegister, FaMotorcycle } from 'react-icons/fa';
 
 const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id, onVendaFinalizada }) => {
   // Determine if we're in a "balcao" context (not mesa or delivery)
@@ -62,6 +63,19 @@ const PdvActions = ({ pdv, setPdv, setOrders, setIsModalOpen, loja_id, onVendaFi
             <FaHourglassHalf className="mr-1" />
             <span>Aguardar</span>
           </AguardarButton>
+        )}
+        
+        {/* Only show Delivery button in delivery context */}
+        {isDelivery && (
+          <DeliveryButton
+            pdv={pdv}
+            setPdv={setPdv}
+            setOrders={setOrders}
+            className="bg-orange-600 hover:bg-orange-700 text-white font-medium py-2 px-5 rounded-md flex items-center gap-2 transition duration-150 ease-in-out shadow-md cursor-pointer"
+          >
+            <FaMotorcycle className="mr-1" />
+            <span>Para Delivery</span>
+          </DeliveryButton>
         )}
         
         <FecharCaixaButton 

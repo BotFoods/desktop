@@ -550,7 +550,7 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
       />
       
       {isSearching ? (
-        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16 my-3">
+        <div className="ml-64 pt-16 my-3 p-8 flex-grow flex flex-col items-center justify-start">
           <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
             <h1 className="text-3xl font-bold mb-6 text-center flex items-center justify-center">
               <FaMotorcycle className="mr-2 text-yellow-500" />
@@ -612,7 +612,7 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
           </div>
         </div>
       ) : isCreatingCustomer ? (
-        <div className="flex-grow flex flex-col items-center justify-start p-6 pt-16"> {/* Changed justify-center to justify-start and added pt-16 */}
+        <div className="ml-64 pt-16 my-3 p-8 flex-grow flex flex-col items-center justify-start">
           <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-md w-full">
             <h1 className="text-3xl font-bold mb-2 text-center flex items-center justify-center">
               <FaUser className="mr-2 text-yellow-500" />
@@ -673,7 +673,7 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
       ) : (
         <div className="flex-grow flex">
           <CategoryMenu categories={categories} onSelectCategory={setSelectedCategory} />
-          <div className="ml-64 pt-20 p-6 flex-grow flex"> {/* Modificado: aumentado pt-16 para pt-20 e p-4 para p-6 */}
+          <div className="ml-64 pt-16 my-3 p-8 flex-grow flex">
             <div className="w-3/4 pr-4">
               <div className="bg-gray-800 p-4 rounded-lg mb-6 shadow-lg">
                 <div className="flex justify-between items-center">

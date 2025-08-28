@@ -17,6 +17,7 @@ import Mesas from './pages/Mesas';
 import PdvMesa from './pages/PdvMesa';
 import Cardapio from './pages/Cardapio';
 import Delivery from './pages/Delivery';
+import DeliveryOrders from './pages/DeliveryOrders';
 import Configuracoes from './pages/Configuracoes';
 
 const AppRoutes = () => {
@@ -38,7 +39,8 @@ const AppRoutes = () => {
                 <ConfiguracaoPagamento />
               </PrivateRoute>
             } />
-            <Route path="/" element={<Navigate to="/caixa" />} />          <Route
+            <Route path="/" element={<Navigate to="/caixa" />} />
+            <Route
               path="/caixa"
               element={
                 <PrivateRoute>
@@ -74,7 +76,8 @@ const AppRoutes = () => {
                   <Mesas />
                 </PrivateRoute>
               }
-            />          <Route
+            />
+            <Route
               path="/pdv/mesa/:mesaId"
               element={
                 <PrivateRoute>
@@ -90,7 +93,8 @@ const AppRoutes = () => {
               element={
                 <Cardapio />
               }
-            />          <Route
+            />
+            <Route
               path="/delivery"
               element={
                 <PrivateRoute>
@@ -98,6 +102,15 @@ const AppRoutes = () => {
                     <Header />
                     <Delivery />
                   </RequireCaixa>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/delivery-orders"
+              element={
+                <PrivateRoute>
+                  <Header />
+                  <DeliveryOrders />
                 </PrivateRoute>
               }
             />
