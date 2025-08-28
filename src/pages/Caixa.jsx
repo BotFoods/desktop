@@ -368,7 +368,7 @@ const Caixa = () => {
         <>
           <CategoryMenu categories={categories} onSelectCategory={setSelectedCategory} />
           <div className="flex-grow flex">
-            <div className="ml-64 pt-20 p-6 flex-grow flex"> {/* Modificado: aumentado pt-16 para pt-20 e p-4 para p-6 */}
+            <div className="ml-64 pt-16 my-3 p-8 flex-grow flex">
               <div className="w-3/4 pr-4">
                 <div className="flex items-center justify-between mb-6">
                   <h1 className="text-3xl font-bold flex items-center">

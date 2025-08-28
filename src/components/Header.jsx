@@ -5,15 +5,17 @@ import NotificationBanner, { NotificationBadge } from './NotificacaoAssinatura';
 import AvisoPagamentoPDV from './AvisoPagamentoPDV';
 import DownloadButton from './DownloadButton';
 import { useAuth } from '../services/AuthContext';
-import { FaBell, FaUser, FaHourglassHalf } from 'react-icons/fa';
+import { FaBell, FaUser, FaHourglassHalf, FaMotorcycle } from 'react-icons/fa';
 import logo from '../assets/logo_chatgpt.png';
 import PropTypes from 'prop-types';
 
 const BALCAO_STORAGE_KEY = 'pdv_balcao_aguardando';
+const DELIVERY_ORDERS_STORAGE_KEY = 'pdv_delivery_aguardando';
 
 const Header = ({ categories = [], onSelectCategory = () => {} }) => {
   const { logout, user } = useAuth();
   const [pendingOrders, setPendingOrders] = useState([]);
+  const [deliveryOrders, setDeliveryOrders] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -21,16 +23,26 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
   useEffect(() => {
     // Load pending orders on component mount
     loadPendingOrders();
+    loadDeliveryOrders();
     
     // Set up event listener for custom event from AguardarButton
     const handleOrdersUpdated = () => {
       loadPendingOrders();
     };
     
+    // Set up event listener for custom event from DeliveryButton
+    const handleDeliveryOrdersUpdated = () => {
+      loadDeliveryOrders();
+    };
+    
     window.addEventListener('balcao-orders-updated', handleOrdersUpdated);
+    window.addEventListener('delivery-orders-updated', handleDeliveryOrdersUpdated);
     
     // Regular polling for updates (every 30 seconds)
-    const interval = setInterval(loadPendingOrders, 30000);
+    const interval = setInterval(() => {
+      loadPendingOrders();
+      loadDeliveryOrders();
+    }, 30000);
     
     // Click outside to close dropdown
     const handleClickOutside = (event) => {
@@ -43,6 +55,7 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
     
     return () => {
       window.removeEventListener('balcao-orders-updated', handleOrdersUpdated);
+      window.removeEventListener('delivery-orders-updated', handleDeliveryOrdersUpdated);
       document.removeEventListener('mousedown', handleClickOutside);
       clearInterval(interval);
     };
@@ -60,6 +73,21 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
       }
     } else {
       setPendingOrders([]);
+    }
+  };
+  
+  const loadDeliveryOrders = () => {
+    const orders = localStorage.getItem(DELIVERY_ORDERS_STORAGE_KEY);
+    if (orders) {
+      try {
+        const parsedOrders = JSON.parse(orders);
+        setDeliveryOrders(parsedOrders);
+      } catch (e) {
+        console.error('Erro ao carregar pedidos de delivery:', e);
+        setDeliveryOrders([]);
+      }
+    } else {
+      setDeliveryOrders([]);
     }
   };
   
@@ -106,6 +134,12 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
     }
   };
   
+  const handleDeliveryOrderClick = (order) => {
+    // Navigate to delivery orders page with order details
+    navigate('/delivery-orders', { state: { selectedOrder: order } });
+    setShowDropdown(false);
+  };
+  
   // const formatTime = (timestamp) => {
   //   const date = new Date(timestamp);
   //   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -147,20 +181,24 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
             <Link to="/caixa" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Balcão</Link>
             <Link to="/mesas" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Mesas</Link>
             <Link to="/delivery" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Delivery</Link>
+            <Link to="/delivery-orders" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors flex items-center">
+              <FaMotorcycle className="mr-1" />
+              Pedidos Delivery
+            </Link>
             <Link to="/movimentacoes" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Movimentações</Link>
             <Link to="/cadastros" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Cadastros</Link>
             <Link to="/configuracoes" className="text-gray-300 hover:text-white px-3 py-1 rounded-md hover:bg-gray-700 transition-colors">Configurações</Link>
             
             <div className="relative ml-2" ref={dropdownRef}>
               <button 
-                className={`text-gray-300 hover:text-white p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500 ${pendingOrders.length > 0 ? 'animate-pulse' : ''}`}
+                className={`text-gray-300 hover:text-white p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-gray-500 ${(pendingOrders.length > 0 || deliveryOrders.length > 0) ? 'animate-pulse' : ''}`}
                 onClick={() => setShowDropdown(!showDropdown)}
-                aria-label={`Notificações ${pendingOrders.length > 0 ? `(${pendingOrders.length})` : ''}`}
+                aria-label={`Notificações ${(pendingOrders.length + deliveryOrders.length) > 0 ? `(${pendingOrders.length + deliveryOrders.length})` : ''}`}
               >
-                <FaBell className={`text-lg ${pendingOrders.length > 0 ? 'text-yellow-500' : ''}`} />
-                {pendingOrders.length > 0 && (
+                <FaBell className={`text-lg ${(pendingOrders.length > 0 || deliveryOrders.length > 0) ? 'text-yellow-500' : ''}`} />
+                {(pendingOrders.length > 0 || deliveryOrders.length > 0) && (
                   <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full">
-                    {pendingOrders.length}
+                    {pendingOrders.length + deliveryOrders.length}
                   </span>
                 )}
                 {/* Badge de notificações do sistema */}
@@ -173,63 +211,136 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
                 <div className="absolute right-0 mt-2 w-80 bg-gray-800 rounded-lg shadow-xl z-40">
                   <div className="p-3 border-b border-gray-700">
                     <h3 className="text-white font-medium">
-                      {pendingOrders.length > 0 
-                        ? `Pedidos aguardando pagamento (${pendingOrders.length})` 
-                        : 'Nenhum pedido pendente'}
+                      Notificações 
+                      {(pendingOrders.length + deliveryOrders.length) > 0 && 
+                        ` (${pendingOrders.length + deliveryOrders.length})`
+                      }
                     </h3>
                   </div>
                   
-                  {pendingOrders.length > 0 ? (
-                    <ul className="max-h-96 overflow-y-auto">
-                      {pendingOrders.map((order) => (
-                        <li key={order.id} className="border-b border-gray-700 last:border-b-0 hover:bg-gray-750">
-                          <button 
-                            className="w-full px-4 py-3 text-left transition-colors flex flex-col"
-                            onClick={() => handleOrderClick(order)}
-                          >
-                            <div className="flex justify-between items-start w-full">
-                              <div>
-                                <p className="font-semibold text-white flex items-center">
-                                  <FaHourglassHalf className="text-yellow-500 mr-2" /> 
-                                  Pedido #{order.id.split('_')[1].slice(-4)}
-                                </p>
-                                <p className="text-sm text-gray-300 mt-1">
-                                  {order.description || 'Items variados'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <span className="text-white font-semibold">
-                                  {order.totalAmount ? formatCurrency(order.totalAmount) : ''}
-                                </span>
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {getElapsedTime(order.timestamp)} atrás
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between mt-2 text-xs">
-                              <span className="text-gray-400">
-                                {order.itemCount || order.pdvData.pdv.venda.produtos.length} itens
-                              </span>
-                              <span className="text-purple-400">
-                                Aguardando finalização
-                              </span>
-                            </div>
-                            
-                            <div className="mt-2 text-center">
-                              <span className="bg-purple-600/30 text-purple-300 text-xs py-1 px-2 rounded-full">
-                                Clique para continuar o pedido
-                              </span>
-                            </div>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="p-6 text-center">
-                      <p className="text-gray-400">Não há pedidos aguardando pagamento.</p>
-                    </div>
-                  )}
+                  <div className="max-h-96 overflow-y-auto">
+                    {/* Pedidos de Balcão */}
+                    {pendingOrders.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 bg-purple-900/30 border-b border-gray-700">
+                          <h4 className="text-purple-300 text-sm font-medium">
+                            Pedidos Balcão ({pendingOrders.length})
+                          </h4>
+                        </div>
+                        <ul>
+                          {pendingOrders.map((order) => (
+                            <li key={order.id} className="border-b border-gray-700 last:border-b-0 hover:bg-gray-750">
+                              <button 
+                                className="w-full px-4 py-3 text-left transition-colors flex flex-col"
+                                onClick={() => handleOrderClick(order)}
+                              >
+                                <div className="flex justify-between items-start w-full">
+                                  <div>
+                                    <p className="font-semibold text-white flex items-center">
+                                      <FaHourglassHalf className="text-purple-500 mr-2" /> 
+                                      Pedido #{order.id.split('_')[1].slice(-4)}
+                                    </p>
+                                    <p className="text-sm text-gray-300 mt-1">
+                                      {order.description || 'Items variados'}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-white font-semibold">
+                                      {order.totalAmount ? formatCurrency(order.totalAmount) : ''}
+                                    </span>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {getElapsedTime(order.timestamp)} atrás
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex justify-between mt-2 text-xs">
+                                  <span className="text-gray-400">
+                                    {order.itemCount || order.pdvData.pdv.venda.produtos.length} itens
+                                  </span>
+                                  <span className="text-purple-400">
+                                    Aguardando finalização
+                                  </span>
+                                </div>
+                                
+                                <div className="mt-2 text-center">
+                                  <span className="bg-purple-600/30 text-purple-300 text-xs py-1 px-2 rounded-full">
+                                    Clique para continuar o pedido
+                                  </span>
+                                </div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    
+                    {/* Pedidos de Delivery */}
+                    {deliveryOrders.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 bg-orange-900/30 border-b border-gray-700">
+                          <h4 className="text-orange-300 text-sm font-medium">
+                            Pedidos Delivery ({deliveryOrders.length})
+                          </h4>
+                        </div>
+                        <ul>
+                          {deliveryOrders.map((order) => (
+                            <li key={order.id} className="border-b border-gray-700 last:border-b-0 hover:bg-gray-750">
+                              <button 
+                                className="w-full px-4 py-3 text-left transition-colors flex flex-col"
+                                onClick={() => handleDeliveryOrderClick(order)}
+                              >
+                                <div className="flex justify-between items-start w-full">
+                                  <div>
+                                    <p className="font-semibold text-white flex items-center">
+                                      <FaMotorcycle className="text-orange-500 mr-2" /> 
+                                      Delivery #{order.id.split('_')[1].slice(-4)}
+                                    </p>
+                                    <p className="text-sm text-gray-300 mt-1">
+                                      {order.customer.nome}
+                                    </p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {order.customer.endereco}
+                                    </p>
+                                  </div>
+                                  <div className="text-right">
+                                    <span className="text-white font-semibold">
+                                      {order.totalAmount ? formatCurrency(order.totalAmount) : ''}
+                                    </span>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {getElapsedTime(order.timestamp)} atrás
+                                    </p>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex justify-between mt-2 text-xs">
+                                  <span className="text-gray-400">
+                                    {order.itemCount} itens
+                                  </span>
+                                  <span className="text-orange-400">
+                                    {order.status === 'aguardando_preparo' ? 'Aguardando preparo' : order.status}
+                                  </span>
+                                </div>
+                                
+                                <div className="mt-2 text-center">
+                                  <span className="bg-orange-600/30 text-orange-300 text-xs py-1 px-2 rounded-full">
+                                    Clique para ver detalhes
+                                  </span>
+                                </div>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    
+                    {/* Nenhum pedido */}
+                    {pendingOrders.length === 0 && deliveryOrders.length === 0 && (
+                      <div className="p-6 text-center">
+                        <p className="text-gray-400">Não há pedidos pendentes.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

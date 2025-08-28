@@ -1,0 +1,104 @@
+/* Estilos específicos para os cards de Mesa */
+
+.mesa-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mesa-card:hover {
+  transform: translateY(-2px);
+}
+
+.mesa-card.disponivel {
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+}
+
+.mesa-card.ocupada {
+  box-shadow: 0 0 0 1px rgba(234, 179, 8, 0.3);
+}
+
+.mesa-card.indisponivel {
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+}
+
+.mesa-card:hover.disponivel {
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2), 0 0 0 1px rgba(34, 197, 94, 0.4);
+}
+
+.mesa-card:hover.ocupada {
+  box-shadow: 0 4px 20px rgba(234, 179, 8, 0.2), 0 0 0 1px rgba(234, 179, 8, 0.4);
+}
+
+.mesa-header {
+  background: linear-gradient(135deg, var(--bg-color) 0%, var(--bg-dark) 100%);
+}
+
+/* Loading shimmer effect */
+.mesa-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.mesa-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Responsive grid improvements */
+@media (max-width: 640px) {
+  .mesas-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .mesas-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+/* Context menu animations */
+.context-menu {
+  animation: contextMenuAppear 0.15s ease-out;
+  transform-origin: top;
+}
+
+@keyframes contextMenuAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Status indicator pulse */
+.status-indicator {
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
