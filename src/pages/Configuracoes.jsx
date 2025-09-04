@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io } from "socket.io-client";
 import Header from '../components/Header';
 import { useAuth } from '../services/AuthContext';
 import PrinterManager from '../components/printer/PrinterManager';
 import StatusAssinatura from '../components/StatusAssinatura';
+import WhatsAppManagerV2 from '../components/WhatsAppManagerV2';
 import { 
     FaWhatsapp, FaPhone, FaEdit, FaLink, FaUnlink, 
     FaCog, FaPrint, FaCreditCard, FaUser, 
-    FaStore, FaReceipt, FaTags, FaDatabase, FaStripe, FaKey
+    FaStore, FaReceipt, FaTags, FaDatabase, FaStripe, FaKey, FaRocket
 } from 'react-icons/fa';
 import InformarcoesRodape from '../components/InformacoesRodape';
 import PermissoesCadastro from '../components/PermissoesCadastro';
@@ -41,6 +43,7 @@ const Configuracoes = () => {
     const { isOwner } = usePermissions();
     const navigate = useNavigate();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
+    const socket = io(API_BASE_URL);
     
     const WHATSAPP_STORAGE_KEY = 'whatsapp_config';
 
@@ -75,41 +78,39 @@ const Configuracoes = () => {
         localStorage.setItem(WHATSAPP_STORAGE_KEY, JSON.stringify(whatsappConfig));
     }, [whatsappConfig]);
 
-    const fetchQrCode = async (qrCodeId) => {
-        const qrCodeOptions = {
-            method: 'GET',
-            headers: {
-                authorization: token,
-                'Content-Type': 'application/json',
-            },
-            credentials: 'include',
+    useEffect(() => {
+        const formattedPhoneNumber = formatPhoneNumber(user?.contato_loja);
+        if (!formattedPhoneNumber) return;
+
+        const qrCodeEvent = `qr_code_${formattedPhoneNumber}`;
+        const statusEvent = `status_${formattedPhoneNumber}`;
+
+        const handleQrCode = (data) => {
+            setQrCode(data.qrCodeImage);
+            setStatusMessage(null);
+            setLoading(false);
         };
 
-        for (let attempt = 0; attempt < 2; attempt++) {
-            try {
-                const qrCodeResponse = await fetch(
-                    `${API_BASE_URL}/api/get-qrcode/${qrCodeId}`,
-                    qrCodeOptions
-                );
-                const qrCodeData = await qrCodeResponse.json();
+        const handleStatus = (data) => {
+            setQrCode(null);
+            setStatusMessage({ type: data.status === 'ready' ? 'success' : 'info', text: data.message });
+            setLoading(false);
+        };
 
-                if (qrCodeData.qrCode) {
-                    setQrCode(qrCodeData.qrCode);
-                    return;
-                } else {
-                    console.warn('QR code not found, retrying...');
-                }
-            } catch (error) {
-                console.error('Error fetching QR code:', error);
-            }
-            await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
-        }
-        console.error('Failed to fetch QR code after multiple attempts');
-    };
+        socket.on(qrCodeEvent, handleQrCode);
+        socket.on(statusEvent, handleStatus);
+
+        return () => {
+            socket.off(qrCodeEvent, handleQrCode);
+            socket.off(statusEvent, handleStatus);
+        };
+    }, [user, socket]);
+
 
     const handleConnect = async () => {
         setLoading(true);
-        setStatusMessage(null); 
+        setStatusMessage({ type: 'info', text: 'Iniciando conexão... Aguardando QR Code.' });
+        setQrCode(null);
         const formattedPhoneNumber = formatPhoneNumber(user.contato_loja);
         try {
             const startOptions = {
@@ -125,18 +126,18 @@ const Configuracoes = () => {
             const startResponse = await fetch(`${API_BASE_URL}/api/start`, startOptions);
             const startData = await startResponse.json();
 
-            if (startData.qrCodeId) {
-                await fetchQrCode(startData.qrCodeId);
-            } else if (startData.status === 'already_started') {
+            if (startData.status === 'already_started' || startData.status === 'ready') {
                 setQrCode(null);
                 setStatusMessage({ type: 'success', text: 'Você já está conectado.' });
-            } else {
-                setStatusMessage({ type: 'error', text: 'Erro ao capturar QRCode.' });
+                setLoading(false);
+            } else if (!startResponse.ok) {
+                setStatusMessage({ type: 'error', text: startData.message || 'Erro ao iniciar conexão.' });
+                setLoading(false);
             }
+            // Não fazemos mais nada aqui, o useEffect cuidará do QR Code
         } catch (error) {
             console.error('Error during connection:', error);
-            setStatusMessage({ type: 'error', text: 'Erro ao capturar QRCode.' });
-        } finally {
+            setStatusMessage({ type: 'error', text: 'Erro ao iniciar conexão.' });
             setLoading(false);
         }
     };
@@ -388,7 +389,41 @@ const Configuracoes = () => {
                             </div>
                         )}
                     </div>
-                );            case 'impressora':
+                );
+            
+            case 'whatsapp-v2':
+                return (
+                    <div className="w-full max-w-2xl">
+                        <div className="mb-6 text-center">
+                            <h1 className="text-3xl font-bold text-white flex items-center justify-center mb-2">
+                                <FaWhatsapp className="mr-3 text-green-500" />
+                                WhatsApp Business v2
+                            </h1>
+                            <div className="flex items-center justify-center space-x-2 text-sm text-gray-400">
+                                <FaRocket className="text-yellow-400" />
+                                <span>Nova Arquitetura Isolada</span>
+                            </div>
+                        </div>
+                        
+                        <WhatsAppManagerV2 />
+                        
+                        <div className="mt-6 p-4 bg-blue-900/30 rounded-lg border border-blue-500/30">
+                            <h3 className="text-blue-300 font-semibold mb-2 flex items-center">
+                                <FaRocket className="mr-2" />
+                                Melhorias da v2
+                            </h3>
+                            <ul className="text-sm text-blue-200 space-y-1">
+                                <li>• Arquitetura isolada e mais estável</li>
+                                <li>• Provisionamento automático por loja</li>
+                                <li>• Monitoramento em tempo real</li>
+                                <li>• Maior confiabilidade</li>
+                                <li>• Suporte a múltiplas instâncias</li>
+                            </ul>
+                        </div>
+                    </div>
+                );
+            
+            case 'impressora':
                 return <PrinterManager />;
             case 'pagamento':
                 return (
@@ -536,7 +571,21 @@ const Configuracoes = () => {
                                 }`}
                             >
                                 <FaWhatsapp className="text-xl" />
-                                <span>WhatsApp</span>
+                                <span>WhatsApp (Legado)</span>
+                            </button>
+                            <button 
+                                onClick={() => setActiveSection('whatsapp-v2')}
+                                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                                    activeSection === 'whatsapp-v2' 
+                                        ? 'bg-green-600 text-white' 
+                                        : 'hover:bg-gray-700 hover:text-white'
+                                }`}
+                            >
+                                <div className="relative">
+                                    <FaWhatsapp className="text-xl" />
+                                    <FaRocket className="absolute -top-1 -right-1 text-xs text-yellow-400" />
+                                </div>
+                                <span>WhatsApp v2</span>
                             </button>
                             <button 
                                 onClick={() => setActiveSection('impressora')}
