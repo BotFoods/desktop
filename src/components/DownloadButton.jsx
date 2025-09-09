@@ -77,7 +77,6 @@ const DownloadButton = ({ simplified = false, className = '', buttonText }) => {
         allAssets: assets
       });
     } catch (error) {
-      console.error('Erro ao buscar release:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -95,7 +94,6 @@ const DownloadButton = ({ simplified = false, className = '', buttonText }) => {
       window.open(asset.browser_download_url, '_blank');
       
     } catch (error) {
-      console.error('Erro no download:', error);
     } finally {
       setDownloading(false);
     }
@@ -104,9 +102,7 @@ const DownloadButton = ({ simplified = false, className = '', buttonText }) => {
   const registerDownload = async (version, type) => {
     try {
       // Implementar analytics se necessário
-      console.log(`Download registrado: ${version} - ${type}`);
     } catch (error) {
-      console.error('Erro ao registrar download:', error);
     }
   };
 

@@ -101,7 +101,6 @@ const Login = () => {
         setError(data.message || 'Login falhou. Por favor, verifique suas credenciais.');
       }
     } catch (err) {
-      console.error(err);
       setError('Falha na conexão com o servidor. Por favor, verifique sua internet e tente novamente.');
     } finally {
       setLoading(false);

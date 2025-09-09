@@ -28,7 +28,6 @@ const WhatsAppManagerV2 = ({ onStatusChange = null }) => {
         isConnectedToWhatsApp,
         hasError
     } = useWhatsAppEvents(user, (event) => {
-        console.log('Evento WhatsApp recebido no componente:', event);
         
         // Atualizar mensagem de progresso baseada no evento
         switch (event.type) {
@@ -79,7 +78,6 @@ const WhatsAppManagerV2 = ({ onStatusChange = null }) => {
                 setError(result.message || 'Erro ao carregar status');
             }
         } catch (err) {
-            console.error('Erro ao carregar status:', err);
             setError('Erro ao carregar status WhatsApp');
         } finally {
             setLoading(false);
@@ -108,7 +106,6 @@ const WhatsAppManagerV2 = ({ onStatusChange = null }) => {
                 setError(result.message || 'Erro ao provisionar WhatsApp');
             }
         } catch (err) {
-            console.error('Erro ao provisionar:', err);
             setError('Erro ao provisionar WhatsApp');
         } finally {
             setLoading(false);
@@ -137,7 +134,6 @@ const WhatsAppManagerV2 = ({ onStatusChange = null }) => {
                 setError(result.message || 'Erro ao iniciar conexão');
             }
         } catch (err) {
-            console.error('Erro ao conectar:', err);
             setError('Erro ao iniciar conexão WhatsApp');
         } finally {
             setLoading(false);
@@ -165,7 +161,6 @@ const WhatsAppManagerV2 = ({ onStatusChange = null }) => {
                 }, 3000);
             }
         } catch (err) {
-            console.error('Erro no setup:', err);
             setError(err.message || 'Erro no setup WhatsApp');
             setProgressMessage('');
         } finally {

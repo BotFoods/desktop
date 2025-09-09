@@ -67,10 +67,8 @@ const DeliveryButton = ({ pdv, setPdv, setOrders, className, children }) => {
       // Usar o novo sistema abstrato de impressão
       await printManager.printForKitchen(orderData);
       
-      console.log('✅ Impressão da cozinha (delivery) realizada com sucesso');
       return true;
     } catch (error) {
-      console.error('❌ Erro na impressão da cozinha (delivery):', error);
       // Não lançamos erro aqui para permitir continuar o processo mesmo se a impressão falhar
       return false;
     } finally {

@@ -25,19 +25,16 @@ const useWhatsAppEvents = (user, onEvent = null) => {
 
         // Listener para conexão
         socketInstance.on('connect', () => {
-            console.log('Socket conectado para WhatsApp events');
             setIsConnected(true);
         });
 
         // Listener para desconexão
         socketInstance.on('disconnect', () => {
-            console.log('Socket desconectado');
             setIsConnected(false);
         });
 
         // Listener principal para eventos WhatsApp
         socketInstance.on('whatsapp_event', (eventData) => {
-            console.log('Evento WhatsApp recebido:', eventData);
 
             // Verificar se o evento é para a loja atual
             if (eventData.loja_id && eventData.loja_id !== user.loja_id) {

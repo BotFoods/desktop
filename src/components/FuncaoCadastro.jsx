@@ -40,7 +40,6 @@ const FuncaoCadastro = () => {
                 const data = await response.json();
                 setFuncoes(data.funcoes);
             } catch (error) {
-                console.error('Error fetching functions:', error);
                 setMessage({ text: 'Erro ao buscar funções', type: 'error' });
                 const timer = setTimeout(() => setMessage(''), 5000);
                 setMessageDuration(timer);
@@ -84,7 +83,6 @@ const FuncaoCadastro = () => {
                 showMessage(data.message || 'Erro ao cadastrar função', 'error');
             }
         } catch (error) {
-            console.error('Error creating function:', error);
             showMessage('Erro ao cadastrar função', 'error');
         } finally {
             setLoading(false);
@@ -111,7 +109,6 @@ const FuncaoCadastro = () => {
                 showMessage(data.message || 'Erro ao desativar função', 'error');
             }
         } catch (error) {
-            console.error('Error deactivating function:', error);
             showMessage('Erro ao desativar função', 'error');
         } finally {
             setLoading(false);
@@ -138,7 +135,6 @@ const FuncaoCadastro = () => {
                 showMessage(data.message || 'Erro ao ativar função', 'error');
             }
         } catch (error) {
-            console.error('Error activating function:', error);
             showMessage('Erro ao ativar função', 'error');
         } finally {
             setLoading(false);

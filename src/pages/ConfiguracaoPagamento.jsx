@@ -83,7 +83,6 @@ const PaymentSetupForm = ({
           }
         }
       } catch (err) {
-        console.error('Erro ao carregar método de pagamento:', err);
       }
     };
 
@@ -115,7 +114,6 @@ const PaymentSetupForm = ({
           setError(data.message || 'Erro ao preparar configuração de pagamento');
         }
       } catch (err) {
-        console.error('Erro ao criar Setup Intent:', err);
         setError('Falha na conexão com o servidor');
       }
     };
@@ -168,7 +166,6 @@ const PaymentSetupForm = ({
         await associarMetodoPagamentoAssinatura(confirmedSetupIntent.payment_method);
       }
     } catch (err) {
-      console.error('Erro ao configurar pagamento:', err);
       setError('Erro inesperado durante a configuração do pagamento.');
       if (onError) onError(err);
     } finally {
@@ -199,7 +196,6 @@ const PaymentSetupForm = ({
         if (onError) onError(new Error(data.message));
       }
     } catch (err) {
-      console.error('Erro ao associar método de pagamento:', err);
       setError('Erro ao finalizar configuração');
       if (onError) onError(err);
     }
@@ -381,7 +377,6 @@ const ConfiguracaoPagamento = () => {
               });
             }
           } catch (userError) {
-            console.warn('Não foi possível carregar dados do usuário via API:', userError);
           }
         }
 
@@ -402,12 +397,10 @@ const ConfiguracaoPagamento = () => {
             throw new Error('Não foi possível carregar dados da assinatura');
           }
         } catch (subscriptionError) {
-          console.error('Erro ao carregar assinatura:', subscriptionError);
           throw new Error('Falha ao carregar dados da assinatura');
         }
 
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -418,7 +411,6 @@ const ConfiguracaoPagamento = () => {
   }, [API_BASE_URL, user]);
 
   const handleSuccess = (data) => {
-    console.log('Método de pagamento configurado com sucesso:', data);
     setSuccess(true);
     // Atualizar dados da assinatura
     if (data.subscription) {
@@ -430,7 +422,6 @@ const ConfiguracaoPagamento = () => {
   };
 
   const handleError = (error) => {
-    console.error('Erro na configuração:', error);
     setError(error.message || 'Erro ao configurar método de pagamento');
   };
 

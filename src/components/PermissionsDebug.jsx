@@ -28,7 +28,6 @@ const PermissionsDebug = () => {
         setError(errorData.message || 'Erro ao buscar dados de debug');
       }
     } catch (err) {
-      console.error('Erro ao buscar debug:', err);
       setError('Erro de conexão');
     } finally {
       setLoading(false);

@@ -81,7 +81,6 @@ const CheckoutForm = ({
         if (onSuccess) onSuccess(paymentIntent);
       }
     } catch (err) {
-      console.error('Erro no pagamento:', err);
       setError('Erro inesperado durante o processamento do pagamento.');
       if (onError) onError(err);
     } finally {
@@ -250,7 +249,6 @@ const StripeCheckout = ({
         if (onError) onError(new Error(data.message));
       }
     } catch (err) {
-      console.error('Erro ao inicializar pagamento:', err);
       setError('Falha na conexão com o servidor');
       if (onError) onError(err);
     } finally {

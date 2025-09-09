@@ -17,9 +17,6 @@ const ProtectedRoute = ({
   const { hasPermission, hasPermissions, isOwner, loading, error } = usePermissions();
 
   // Debug logs
-  console.log('🔍 ProtectedRoute - Props:', { requiredPermission, requiredPermissions, ownerOnly });
-  console.log('🔍 ProtectedRoute - isOwner():', isOwner());
-  console.log('🔍 ProtectedRoute - loading:', loading, 'error:', error);
 
   // Mostrar loading enquanto carrega permissões
   if (loading) {

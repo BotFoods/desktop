@@ -30,7 +30,6 @@ export const NotificationProvider = ({ children }) => {
         try {
             // Verificar se o token existe e é válido
             if (!token || !user) {
-                console.log('Token ou usuário não disponível para verificar assinatura');
                 return;
             }
 
@@ -48,14 +47,12 @@ export const NotificationProvider = ({ children }) => {
                 setAssinatura(data);
                 verificarNotificacoesAssinatura(data);
             } else if (response.status === 401) {
-                console.log('Token inválido ou expirado para verificar assinatura');
                 // Não mostrar erro 401 como erro crítico
                 setAssinatura(null);
             } else {
                 throw new Error(`Erro ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
-            console.error('Erro ao verificar assinatura:', error);
             // Não definir assinatura como null em caso de erro de rede
             // para evitar notificações falsas
         }

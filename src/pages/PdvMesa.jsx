@@ -91,7 +91,6 @@ const PdvMesa = () => {
           setProducts(data);
         }
       } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
       }
     };
 
@@ -110,7 +109,6 @@ const PdvMesa = () => {
           setPdv(updatedPdv);
         }
       } catch (error) {
-        console.error('Erro ao verificar caixa:', error);
       } finally {
         setIsInitializing(false);
       }

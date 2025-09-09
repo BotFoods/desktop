@@ -48,7 +48,6 @@ const PaymentProcessing = ({
         if (onError) onError(new Error(data.message));
       }
     } catch (err) {
-      console.error('Erro ao processar assinatura:', err);
       setError('Falha na conexão com o servidor. Verifique sua internet.');
       if (onError) onError(err);
     } finally {

@@ -91,7 +91,6 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
                 showAlert(data.message || 'Erro ao fechar o caixa.');
             }
         } catch (error) {
-            console.error('Erro ao fechar caixa:', error);
             showAlert('Erro ao fechar o caixa. Verifique sua conexão.');
         } finally {
             setIsLoading(false);

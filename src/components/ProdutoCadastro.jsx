@@ -39,7 +39,6 @@ const ProdutoCadastro = () => {
                 const data = await response.json();
                 setCategorias(data.categorias.filter(cat => cat.ativo === 1));
             } catch (error) {
-                console.error('Error fetching categories:', error);
                 showMessage('Erro ao buscar categorias', 'error');
             } finally {
                 setLoading(false);
@@ -64,7 +63,6 @@ const ProdutoCadastro = () => {
                 const data = await response.json();
                 setProdutos(data);
             } catch (error) {
-                console.error('Erro ao buscar produtos:', error);
                 showMessage('Erro ao buscar produtos. Verifique sua conexão.', 'error');
             } finally {
                 setLoading(false);
@@ -105,7 +103,6 @@ const ProdutoCadastro = () => {
             const data = await response.json();
             setProdutos(data);
         } catch (error) {
-            console.error('Erro ao recarregar produtos:', error);
         } finally {
             setLoading(false);
         }
@@ -204,7 +201,6 @@ const ProdutoCadastro = () => {
                 showMessage(data.message || 'Erro ao cadastrar produto', 'error');
             }
         } catch (error) {
-            console.error('Error creating product:', error);
             showMessage('Erro ao cadastrar produto', 'error');
         } finally {
             setLoading(false);
@@ -277,7 +273,6 @@ const ProdutoCadastro = () => {
                 showMessage(data.message || 'Erro ao atualizar produto', 'error');
             }
         } catch (error) {
-            console.error('Error updating product:', error);
             showMessage('Erro ao atualizar produto', 'error');
         } finally {
             setLoading(false);
@@ -324,7 +319,6 @@ const ProdutoCadastro = () => {
                 showMessage(data.message || 'Erro ao alterar disponibilidade do produto', 'error');
             }
         } catch (error) {
-            console.error('Error toggling product availability:', error);
             showMessage('Erro ao alterar disponibilidade do produto', 'error');
         } finally {
             setLoading(false);

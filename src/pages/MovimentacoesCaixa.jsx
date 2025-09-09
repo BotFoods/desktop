@@ -68,13 +68,11 @@ const MovimentacoesCaixa = () => {
             });
           } else {
             const errorMessage = data.message || 'Erro ao buscar movimentações';
-            console.error('Erro ao buscar movimentações:', errorMessage);
             setError(errorMessage);
             setMovimentacoes([]);
             setFilteredMovimentacoes([]);
           }
         } catch (error) {
-          console.error('Erro ao buscar movimentações:', error);
           setError('Erro de conexão ao buscar movimentações');
           setMovimentacoes([]);
           setFilteredMovimentacoes([]);
@@ -146,7 +144,6 @@ const MovimentacoesCaixa = () => {
         minute: '2-digit'
       }).format(date);
     } catch (error) {
-      console.error('Error formatting date:', error, dateString);
       return dateString; // Return the original string on error
     }
   };
@@ -168,7 +165,6 @@ const MovimentacoesCaixa = () => {
         numericValue = 0;
       }
     } catch (error) {
-      console.error('Error parsing currency value:', error, value);
       numericValue = 0;
     }
     

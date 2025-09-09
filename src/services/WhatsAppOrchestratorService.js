@@ -107,7 +107,6 @@ class WhatsAppOrchestratorService {
             return connectionResult;
 
         } catch (error) {
-            console.error('Erro no setup do WhatsApp:', error);
             throw error;
         }
     }

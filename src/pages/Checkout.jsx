@@ -71,7 +71,6 @@ const Checkout = () => {
 
   // Função para lidar com sucesso do pagamento
   const handlePaymentSuccess = (data) => {
-    console.log('Loja criada com sucesso:', data);
     setCompleted(true);
     setShowPaymentProcessing(false);
     // Redireciona para login após 3 segundos
@@ -82,7 +81,6 @@ const Checkout = () => {
 
   // Função para lidar com erro do pagamento
   const handlePaymentError = (error) => {
-    console.error('Erro no processamento:', error);
     setError(error.message || 'Erro ao processar assinatura');
     setShowPaymentProcessing(false);
   };

@@ -25,7 +25,6 @@ const formatPhoneNumber = (phone) => {
     }
     // Ensure the phone number is in the format expected by the API
     if (phone.length < 10 || phone.length > 15) {
-        console.warn('Número de telefone inválido:', phone);
         return '';
     }
     // Return the phone number with only digits
@@ -61,12 +60,17 @@ const Configuracoes = () => {
             try {
                 return JSON.parse(config_salvo);
             } catch (e) {
-                console.error("Erro ao carregar configuração do WhatsApp do localStorage, usando estado padrão:", e);
                 return defaultConfig;
             }
         }
         return defaultConfig;
     });
+    
+    // Função para exibir mensagens
+    const showMessage = (message, type = 'info') => {
+        setStatusMessage({ message, type });
+        setTimeout(() => setStatusMessage(null), 3000);
+    };
     
     useEffect(() => {
         // Inicializa o número de telefone editável com o número atual do usuário
@@ -136,7 +140,6 @@ const Configuracoes = () => {
             }
             // Não fazemos mais nada aqui, o useEffect cuidará do QR Code
         } catch (error) {
-            console.error('Error during connection:', error);
             setStatusMessage({ type: 'error', text: 'Erro ao iniciar conexão.' });
             setLoading(false);
         }
@@ -162,11 +165,9 @@ const Configuracoes = () => {
                 setQrCode(null);
                 setStatusMessage({ type: 'success', text: 'Desconectado com sucesso.' });
             } else {
-                console.error('Erro ao desconectar');
                 setStatusMessage({ type: 'error', text: 'Você já foi desconectado.' });
             }
         } catch (error) {
-            console.error('Error during disconnection:', error);
             setStatusMessage({ type: 'error', text: 'Erro ao desconectar.' });
         } finally {
             setLoading(false);
@@ -201,11 +202,9 @@ const Configuracoes = () => {
                     setEditablePhoneNumber(formattedPhoneNumber);
                 }
             } else {
-                console.error('Erro ao alterar número do WhatsApp:', responseData);
                 setStatusMessage({ type: 'error', text: responseData.message || 'Erro ao alterar número do WhatsApp. Tente novamente.' });
             }
         } catch (error) {
-            console.error('Error during WhatsApp number change:', error);
             setStatusMessage({ type: 'error', text: 'Erro ao alterar número do WhatsApp. Verifique sua conexão e tente novamente.' });
         } finally {
             setLoading(false);
@@ -424,7 +423,7 @@ const Configuracoes = () => {
                 );
             
             case 'impressora':
-                return <PrinterManager />;
+                return <PrinterManager showMessage={showMessage} />;
             case 'pagamento':
                 return (
                     <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-xl">

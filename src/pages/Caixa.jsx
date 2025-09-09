@@ -47,13 +47,11 @@ const Caixa = () => {
           });
           const data = await response.json();
           if (data.auth === false) {
-            console.error('Token inválido');
             setToken(null);
             navigate('/login');
           }
           setProducts(data);
         } catch (error) {
-          console.error('Erro ao buscar produtos:', error);
         }
     };
 
@@ -80,7 +78,6 @@ const Caixa = () => {
           setCaixaAberto(false);
         }
       } catch (error) {
-        console.error('Erro ao verificar caixa:', error);
         setCaixaAberto(false);
       } finally {
         setIsInitializing(false);
@@ -123,7 +120,6 @@ const Caixa = () => {
         
         setOrders(restoredOrders);
         
-        console.log('Pedido do balcão restaurado com sucesso');
       }
     };
 

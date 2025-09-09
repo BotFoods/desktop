@@ -100,7 +100,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
         }
         return loadedPdv;
       } catch (e) {
-        console.error("Erro ao carregar PDV do localStorage, usando estado padrão:", e);
         return defaultState;
       }
     }
@@ -128,7 +127,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
           setProducts(data);
         }
       } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
       }
     };    const verificarCaixa = async () => {
       if (!user || !token) return;
@@ -145,7 +143,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
           setPdv(updatedPdv);
         }
       } catch (error) {
-        console.error('Erro ao verificar caixa aberto:', error);
       } finally {
         setIsInitializing(false);
       }
@@ -168,14 +165,12 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
   const loadOrders = () => {
     const pdv_salvo = localStorage.getItem(DELIVERY_STORAGE_KEY);
     if (!pdv_salvo) {
-      console.warn('Nenhum PDV de delivery salvo encontrado.');
       return;
     }
 
     try {
       const pdvData = JSON.parse(pdv_salvo);
       if (!pdvData.pdv.venda || !pdvData.pdv.venda.produtos) {
-        console.warn('PDV de delivery não contém dados de venda ou produtos.');
         return;
       }
 
@@ -190,7 +185,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
 
       setOrders(updatedOrders);
     } catch (error) {
-      console.error('Erro ao carregar pedidos do localStorage:', error);
     }
   };
 
@@ -296,7 +290,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
         showAlert(`Erro ao buscar cliente: ${data.message}`, 'error');
       }
     } catch (error) {
-      console.error('Erro ao buscar cliente:', error);
       showAlert('Erro ao buscar cliente. Por favor, tente novamente.', 'error');
     } finally {
       setIsSearchingCustomer(false);
@@ -353,7 +346,6 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
         showAlert(`Erro ao cadastrar cliente: ${data.message}`, 'error');
       }
     } catch (error) {
-      console.error('Erro ao cadastrar cliente:', error);
       showAlert('Erro ao cadastrar cliente. Por favor, tente novamente.', 'error');
     }
   };

@@ -40,7 +40,6 @@ const Cardapio = () => {
           setContatoLoja(data.whatsapp);
         }
       } catch (err) {
-        console.error('Erro ao buscar produtos:', err);
         setErrorMessage('Erro ao buscar produtos. Tente novamente mais tarde.');
       }
     };
@@ -164,10 +163,7 @@ const Cardapio = () => {
       const event = new Event('delivery-orders-updated');
       window.dispatchEvent(event);
       
-      console.log('✅ Pedido do cardápio integrado ao sistema de delivery:', deliveryOrder);
-      console.log('📊 Dados originais do pedido:', orderData);
     } catch (error) {
-      console.error('❌ Erro ao integrar pedido do cardápio com delivery:', error);
       // Continua o fluxo normal mesmo se houver erro na integração
     }
     

@@ -4,11 +4,12 @@ import PrinterConfigCard from './PrinterConfigCard';
 import PrinterConfigModal from './PrinterConfigModal';
 import { printerService } from '../../services/printerService';
 
-const PrinterManager = ({ showMessage }) => {
+const PrinterManager = () => {
     const [printers, setPrinters] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrinter, setEditingPrinter] = useState(null);
     const [testingPrinter, setTestingPrinter] = useState(null);
+    const [message, setMessage] = useState(null);
     const [serviceStatus, setServiceStatus] = useState(null);
     const [availablePrinters, setAvailablePrinters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -55,7 +56,7 @@ const PrinterManager = ({ showMessage }) => {
             const allPrinters = await printerService.loadPrinters();
             setPrinters(allPrinters);
         } catch (error) {
-            showMessage?.('Erro ao carregar configurações de impressoras', 'error');
+            showMessage('Erro ao carregar configurações de impressoras', 'error');
             // Definir objeto vazio para evitar problemas
             setPrinters({});
         }
@@ -74,16 +75,16 @@ const PrinterManager = ({ showMessage }) => {
                     setAvailablePrinters(printers);
                 } catch (printerError) {
                     setAvailablePrinters([]);
-                    showMessage?.('Erro ao carregar impressoras: ' + printerError.message, 'error');
+                    showMessage('Erro ao carregar impressoras: ' + printerError.message, 'error');
                 }
             } else {
                 setAvailablePrinters([]);
-                showMessage?.('Serviço de impressão não disponível: ' + status.error, 'warning');
+                showMessage('Serviço de impressão não disponível: ' + status.error, 'warning');
             }
         } catch (error) {
             setServiceStatus({ available: false, error: error.message });
             setAvailablePrinters([]);
-            showMessage?.('Falha ao conectar com o serviço de impressão', 'error');
+            showMessage('Falha ao conectar com o serviço de impressão', 'error');
         } finally {
             setLoading(false);
         }
@@ -122,9 +123,9 @@ const PrinterManager = ({ showMessage }) => {
             await loadPrinters();
             setIsModalOpen(false);
             setEditingPrinter(null);
-            showMessage?.('Impressora configurada com sucesso!', 'success');
+            showMessage('Impressora configurada com sucesso!', 'success');
         } catch (error) {
-            showMessage?.(`Erro ao configurar impressora: ${error.message}`, 'error');
+            showMessage(`Erro ao configurar impressora: ${error.message}`, 'error');
         }
     };    // Remover impressora
     const handleRemovePrinter = async (type) => {
@@ -132,9 +133,9 @@ const PrinterManager = ({ showMessage }) => {
             try {
                 await printerService.removePrinter(type);
                 await loadPrinters();
-                showMessage?.('Impressora removida com sucesso!', 'success');
+                showMessage('Impressora removida com sucesso!', 'success');
             } catch (error) {
-                showMessage?.(`Erro ao remover impressora: ${error.message}`, 'error');
+                showMessage(`Erro ao remover impressora: ${error.message}`, 'error');
             }
         }
     };    // Testar impressora
@@ -142,13 +143,19 @@ const PrinterManager = ({ showMessage }) => {
         setTestingPrinter(type);
         try {
             const result = await printerService.testPrint(type);
-            showMessage?.(result, 'success');
+            showMessage(result, 'success');
             await loadPrinters(); // Recarregar para atualizar status
         } catch (error) {
-            showMessage?.(`Erro no teste: ${error.message}`, 'error');
+            showMessage(`Erro no teste: ${error.message}`, 'error');
         } finally {
             setTestingPrinter(null);
         }
+    };
+
+    // Mostrar mensagem temporária
+    const showMessage = (text, type) => {
+        setMessage({ text, type });
+        setTimeout(() => setMessage(null), 5000);
     };
 
     // Obter ícone do tipo de conexão
@@ -280,6 +287,22 @@ const PrinterManager = ({ showMessage }) => {
                     </div>
                 )}
             </div>
+
+            {/* Mensagem de status */}
+            {message && (
+                <div className={`mb-6 p-4 rounded-lg flex items-center ${
+                    message.type === 'success' 
+                        ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                        : 'bg-red-500/20 text-red-300 border border-red-500/30'
+                }`}>
+                    {message.type === 'success' ? (
+                        <FaCheck className="mr-2" />
+                    ) : (
+                        <FaTimes className="mr-2" />
+                    )}
+                    {message.text}
+                </div>
+            )}
 
             {/* Lista de impressoras configuradas */}
             <div className="space-y-4 mb-6">

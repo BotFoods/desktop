@@ -38,7 +38,6 @@ const CategoriaCadastro = () => {
                 const data = await response.json();
                 setCategorias(data.categorias);
             } catch (error) {
-                console.error('Error fetching categories:', error);
                 setMessage({ text: 'Erro ao buscar categorias', type: 'error' });
                 const timer = setTimeout(() => setMessage(''), 5000);
                 setMessageDuration(timer);
@@ -80,7 +79,6 @@ const CategoriaCadastro = () => {
                 showMessage(data.message || 'Erro ao cadastrar categoria', 'error');
             }
         } catch (error) {
-            console.error('Error creating category:', error);
             showMessage('Erro ao cadastrar categoria', 'error');
         } finally {
             setLoading(false);
@@ -105,7 +103,6 @@ const CategoriaCadastro = () => {
                 showMessage(data.message || 'Erro ao desativar categoria', 'error');
             }
         } catch (error) {
-            console.error('Error deactivating category:', error);
             showMessage('Erro ao desativar categoria', 'error');
         } finally {
             setLoading(false);
@@ -130,7 +127,6 @@ const CategoriaCadastro = () => {
                 showMessage(data.message || 'Erro ao ativar categoria', 'error');
             }
         } catch (error) {
-            console.error('Error activating category:', error);
             showMessage('Erro ao ativar categoria', 'error');
         } finally {
             setLoading(false);
