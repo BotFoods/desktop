@@ -43,7 +43,6 @@ export const apiCall = async (endpoint, options = {}, token = null) => {
 
     return data;
   } catch (error) {
-    console.error('Erro na chamada da API:', error);
     return {
       success: false,
       message: 'Erro de conexão com o servidor.',

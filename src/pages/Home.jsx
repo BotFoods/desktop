@@ -40,7 +40,6 @@ const Home = () => {
           setProducts(data.produtos.filter(product => product.disponibilidade === 1));
         }
       } catch (error) {
-        console.error('Erro ao buscar produtos:', error);
       } finally {
         setLoading(false);
       }

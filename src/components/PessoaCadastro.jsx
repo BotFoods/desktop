@@ -30,7 +30,6 @@ const PessoaCadastro = () => {
     useEffect(() => {
         const fetchUsuarios = async () => {
             if (!token) {
-                console.error('Token is missing or invalid.');
                 return;
             }
 
@@ -47,11 +46,9 @@ const PessoaCadastro = () => {
                     const data = await response.json();
                     setUsuarios(data.usuarios.filter(usuario => usuario.id !== loggedUser.id));
                 } else {
-                    console.error(`Error fetching users: ${response.status} ${response.statusText}`);
                     showMessage('Erro ao carregar usuários', 'error');
                 }
             } catch (error) {
-                console.error('Error fetching users:', error);
                 showMessage('Erro ao carregar usuários', 'error');
             } finally {
                 setLoading(false);
@@ -60,7 +57,6 @@ const PessoaCadastro = () => {
 
         const fetchFuncoes = async () => {
             if (!token) {
-                console.error('Token is missing or invalid.');
                 return;
             }
 
@@ -78,11 +74,9 @@ const PessoaCadastro = () => {
                     // Filtrar apenas funções ativas
                     setFuncoes((data.funcoes || []).filter(funcao => funcao.ativo === 1));
                 } else {
-                    console.error(`Error fetching roles: ${response.status} ${response.statusText}`);
                     showMessage('Erro ao carregar funções', 'error');
                 }
             } catch (error) {
-                console.error('Error fetching roles:', error);
                 showMessage('Erro ao carregar funções', 'error');
             } finally {
                 setLoading(false);
@@ -190,7 +184,6 @@ const PessoaCadastro = () => {
                 showMessage(data.message || 'Erro ao cadastrar usuário', 'error');
             }
         } catch (error) {
-            console.error('Error creating user:', error);
             showMessage('Erro ao cadastrar usuário', 'error');
         } finally {
             setLoading(false);
@@ -267,7 +260,6 @@ const PessoaCadastro = () => {
                 showMessage(data.message || 'Erro ao atualizar usuário', 'error');
             }
         } catch (error) {
-            console.error('Error updating user:', error);
             showMessage('Erro ao atualizar usuário', 'error');
         } finally {
             setLoading(false);
@@ -295,7 +287,6 @@ const PessoaCadastro = () => {
                 showMessage(data.message || 'Erro ao desativar usuário', 'error');
             }
         } catch (error) {
-            console.error('Error deactivating user:', error);
             showMessage('Erro ao desativar usuário', 'error');
         } finally {
             setLoading(false);
@@ -323,7 +314,6 @@ const PessoaCadastro = () => {
                 showMessage(data.message || 'Erro ao reativar usuário', 'error');
             }
         } catch (error) {
-            console.error('Error reactivating user:', error);
             showMessage('Erro ao reativar usuário', 'error');
         } finally {
             setLoading(false);

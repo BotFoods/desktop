@@ -32,7 +32,6 @@ export const useSubscriptionWarning = () => {
           setShouldShowWarning(shouldShow);
         }
       } catch (error) {
-        console.error('Erro ao verificar status da assinatura:', error);
       }
     };
 

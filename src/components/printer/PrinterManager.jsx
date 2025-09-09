@@ -4,12 +4,11 @@ import PrinterConfigCard from './PrinterConfigCard';
 import PrinterConfigModal from './PrinterConfigModal';
 import { printerService } from '../../services/printerService';
 
-const PrinterManager = () => {
+const PrinterManager = ({ showMessage }) => {
     const [printers, setPrinters] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingPrinter, setEditingPrinter] = useState(null);
     const [testingPrinter, setTestingPrinter] = useState(null);
-    const [message, setMessage] = useState(null);
     const [serviceStatus, setServiceStatus] = useState(null);
     const [availablePrinters, setAvailablePrinters] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -17,18 +16,36 @@ const PrinterManager = () => {
 
     useEffect(() => {
         initializeComponent();
+        
+        // Timer de segurança para evitar loading eterno
+        const safetyTimer = setTimeout(() => {
+            setInitialLoading(false);
+            setLoading(false);
+        }, 10000); // 10 segundos máximo
+        
+        return () => {
+            clearTimeout(safetyTimer);
+        };
     }, []);
 
     const initializeComponent = async () => {
         setInitialLoading(true);
+        
         try {
-            await Promise.all([
-                loadPrinters(),
-                checkServiceStatus()
-            ]);
+            // 1. Carregar configurações locais (rápido e sempre funciona)
+            await loadPrinters();
+            
+            // 2. Verificar service em background sem bloquear
+            checkServiceStatus().catch(error => {
+            });
+            
         } catch (error) {
-            console.error('Erro na inicialização:', error);
+            // Definir estados padrão para evitar travamento
+            setPrinters({});
+            setServiceStatus({ available: false, error: 'Erro na inicialização' });
+            setAvailablePrinters([]);
         } finally {
+            // Sempre liberar o loading inicial
             setInitialLoading(false);
         }
     };
@@ -38,26 +55,38 @@ const PrinterManager = () => {
             const allPrinters = await printerService.loadPrinters();
             setPrinters(allPrinters);
         } catch (error) {
-            console.error('Erro ao carregar impressoras:', error);
-            showMessage('Erro ao carregar impressoras', 'error');
+            showMessage?.('Erro ao carregar configurações de impressoras', 'error');
+            // Definir objeto vazio para evitar problemas
+            setPrinters({});
         }
     };
 
     const checkServiceStatus = async () => {
         setLoading(true);
+        
         try {
             const status = await printerService.checkPrinterServiceStatus();
             setServiceStatus(status);
             
             if (status.available) {
-                const printers = await printerService.loadAvailablePrinters();
-                setAvailablePrinters(printers);
+                try {
+                    const printers = await printerService.loadAvailablePrinters();
+                    setAvailablePrinters(printers);
+                } catch (printerError) {
+                    setAvailablePrinters([]);
+                    showMessage?.('Erro ao carregar impressoras: ' + printerError.message, 'error');
+                }
+            } else {
+                setAvailablePrinters([]);
+                showMessage?.('Serviço de impressão não disponível: ' + status.error, 'warning');
             }
         } catch (error) {
-            console.error('Erro ao verificar serviço:', error);
             setServiceStatus({ available: false, error: error.message });
+            setAvailablePrinters([]);
+            showMessage?.('Falha ao conectar com o serviço de impressão', 'error');
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const refreshService = async () => {
@@ -93,9 +122,9 @@ const PrinterManager = () => {
             await loadPrinters();
             setIsModalOpen(false);
             setEditingPrinter(null);
-            showMessage('Impressora configurada com sucesso!', 'success');
+            showMessage?.('Impressora configurada com sucesso!', 'success');
         } catch (error) {
-            showMessage(`Erro ao configurar impressora: ${error.message}`, 'error');
+            showMessage?.(`Erro ao configurar impressora: ${error.message}`, 'error');
         }
     };    // Remover impressora
     const handleRemovePrinter = async (type) => {
@@ -103,9 +132,9 @@ const PrinterManager = () => {
             try {
                 await printerService.removePrinter(type);
                 await loadPrinters();
-                showMessage('Impressora removida com sucesso!', 'success');
+                showMessage?.('Impressora removida com sucesso!', 'success');
             } catch (error) {
-                showMessage(`Erro ao remover impressora: ${error.message}`, 'error');
+                showMessage?.(`Erro ao remover impressora: ${error.message}`, 'error');
             }
         }
     };    // Testar impressora
@@ -113,19 +142,13 @@ const PrinterManager = () => {
         setTestingPrinter(type);
         try {
             const result = await printerService.testPrint(type);
-            showMessage(result, 'success');
+            showMessage?.(result, 'success');
             await loadPrinters(); // Recarregar para atualizar status
         } catch (error) {
-            showMessage(`Erro no teste: ${error.message}`, 'error');
+            showMessage?.(`Erro no teste: ${error.message}`, 'error');
         } finally {
             setTestingPrinter(null);
         }
-    };
-
-    // Mostrar mensagem temporária
-    const showMessage = (text, type) => {
-        setMessage({ text, type });
-        setTimeout(() => setMessage(null), 5000);
     };
 
     // Obter ícone do tipo de conexão
@@ -151,7 +174,7 @@ const PrinterManager = () => {
 
     const printerTypes = printerService.getPrinterTypes();
 
-    // Loading inicial
+    // Loading inicial com timeout e feedback
     if (initialLoading) {
         return (
             <div className="w-full max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
@@ -161,9 +184,23 @@ const PrinterManager = () => {
                         <h2 className="text-xl font-semibold text-white mb-2">
                             Carregando Sistema de Impressão
                         </h2>
-                        <p className="text-gray-400">
+                        <p className="text-gray-400 mb-4">
                             Verificando serviços e configurações...
                         </p>
+                        <div className="text-sm text-gray-500">
+                            <p>• Carregando configurações locais</p>
+                            <p>• Verificando serviço de impressão</p>
+                            <p>• Listando impressoras disponíveis</p>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                setInitialLoading(false);
+                                setLoading(false);
+                            }}
+                            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </div>
             </div>
@@ -243,22 +280,6 @@ const PrinterManager = () => {
                     </div>
                 )}
             </div>
-
-            {/* Mensagem de status */}
-            {message && (
-                <div className={`mb-6 p-4 rounded-lg flex items-center ${
-                    message.type === 'success' 
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                        : 'bg-red-500/20 text-red-300 border border-red-500/30'
-                }`}>
-                    {message.type === 'success' ? (
-                        <FaCheck className="mr-2" />
-                    ) : (
-                        <FaTimes className="mr-2" />
-                    )}
-                    {message.text}
-                </div>
-            )}
 
             {/* Lista de impressoras configuradas */}
             <div className="space-y-4 mb-6">

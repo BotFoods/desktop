@@ -97,7 +97,6 @@ const PrinterConfigModal = ({
                 setAvailablePrinters(printers);
             }
         } catch (error) {
-            console.error('Erro ao verificar serviço de impressão:', error);
             setServiceStatus({ available: false, error: error.message });
         } finally {
             setLoadingPrinters(false);
@@ -119,7 +118,6 @@ const PrinterConfigModal = ({
             const devices = await printerService.scanUSBPrinters();
             setUsbDevices(devices);
         } catch (error) {
-            console.error('Erro ao escanear dispositivos USB:', error);
         }
         setLoading(false);
     };    const validateForm = () => {

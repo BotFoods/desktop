@@ -68,7 +68,6 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
         const parsedOrders = JSON.parse(orders);
         setPendingOrders(parsedOrders);
       } catch (e) {
-        console.error('Erro ao carregar pedidos pendentes:', e);
         setPendingOrders([]);
       }
     } else {
@@ -83,7 +82,6 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
         const parsedOrders = JSON.parse(orders);
         setDeliveryOrders(parsedOrders);
       } catch (e) {
-        console.error('Erro ao carregar pedidos de delivery:', e);
         setDeliveryOrders([]);
       }
     } else {

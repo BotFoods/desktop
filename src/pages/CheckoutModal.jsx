@@ -72,7 +72,6 @@ const CheckoutModal = ({
         state: data.uf,
       });
     } catch (err) {
-      console.error('Erro ao buscar endereço:', err);
       setErrorMessage('Erro ao buscar endereço. Tente novamente.');
       setAddress({
         street: '',
@@ -157,11 +156,9 @@ const CheckoutModal = ({
           onRemoveProduct();
         }
       } else {
-        console.error('Erro ao enviar pedido para o backend:', await response.text());
         setErrorMessage('Houve um erro ao registrar seu pedido. Tente novamente.'); // Informar erro ao usuário
       }
     } catch (error) {
-      console.error('Erro na requisição:', error);
       setErrorMessage('Houve um erro de comunicação ao registrar seu pedido. Verifique sua conexão e tente novamente.'); // Informar erro de rede
     } finally {
       setLoading(false);

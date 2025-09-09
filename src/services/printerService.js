@@ -14,7 +14,7 @@ export class PrinterService {
     constructor() {
         this.electronAPI = window.electronAPI;
         this.API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-        this.PRINTER_SERVICE_URL = 'http://localhost:8000'; // Serviço externo de impressão
+        this.PRINTER_SERVICE_URL = 'http://localhost:3000'; // Serviço de impressão do /service
         this.printers = {};
         this.availablePrinters = []; // Lista de impressoras disponíveis do serviço
         this.init();
@@ -27,14 +27,12 @@ export class PrinterService {
             // Carregar impressoras disponíveis do serviço externo
             await this.loadAvailablePrinters();
         } catch (error) {
-            console.warn('Falha ao carregar impressoras da API, usando localStorage:', error);
             this.printers = this.loadPrintersFromLocalStorage();
             
             // Tentar carregar impressoras disponíveis mesmo se a API falhar
             try {
                 await this.loadAvailablePrinters();
             } catch (printerServiceError) {
-                console.warn('Serviço de impressão não disponível:', printerServiceError);
                 this.availablePrinters = [];
             }
         }
@@ -43,12 +41,19 @@ export class PrinterService {
     // Carregar impressoras disponíveis do serviço externo
     async loadAvailablePrinters() {
         try {
-            const response = await fetch(`${this.PRINTER_SERVICE_URL}/printers`, {
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 segundos timeout
+            
+            const response = await fetch(`${this.PRINTER_SERVICE_URL}/api/printers`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 throw new Error(`Erro ${response.status}: Serviço de impressão não disponível`);
@@ -58,7 +63,15 @@ export class PrinterService {
             
             // Tratar diferentes formatos de resposta
             let printers = [];
-            if (data.printers && Array.isArray(data.printers)) {
+            if (data.success && data.printers) {
+                // Formato do service: { success: true, printers: { system: [...], usb: [...] } }
+                if (data.printers.system) {
+                    printers = data.printers.system.map(printer => printer.name || printer);
+                }
+                if (data.printers.usb) {
+                    printers = [...printers, ...data.printers.usb.map(printer => printer.name || printer)];
+                }
+            } else if (data.printers && Array.isArray(data.printers)) {
                 // Se vier no formato { printers: [...] }
                 printers = data.printers;
             } else if (Array.isArray(data)) {
@@ -77,10 +90,12 @@ export class PrinterService {
                 return printer.toString();
             }).filter(name => name && name.trim() !== '');
 
-            console.log('Impressoras disponíveis processadas:', this.availablePrinters);
             return this.availablePrinters;
         } catch (error) {
-            console.error('Erro ao carregar impressoras do serviço:', error);
+            if (error.name === 'AbortError') {
+                this.availablePrinters = [];
+                throw new Error('Timeout - Service não responde ao listar impressoras');
+            }
             this.availablePrinters = [];
             throw error;
         }
@@ -94,12 +109,19 @@ export class PrinterService {
     // Verificar se o serviço está disponível
     async checkPrinterServiceStatus() {
         try {
-            const response = await fetch(`${this.PRINTER_SERVICE_URL}`, {
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos timeout
+            
+            const response = await fetch(`${this.PRINTER_SERVICE_URL}/api/health`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                signal: controller.signal
             });
+
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 return { available: false, error: `HTTP ${response.status}` };
@@ -109,10 +131,12 @@ export class PrinterService {
             return { 
                 available: true, 
                 status: data.status,
-                version: data.version,
-                port: data.port 
+                timestamp: data.timestamp
             };
         } catch (error) {
+            if (error.name === 'AbortError') {
+                return { available: false, error: 'Timeout - Service não responde' };
+            }
             return { 
                 available: false, 
                 error: error.message 
@@ -126,7 +150,6 @@ export class PrinterService {
             const userData = localStorage.getItem('userData');
             return userData ? JSON.parse(userData) : null;
         } catch (error) {
-            console.error('Erro ao obter dados do usuário:', error);
             return null;
         }
     }
@@ -142,67 +165,56 @@ export class PrinterService {
             'Content-Type': 'application/json',
             'Authorization': `${token}`
         };
-    }// Carregar impressoras da API
-    async loadPrinters() {
+    }
+
+    // Carregar impressoras disponíveis da API do service
+    async getServicePrinters() {
+        
         try {
-            const token = this.getAuthToken();
-            if (!token) {
-                console.warn('Sem token de autenticação, usando localStorage');
-                this.printers = this.loadPrintersFromLocalStorage();
-                return this.printers;
-            }            const response = await fetch(`${this.API_BASE_URL}/api/impressoras`, {
-                headers: this.getApiHeaders(),
-                credentials: 'include'
+            // Simples verificação de service
+            const response = await this.makeRequest('/api/printers', {
+                method: 'GET',
+                timeout: 3000 // Timeout curto
             });
-
-            if (!response.ok) {
-                throw new Error(`Erro na API: ${response.status}`);
+            
+            if (!response.success) {
+                return null;
             }
-
-            const result = await response.json();
-            if (result.success) {
-                // Converter para formato compatível com localStorage (backup)
-                const printersMap = {};
-                result.data.forEach(printer => {
-                    printersMap[printer.tipo_impressora] = {
-                        id: printer.id,
-                        connectionType: printer.tipo_conexao,
-                        ip: printer.ip,
-                        port: printer.porta,
-                        vendorId: printer.vendor_id,
-                        productId: printer.product_id,
-                        serialPort: printer.porta_serial,
-                        baudRate: printer.baud_rate,
-                        encoding: printer.encoding,
-                        width: printer.largura,
-                        description: printer.descricao,
-                        isActive: printer.ativo,
-                        lastTested: printer.ultimo_teste,
-                        lastStatus: printer.status_ultimo_teste,
-                        createdAt: printer.criado_em,
-                        name: printer.nome
-                    };
-                });
-                // Atualizar cache interno e salvar backup no localStorage
-                this.printers = printersMap;
-                localStorage.setItem('printer_configurations', JSON.stringify(printersMap));
-                return printersMap;
-            }
-
-            throw new Error(result.message || 'Erro ao carregar impressoras');
+            
+            return response.data || {};
+            
         } catch (error) {
-            console.error('Erro ao carregar impressoras da API:', error);
-            // Fallback para localStorage
-            this.printers = this.loadPrintersFromLocalStorage();
+            return null;
+        }
+    }
+
+    // Carregar impressoras configuradas do localStorage
+    async loadPrinters() {
+        
+        // Primeiro tenta do service
+        const servicePrinters = await this.getServicePrinters();
+        if (servicePrinters) {
+            this.printers = servicePrinters;
             return this.printers;
         }
-    }    // Fallback para localStorage
+        
+        // Fallback para localStorage
+        try {
+            this.printers = this.loadPrintersFromLocalStorage();
+            return this.printers;
+        } catch (error) {
+            this.printers = {};
+            return this.printers;
+        }
+    }
+
+    // Fallback para localStorage
     loadPrintersFromLocalStorage() {
         try {
             const saved = localStorage.getItem('printer_configurations');
-            return saved ? JSON.parse(saved) : {};
+            const result = saved ? JSON.parse(saved) : {};
+            return result;
         } catch (error) {
-            console.error('Erro ao carregar configurações do localStorage:', error);
             return {};
         }
     }
@@ -212,95 +224,14 @@ export class PrinterService {
         try {
             localStorage.setItem('printer_configurations', JSON.stringify(this.printers));
         } catch (error) {
-            console.error('Erro ao salvar configurações no localStorage:', error);
         }
     }    // Configurar nova impressora
     async configurePrinter(type, config) {
         try {
-            const token = this.getAuthToken();
-            if (!token) {
-                console.warn('Sem token de autenticação, salvando apenas no localStorage');
-                // Fallback direto para localStorage
-                this.printers[type] = {
-                    ...config,
-                    id: Date.now().toString(),
-                    createdAt: new Date().toISOString(),
-                    lastTested: null,
-                    isActive: true,
-                    printerName: config.printerName || config.name // Garantir nome da impressora
-                };
-                this.savePrinters();
-                return this.printers[type];
-            }
 
-            // Mapear tipos de conexão para valores aceitos pela API
-            const connectionTypeMap = {
-                'system': 'usb', // Impressora do sistema é tratada como USB
-                'network': 'network',
-                'usb': 'usb', 
-                'serial': 'serial'
-            };
-
-            const mappedConnectionType = connectionTypeMap[config.connectionType] || 'usb';
-
-            // Para impressoras do sistema, usar valores padrão para USB
-            let vendor_id = config.vendorId;
-            let product_id = config.productId;
-            
-            if (config.connectionType === 'system') {
-                // Valores padrão para impressoras do sistema
-                vendor_id = vendor_id || '0000';
-                product_id = product_id || '0000';
-            }
-
-            const apiConfig = {
-                tipo_impressora: type,
-                nome: config.name || config.printerName || `Impressora ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-                descricao: config.description || '',
-                tipo_conexao: mappedConnectionType,
-                ip: config.ip || null,
-                porta: config.port || null,
-                vendor_id: vendor_id || null,
-                product_id: product_id || null,
-                porta_serial: config.serialPort || null,
-                baud_rate: config.baudRate || 9600,
-                encoding: config.encoding || 'UTF8',
-                largura: config.width || 48,
-                nome_impressora: config.printerName || config.name // Nome da impressora do sistema
-            };
-
-            const response = await fetch(`${this.API_BASE_URL}/api/impressoras`, {
-                method: 'POST',
-                headers: this.getApiHeaders(),
-                credentials: 'include',
-                body: JSON.stringify(apiConfig)
-            });
-
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                // Atualizar cache local
-                this.printers[type] = {
-                    ...config,
-                    id: result.data.id,
-                    createdAt: result.data.criado_em,
-                    lastTested: null,
-                    isActive: true,
-                    printerName: config.printerName || config.name,
-                    name: config.name || config.printerName
-                };
-
-                // Salvar backup no localStorage
-                localStorage.setItem('printer_configurations', JSON.stringify(this.printers));
-                return this.printers[type];
-            }
-
-            throw new Error(result.message || 'Erro ao configurar impressora');
-        } catch (error) {
-            console.error('Erro ao configurar impressora via API:', error);
-
-            // Fallback para localStorage
-            this.printers[type] = {
+            // Para configurações de impressora, vamos apenas mapear localmente
+            // qual impressora do sistema será usada para cada tipo
+            const printerConfig = {
                 ...config,
                 id: Date.now().toString(),
                 createdAt: new Date().toISOString(),
@@ -309,8 +240,17 @@ export class PrinterService {
                 printerName: config.printerName || config.name,
                 name: config.name || config.printerName
             };
+
+            // Salvar no cache local
+            this.printers[type] = printerConfig;
+            
+            // Salvar no localStorage como backup
             this.savePrinters();
+            
             return this.printers[type];
+
+        } catch (error) {
+            throw error;
         }
     }
 
@@ -339,44 +279,17 @@ export class PrinterService {
     }    // Remover impressora por tipo
     async removePrinter(type) {
         try {
-            const token = this.getAuthToken();
-            if (!token) {
-                console.warn('Sem token de autenticação, removendo apenas do localStorage');
-                // Fallback direto para localStorage
-                if (this.printers[type]) {
-                    delete this.printers[type];
-                    this.savePrinters();
-                    return true;
-                }
-                return false;
-            }            const response = await fetch(`${this.API_BASE_URL}/api/impressoras/tipo/${type}`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: this.getApiHeaders()
-            });
 
-            const result = await response.json();
-
-            if (response.ok && result.success) {
-                // Remover do cache local
-                if (this.printers[type]) {
-                    delete this.printers[type];
-                    localStorage.setItem('printer_configurations', JSON.stringify(this.printers));
-                }
-                return true;
-            }
-
-            throw new Error(result.message || 'Erro ao remover impressora');
-        } catch (error) {
-            console.error('Erro ao remover impressora via API:', error);
-
-            // Fallback para localStorage
+            // Remover do cache local
             if (this.printers[type]) {
                 delete this.printers[type];
                 this.savePrinters();
                 return true;
             }
+            
             return false;
+        } catch (error) {
+            throw error;
         }
     }
 
@@ -466,13 +379,18 @@ export class PrinterService {
                 ]
             };
 
-            // Envia para o serviço externo
-            const response = await fetch(`${this.PRINTER_SERVICE_URL}/print`, {
+            // Envia para o serviço externo usando o endpoint de teste correto
+            const response = await fetch(`${this.PRINTER_SERVICE_URL}/api/printers/test`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(testData)
+                body: JSON.stringify({
+                    printerConfig: {
+                        name: printerConfig.name || printerConfig.printerName,
+                        type: printerConfig.connectionType || 'system'
+                    }
+                })
             });
 
             if (!response.ok) {
@@ -494,34 +412,28 @@ export class PrinterService {
             this.updatePrinterStatus(type, 'error');
             throw error;
         }
-    }    // Registrar teste de impressão na API
+    }
+
+    // Registrar teste de impressão localmente
     async logPrintTest(type, status, errorMessage = null) {
         try {
-            const token = this.getAuthToken();
-            if (!token) {
-                console.warn('Token não encontrado para registrar log de teste');
-                return;
-            }            const response = await fetch(`${this.API_BASE_URL}/api/impressoras/tipo/${type}/test`, {
-                method: 'POST',
-                headers: this.getApiHeaders(),
-                credentials: 'include',
-                body: JSON.stringify({
-                    status,
-                    erro: errorMessage
-                })
-            });
-
-            if (!response.ok) {
-                console.warn('Falha ao registrar log de teste na API');
+            
+            // Apenas registrar localmente no status da impressora
+            if (this.printers[type]) {
+                this.printers[type].lastTested = new Date().toISOString();
+                this.printers[type].lastStatus = status;
+                this.printers[type].lastError = errorMessage;
+                this.savePrinters();
             }
         } catch (error) {
-            console.warn('Erro ao registrar log de teste na API:', error);
         }
     }
 
     // Imprimir cupom/comanda
     async printReceipt(type, data) {
+        
         const printerConfig = this.getPrinter(type);
+        
         if (!printerConfig) {
             throw new Error('Impressora não configurada');
         }
@@ -529,24 +441,32 @@ export class PrinterService {
         try {
             // Verifica se o serviço externo está disponível
             const serviceStatus = await this.checkPrinterServiceStatus();
+            
             if (!serviceStatus.available) {
                 throw new Error(`Serviço de impressão não disponível: ${serviceStatus.error}`);
             }
 
             // Converte dados do recibo para formato do serviço externo
+            const convertedReceiptData = this.convertToServiceFormat(data);
+            
             const printData = {
-                printerName: printerConfig.name || printerConfig.printerName,
-                content: this.convertReceiptDataToContent(data)
+                printerConfig: {
+                    name: printerConfig.name || printerConfig.printerName,
+                    type: printerConfig.connectionType || 'system'
+                },
+                receiptData: convertedReceiptData
             };
 
-            // Envia para o serviço externo
-            const response = await fetch(`${this.PRINTER_SERVICE_URL}/print`, {
+
+            // Envia para o serviço externo usando o endpoint correto
+            const response = await fetch(`${this.PRINTER_SERVICE_URL}/api/printers/receipt`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(printData)
             });
+
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -559,6 +479,50 @@ export class PrinterService {
         } catch (error) {
             throw error;
         }
+    }
+
+    // Converte formato do desktop para formato esperado pelo service
+    convertToServiceFormat(data) {
+        const converted = {
+            header: data.title || 'RECIBO',
+            items: [],
+            total: 0,
+            footer: 'Obrigado pela preferência!'
+        };
+
+        // Converter itens - MANTER preços originais
+        if (data.items && Array.isArray(data.items)) {
+            converted.items = data.items.map((item) => ({
+                name: item.name || item.nome || 'Item',
+                qty: item.quantity || item.quantidade || 1,
+                price: parseFloat(item.price || item.preco_unitario || item.valor || 0)
+            }));
+
+            // Calcular total baseado nos itens (quantidade × preço)
+            converted.total = converted.items.reduce((sum, item) => {
+                return sum + (item.qty * item.price);
+            }, 0);
+        }
+
+        // Se total explícito foi fornecido E é diferente do calculado, 
+        // usar o total explícito mas manter os preços individuais
+        if (data.total !== undefined && data.total !== null) {
+            const totalExplicito = parseFloat(data.total);
+            
+            if (Math.abs(totalExplicito - converted.total) > 0.01) {
+                // Usar o total explícito se houver divergência significativa
+                converted.total = totalExplicito;
+            }
+        }
+
+        // Converter footer
+        if (data.footer && Array.isArray(data.footer)) {
+            converted.footer = data.footer.join('\n');
+        } else if (typeof data.footer === 'string') {
+            converted.footer = data.footer;
+        }
+
+        return converted;
     }
 
     // Converte dados do recibo para o formato aceito pelo serviço externo
@@ -688,10 +652,8 @@ export class PrinterService {
             }));
 
         } catch (error) {
-            console.error('Erro ao buscar impressoras do serviço:', error);
             
             // Fallback para impressoras simuladas
-            console.warn('Serviço de impressão não disponível - retornando dados simulados');
             return [
                 {
                     name: 'Impressora Padrão (Simulada)',
@@ -774,19 +736,15 @@ export class PrinterService {
                 const result = await this._printViaExternalService(text, printerConfig, onSuccess, onError);
                 return result;
             } catch (error) {
-                console.error(`Erro ao imprimir via serviço externo: ${error.message}`);
                 
                 // Fallback para outros métodos se disponíveis
                 if (this.isElectronEnvironment()) {
-                    console.log("Tentando fallback para processo principal...");
                     return await this._printDirectImplementation(text, printerConfig, onSuccess, onError);
                 } else {
-                    console.log("Tentando fallback para servidor legado...");
                     return await this._printViaLegacyServer(text, printerConfig, onSuccess, onError);
                 }
             }
         } catch (error) {
-            console.error(`Erro geral de impressão: ${error.message}`);
             if (onError) onError(error);
             throw error;
         }
@@ -803,27 +761,17 @@ export class PrinterService {
                 throw new Error(`Serviço de impressão não disponível: ${serviceStatus.error}`);
             }
 
-            // Converter texto para formato do serviço
-            const printData = {
-                printerName: printerConfig.printerName || printerConfig.name,
-                content: [
-                    {
-                        value: text,
-                        style: {
-                            textAlign: "left",
-                            fontSize: "16px"
-                        }
-                    }
-                ]
-            };
-
-            // Enviar para o serviço externo
-            const response = await fetch(`${this.PRINTER_SERVICE_URL}/print`, {
+            // Enviar para o serviço externo usando endpoint system/print
+            const response = await fetch(`${this.PRINTER_SERVICE_URL}/api/printers/system/print`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(printData)
+                body: JSON.stringify({
+                    printerName: printerConfig.printerName || printerConfig.name,
+                    content: text,
+                    options: {}
+                })
             });
 
             if (!response.ok) {
@@ -892,15 +840,17 @@ export class PrinterService {
      */
     async _printViaLegacyServer(text, printerConfig, onSuccess, onError) {
         try {
-            const response = await fetch('http://localhost:5000/imprimir', {
+            const response = await fetch('http://localhost:3000/api/printers/system/print', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    text,
-                    printer_ip: printerConfig.ip || "192.168.1.100",
-                    printer_port: printerConfig.port || 9100
+                    printerName: printerConfig.name || printerConfig.ip || "Default Printer",
+                    content: text,
+                    options: {
+                        port: printerConfig.port || 9100
+                    }
                 }),
             });
             
@@ -935,32 +885,40 @@ export class PrinterService {
      * @param {string} orderData.mesa - Número da mesa (opcional)
      */
     async printKitchenOrder(orderData) {
+        
         try {
             const receiptData = {
                 title: "PEDIDO PARA PREPARO",
                 header: {
-                    "PEDIDO": orderData.orderId || `#${Date.now()}`,
+                    "PEDIDO": orderData.orderId || orderData.id || orderData.vendaId || `#${Date.now()}`,
                     "Data": new Date().toLocaleDateString('pt-BR'),
                     "Hora": new Date().toLocaleTimeString('pt-BR'),
-                    "Tipo": orderData.orderType || "BALCÃO"
+                    "Tipo": orderData.orderType || orderData.tipo || "BALCÃO"
                 },
-                items: orderData.items.map(item => ({
-                    name: item.nome || item.name,
+                items: (orderData.items || orderData.produtos || orderData.itens || []).map(item => ({
+                    name: item.nome || item.name || item.produto_nome || `Produto ID ${item.produto_id || item.id}`,
                     quantity: item.quantidade || item.quantity || 1,
-                    observations: item.observacoes || item.observations
+                    price: parseFloat(item.preco_unitario || item.price || item.preco || 0),
+                    observations: item.observacoes || item.observations || item.observacao || ''
                 })),
+                // Calcular total baseado nos itens (quantidade × preço unitário)
+                total: (orderData.items || orderData.produtos || orderData.itens || []).reduce((sum, item) => {
+                    return sum + ((item.quantidade || item.quantity || 1) * parseFloat(item.preco_unitario || item.price || item.preco || 0));
+                }, 0),
                 footer: [
                     "----------------------------------------",
-                    `Observações: ${orderData.notes || 'Nenhuma'}`,
+                    `Observações: ${orderData.notes || orderData.observacoes || 'Nenhuma'}`,
                     "----------------------------------------"
                 ]
             };
 
             // Adicionar dados do cliente se for delivery
-            if (orderData.orderType === 'DELIVERY' && orderData.customer) {
-                receiptData.header["Cliente"] = orderData.customer.nome || orderData.customer.name || 'N/A';
-                receiptData.header["Telefone"] = orderData.customer.telefone || orderData.customer.phone || 'N/A';
-                receiptData.header["Endereço"] = orderData.customer.endereco || orderData.customer.address || 'N/A';
+            if ((orderData.orderType === 'DELIVERY' || orderData.tipo === 'DELIVERY') && 
+                (orderData.customer || orderData.cliente)) {
+                const customer = orderData.customer || orderData.cliente;
+                receiptData.header["Cliente"] = customer.nome || customer.name || 'N/A';
+                receiptData.header["Telefone"] = customer.telefone || customer.phone || 'N/A';
+                receiptData.header["Endereço"] = customer.endereco || customer.address || 'N/A';
             }
 
             // Adicionar número da mesa se aplicável
@@ -968,9 +926,10 @@ export class PrinterService {
                 receiptData.header["Mesa"] = `#${orderData.mesa}`;
             }
 
-            return await this.printReceipt('cozinha', receiptData);
+            const result = await this.printReceipt('cozinha', receiptData);
+            
+            return result;
         } catch (error) {
-            console.error('Erro ao imprimir pedido da cozinha:', error);
             throw error;
         }
     }
@@ -984,6 +943,7 @@ export class PrinterService {
      * @param {Object} saleData.customer - Dados do cliente (opcional)
      */
     async printSaleReceipt(saleData) {
+        
         try {
             const receiptData = {
                 title: "CUPOM FISCAL",
@@ -993,30 +953,53 @@ export class PrinterService {
                     "Data": new Date().toLocaleDateString('pt-BR'),
                     "Hora": new Date().toLocaleTimeString('pt-BR')
                 },
-                items: saleData.items.map(item => ({
-                    name: item.nome || item.name,
+                items: (saleData.itens || saleData.items || saleData.produtos || []).map((item) => ({
+                    name: item.produto_nome || item.nome || item.name || `Produto ID ${item.produto_id || item.id}`,
                     quantity: item.quantidade || item.quantity || 1,
-                    price: item.preco || item.price || 0
+                    price: parseFloat(item.preco_unitario || item.price || item.preco || 0)
                 })),
-                total: saleData.total,
+                // Calcular total baseado nos itens (quantidade × preço unitário)
+                total: (saleData.itens || saleData.items || saleData.produtos || []).reduce((sum, item) => {
+                    return sum + ((item.quantidade || item.quantity || 1) * parseFloat(item.preco_unitario || item.price || item.preco || 0));
+                }, 0),
                 footer: [
                     "----------------------------------------",
-                    `Pagamento: ${saleData.payment?.method || 'N/A'}`,
-                    saleData.payment?.change ? `Troco: R$ ${saleData.payment.change.toFixed(2)}` : "",
+                    // Mapear métodos de pagamento - compatível com diferentes formatos
+                    ...(saleData.pagamentos || []).map(pagamento => {
+                        const metodosMap = {
+                            1: 'Dinheiro',
+                            2: 'Débito', 
+                            3: 'Crédito',
+                            4: 'Pix'
+                        };
+                        const metodo = metodosMap[pagamento.metodo_pagamento_id] || 'Outros';
+                        return `Pagamento: ${metodo} - R$ ${parseFloat(pagamento.valor_pago || 0).toFixed(2)}`;
+                    }),
+                    // Mostrar troco se houver
+                    ...(saleData.pagamentos || [])
+                        .filter(p => (p.valor_troco || 0) > 0)
+                        .map(p => `Troco: R$ ${parseFloat(p.valor_troco || 0).toFixed(2)}`),
+                    // Fallback para formato simples de pagamento
+                    ...((!saleData.pagamentos || saleData.pagamentos.length === 0) && saleData.forma_pagamento ? 
+                        [`Pagamento: ${saleData.forma_pagamento}`] : []),
                     "----------------------------------------",
                     "Obrigado pela preferência!",
                     "Volte sempre!"
                 ].filter(line => line) // Remove linhas vazias
             };
 
-            // Adicionar dados do cliente se fornecidos
-            if (saleData.customer) {
-                receiptData.header["Cliente"] = saleData.customer.nome || saleData.customer.name || 'Consumidor';
+            // Adicionar dados do cliente se fornecidos (CPF/CNPJ)
+            if (saleData.cpfCnpjCliente) {
+                receiptData.header["Cliente"] = saleData.cpfCnpjCliente;
+            } else if (saleData.clienteId) {
+                receiptData.header["Cliente"] = `Cliente ID: ${saleData.clienteId}`;
             }
 
-            return await this.printReceipt('caixa', receiptData);
+
+            const result = await this.printReceipt('caixa', receiptData);
+            
+            return result;
         } catch (error) {
-            console.error('Erro ao imprimir cupom fiscal:', error);
             throw error;
         }
     }
@@ -1030,38 +1013,47 @@ export class PrinterService {
      * @param {number} deliveryData.total - Valor total
      */
     async printDeliveryOrder(deliveryData) {
+        
         try {
+            const customer = deliveryData.customer || deliveryData.cliente || {};
+            const delivery = deliveryData.delivery || {};
+            const payment = deliveryData.payment || {};
+            
             const receiptData = {
                 title: "PEDIDO DELIVERY",
                 header: {
-                    "PEDIDO": deliveryData.orderId || `#${Date.now()}`,
-                    "Cliente": deliveryData.customer?.nome || deliveryData.customer?.name || 'N/A',
-                    "Telefone": deliveryData.customer?.telefone || deliveryData.customer?.phone || 'N/A',
-                    "Endereço": deliveryData.customer?.endereco || deliveryData.customer?.address || 'N/A',
+                    "PEDIDO": deliveryData.orderId || deliveryData.id || deliveryData.vendaId || `#${Date.now()}`,
+                    "Cliente": customer.nome || customer.name || 'N/A',
+                    "Telefone": customer.telefone || customer.phone || 'N/A',
+                    "Endereço": customer.endereco || customer.address || 'N/A',
                     "Data": new Date().toLocaleDateString('pt-BR'),
                     "Hora": new Date().toLocaleTimeString('pt-BR')
                 },
-                items: deliveryData.items.map(item => ({
-                    name: item.nome || item.name,
+                items: (deliveryData.items || deliveryData.produtos || deliveryData.itens || []).map(item => ({
+                    name: item.nome || item.name || item.produto_nome || `Produto ID ${item.produto_id || item.id}`,
                     quantity: item.quantidade || item.quantity || 1,
-                    price: item.preco || item.price || 0
+                    price: parseFloat(item.preco_unitario || item.price || item.preco || 0)
                 })),
-                total: deliveryData.total,
+                // Calcular total baseado nos itens (quantidade × preço unitário)
+                total: (deliveryData.items || deliveryData.produtos || deliveryData.itens || []).reduce((sum, item) => {
+                    return sum + ((item.quantidade || item.quantity || 1) * parseFloat(item.preco_unitario || item.price || item.preco || 0));
+                }, 0),
                 footer: [
                     "----------------------------------------",
-                    `Taxa de Entrega: R$ ${deliveryData.delivery?.fee?.toFixed(2) || '0.00'}`,
-                    `Tempo Estimado: ${deliveryData.delivery?.estimatedTime || '30-45 min'}`,
-                    `Pagamento: ${deliveryData.payment?.method || 'N/A'}`,
-                    deliveryData.payment?.change ? `Troco para: R$ ${deliveryData.payment.change.toFixed(2)}` : "",
+                    `Taxa de Entrega: R$ ${parseFloat(delivery.fee || delivery.taxa || 0).toFixed(2)}`,
+                    `Tempo Estimado: ${delivery.estimatedTime || delivery.tempo_estimado || '30-45 min'}`,
+                    `Pagamento: ${payment.method || deliveryData.forma_pagamento || 'N/A'}`,
+                    (payment.change || deliveryData.troco) ? `Troco para: R$ ${parseFloat(payment.change || deliveryData.troco || 0).toFixed(2)}` : "",
                     "----------------------------------------",
                     "Aguarde nosso entregador!",
                     "Acompanhe pelo WhatsApp"
                 ].filter(line => line) // Remove linhas vazias
             };
 
-            return await this.printReceipt('delivery', receiptData);
+            const result = await this.printReceipt('delivery', receiptData);
+            
+            return result;
         } catch (error) {
-            console.error('Erro ao imprimir pedido delivery:', error);
             throw error;
         }
     }
@@ -1074,24 +1066,30 @@ export class PrinterService {
      * @param {Object} tableData.customer - Dados do cliente (opcional)
      */
     async printTableOrder(tableData) {
+        
         try {
+            const customer = tableData.customer || tableData.cliente || {};
+            
             const receiptData = {
                 title: "COMANDA DE MESA",
                 header: {
-                    "MESA": `#${tableData.tableNumber}`,
-                    "PEDIDO": tableData.orderId || `#${Date.now()}`,
+                    "MESA": `#${tableData.tableNumber || tableData.mesa || tableData.numeroMesa || 'S/N'}`,
+                    "PEDIDO": tableData.orderId || tableData.id || tableData.vendaId || `#${Date.now()}`,
                     "Data": new Date().toLocaleDateString('pt-BR'),
                     "Hora": new Date().toLocaleTimeString('pt-BR')
                 },
-                items: tableData.items.map(item => ({
-                    name: item.nome || item.name,
+                items: (tableData.items || tableData.produtos || tableData.itens || []).map(item => ({
+                    name: item.nome || item.name || item.produto_nome || `Produto ID ${item.produto_id || item.id}`,
                     quantity: item.quantidade || item.quantity || 1,
-                    price: item.preco || item.price || 0
+                    price: parseFloat(item.preco_unitario || item.price || item.preco || 0)
                 })),
-                total: tableData.total,
+                // Calcular total baseado nos itens (quantidade × preço unitário)
+                total: (tableData.items || tableData.produtos || tableData.itens || []).reduce((sum, item) => {
+                    return sum + ((item.quantidade || item.quantity || 1) * parseFloat(item.preco_unitario || item.price || item.preco || 0));
+                }, 0),
                 footer: [
                     "----------------------------------------",
-                    `Observações: ${tableData.notes || 'Nenhuma'}`,
+                    `Observações: ${tableData.notes || tableData.observacoes || 'Nenhuma'}`,
                     "----------------------------------------",
                     "Aguarde no balcão para retirada",
                     "ou aguarde na mesa"
@@ -1099,13 +1097,14 @@ export class PrinterService {
             };
 
             // Adicionar dados do cliente se fornecidos
-            if (tableData.customer) {
-                receiptData.header["Cliente"] = tableData.customer.nome || tableData.customer.name || 'Mesa';
+            if (customer.nome || customer.name) {
+                receiptData.header["Cliente"] = customer.nome || customer.name || 'Mesa';
             }
 
-            return await this.printReceipt('balcao', receiptData);
+            const result = await this.printReceipt('balcao', receiptData);
+            
+            return result;
         } catch (error) {
-            console.error('Erro ao imprimir comanda de mesa:', error);
             throw error;
         }
     }
@@ -1133,7 +1132,6 @@ export class PrinterService {
 
             return await this.printReceipt(printerType, receiptData);
         } catch (error) {
-            console.error('Erro ao imprimir texto simples:', error);
             throw error;
         }
     }

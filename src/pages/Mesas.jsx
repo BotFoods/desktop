@@ -35,7 +35,6 @@ const Mesas = () => {
 
   const fetchMesas = useCallback(async () => {
     if (!user || !user.loja_id) {
-      console.error("User or user.loja_id is undefined. Cannot fetch mesas.");
       setApiError("Não foi possível carregar as mesas. Informações do usuário ausentes.");
       setIsLoading(false);
       return;
@@ -55,15 +54,12 @@ const Mesas = () => {
           pageName: 'mesas'
         });
       } else if (data.auth === false) {
-        console.error('Acesso negado');
         navigate('/login');
       } else {
-        console.error('Erro ao buscar mesas:', data.message || data);
         setApiError(data.message || 'Erro ao carregar mesas');
         setMesas([]);
       }
     } catch (error) {
-      console.error('Erro ao buscar mesas:', error);
       setApiError('Erro de conexão ao carregar mesas');
       setMesas([]);
     } finally {
@@ -127,7 +123,6 @@ const Mesas = () => {
   const handleModalSubmit = async (formData) => {
     if (!user || !user.loja_id) {
       setApiError("Não foi possível identificar a loja do usuário. Por favor, tente novamente.");
-      console.error("User or user.loja_id is undefined in Mesas.jsx handleModalSubmit");
       return;
     }
 
@@ -184,7 +179,6 @@ const Mesas = () => {
         setApiError(errorMessage);
       }
     } catch (error) {
-      console.error('Erro ao adicionar mesa:', error);
       setApiError('Ocorreu um erro de rede ou servidor. Tente mais tarde.');
     }
   };
@@ -246,7 +240,6 @@ const Mesas = () => {
         showAlert(data.error || data.message || "Erro ao desativar mesa", "error");
       }
     } catch (error) {
-      console.error("Erro ao desativar mesa:", error);
       showAlert("Ocorreu um erro ao comunicar com o servidor", "error");
     }
   };
@@ -279,7 +272,6 @@ const Mesas = () => {
         showAlert(data.error || data.message || "Erro ao ativar mesa", "error");
       }
     } catch (error) {
-      console.error("Erro ao ativar mesa:", error);
       showAlert("Ocorreu um erro ao comunicar com o servidor", "error");
     }
   };

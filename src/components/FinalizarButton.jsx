@@ -76,6 +76,7 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
       if (data.success && data.cupomId) { // Check for cupomId for success
         // Imprimir cupom fiscal usando o novo sistema abstrato
         try {
+          
           const saleData = {
             vendaId: data.cupomId,
             produtos: pdv.pdv.venda.produtos,
@@ -87,10 +88,9 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
             tipo: pdv.pdv.venda.tipo
           };
 
+
           await printManager.printSaleReceipt(saleData);
-          console.log('✅ Impressão do cupom fiscal realizada com sucesso');
         } catch (printError) {
-          console.error('❌ Erro na impressão:', printError);
           if (printError.message.includes('Timeout')) {
             showAlert('A impressão demorou muito para responder. Verifique se a impressora está ligada e conectada.', 'error', 'Erro de Impressão');
           } else {
@@ -111,7 +111,6 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
       }
 
     } catch (error) {
-      console.error('Erro ao registrar venda:', error);
       showAlert('Erro ao registrar venda. Verifique sua conexão e tente novamente.', 'error', 'Erro ao Finalizar');
       closeModal();
       setIsProcessing(false);

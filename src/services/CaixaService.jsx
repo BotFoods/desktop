@@ -6,7 +6,6 @@ export const verificarCaixaAberto = async (userId, token, lojaId) => {
     const data = await apiGet(`/api/caixas/usuario/${userId}?id_loja=${lojaId}`, token);
     return data;
   } catch (error) {
-    console.error('Erro ao verificar caixa aberto:', error);
     return { success: false, caixas: [] };
   }
 };
@@ -21,7 +20,6 @@ export const abrirCaixa = async (userId, valorInicial, token, lojaId) => {
     
     return data;
   } catch (error) {
-    console.error('Erro ao abrir caixa:', error);
     return { 
       success: false, 
       message: 'Erro de conexão ao tentar abrir o caixa.',

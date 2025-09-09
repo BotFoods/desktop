@@ -118,7 +118,6 @@ export const useApiError = () => {
 
       return errorData;
     } catch (error) {
-      console.error('Erro ao processar erro da API:', error);
       setErrorInfo({
         isOpen: true,
         title: 'Erro',

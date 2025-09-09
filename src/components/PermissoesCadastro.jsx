@@ -104,7 +104,6 @@ const PermissoesCadastro = () => {
         showMessage('Erro ao carregar atividades do sistema', 'error');
       }
     } catch (error) {
-      console.error('Error fetching activities:', error);
       showMessage('Erro ao carregar atividades', 'error');
     }
   };
@@ -125,7 +124,6 @@ const PermissoesCadastro = () => {
         showMessage('Erro ao carregar permissões da função', 'error');
       }
     } catch (error) {
-      console.error('Error fetching role permissions:', error);
       showMessage('Erro ao carregar permissões', 'error');
     } finally {
       setLoading(false);
@@ -178,7 +176,6 @@ const PermissoesCadastro = () => {
         showMessage(data.message || 'Erro ao salvar permissões', 'error');
       }
     } catch (error) {
-      console.error('Error saving permissions:', error);
       showMessage('Erro ao salvar permissões', 'error');
     } finally {
       setLoading(false);
@@ -208,7 +205,6 @@ const PermissoesCadastro = () => {
         showMessage(data.message || 'Erro ao configurar permissões padrão', 'error');
       }
     } catch (error) {
-      console.error('Error setting default permissions:', error);
       showMessage('Erro ao configurar permissões padrão', 'error');
     } finally {
       setLoading(false);

@@ -27,7 +27,6 @@ const RequireCaixa = ({ children }) => {
         // Caixa aberto encontrado, permitir acesso
         setIsValidating(false);
       } catch (error) {
-        console.error('Erro ao verificar caixa:', error);
         navigate('/caixa');
       }
     };

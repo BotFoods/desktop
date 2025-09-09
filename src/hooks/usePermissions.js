@@ -33,7 +33,6 @@ const usePermissions = () => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ Permissões carregadas - is_owner:', data.usuario?.is_owner);
         setPermissions(data.permissoes || {});
         setUserInfo(data.usuario || {});
       } else {
@@ -41,7 +40,6 @@ const usePermissions = () => {
         setError(errorData.message || 'Erro ao carregar permissões');
       }
     } catch (err) {
-      console.error('Erro ao buscar permissões:', err);
       setError('Erro de conexão ao carregar permissões');
     } finally {
       setLoading(false);
@@ -102,7 +100,6 @@ const usePermissions = () => {
    */
   const isOwner = useCallback(() => {
     const result = userInfo.is_owner === 1 || userInfo.is_owner === true || userInfo.is_owner === "1" || userInfo.is_owner === "true";
-    console.log('🔍 isOwner() - userInfo.is_owner:', userInfo.is_owner, 'type:', typeof userInfo.is_owner, 'result:', result);
     return result;
   }, [userInfo.is_owner]);
 

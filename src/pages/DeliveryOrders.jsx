@@ -139,7 +139,6 @@ const DeliveryOrders = () => {
         const parsedOrders = JSON.parse(ordersData);
         setOrders(parsedOrders);
       } catch (e) {
-        console.error('Erro ao carregar pedidos de delivery:', e);
         setOrders([]);
       }
     } else {
@@ -284,7 +283,6 @@ const DeliveryOrders = () => {
       showAlert('Pedido enviado para impressão na cozinha!', 'success', 'Impressão');
       return true;
     } catch (error) {
-      console.error('Erro ao imprimir pedido:', error);
       showAlert('Erro ao imprimir pedido. Verifique a impressora.', 'error', 'Erro de Impressão');
       return false;
     }

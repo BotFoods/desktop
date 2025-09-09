@@ -18,7 +18,6 @@ const StatusAssinatura = () => {
             setLoading(true);
             
             if (!token) {
-                console.log('Token não disponível para buscar assinatura');
                 setError('Usuário não autenticado');
                 return;
             }
@@ -42,12 +41,10 @@ const StatusAssinatura = () => {
             } else if (response.status === 404) {
                 setAssinatura(null);
                 setError(null);
-                console.log('Nenhuma assinatura encontrada');
             } else {
                 throw new Error(`Erro ${response.status}: ${response.statusText}`);
             }
         } catch (err) {
-            console.error('Erro ao buscar assinatura:', err);
             setError('Erro ao carregar informações da assinatura');
         } finally {
             setLoading(false);

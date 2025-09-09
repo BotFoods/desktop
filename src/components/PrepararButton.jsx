@@ -42,10 +42,8 @@ const PrepararButton = ({ pdv, setPdv, className, children }) => {
       // Usar o novo sistema abstrato de impressão
       await printManager.printForKitchen(orderData);
       
-      console.log('✅ Impressão da cozinha realizada com sucesso');
       return true;
     } catch (error) {
-      console.error('❌ Erro na impressão da cozinha:', error);
       setPrintError('Impressão falhou, mas os produtos foram marcados como impressos.');
       return false;
     } finally {
@@ -97,7 +95,6 @@ const PrepararButton = ({ pdv, setPdv, className, children }) => {
         }, 300);
       }
     } catch (error) {
-      console.error("Erro ao confirmar preparo:", error);
       setPrintError("Erro ao processar o pedido. Por favor, tente novamente.");
     }
   };
