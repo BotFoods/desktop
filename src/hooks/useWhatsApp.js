@@ -69,12 +69,12 @@ const useWhatsApp = () => {
     }, [checkService]);
 
     // Conectar
-    const connect = useCallback(async () => {
+    const connect = useCallback(async (lojaId) => {
         setLoading(true);
         setError(null);
         
         try {
-            const result = await whatsappService.connect();
+            const result = await whatsappService.connect(lojaId);
             
             if (result.success) {
                 if (result.status) {
@@ -95,12 +95,12 @@ const useWhatsApp = () => {
     }, []);
 
     // Desconectar
-    const disconnect = useCallback(async () => {
+    const disconnect = useCallback(async (lojaId) => {
         setLoading(true);
         setError(null);
         
         try {
-            const result = await whatsappService.disconnect();
+            const result = await whatsappService.disconnect(lojaId);
             
             if (result.success) {
                 setStatus({
@@ -123,24 +123,14 @@ const useWhatsApp = () => {
             setLoading(false);
         }
     }, []);
-
-    // Pausar
-    const pause = useCallback(async () => {
-        return await disconnect(); // Por enquanto, pausar = desconectar
-    }, [disconnect]);
-
-    // Retomar
-    const resume = useCallback(async () => {
-        return await connect(); // Por enquanto, retomar = conectar
-    }, [connect]);
 
     // Limpar sessão
-    const clearSession = useCallback(async () => {
+    const clearSession = useCallback(async (lojaId) => {
         setLoading(true);
         setError(null);
         
         try {
-            const result = await whatsappService.clearSession();
+            const result = await whatsappService.clearSession(lojaId);
             
             if (result.success) {
                 setStatus({
@@ -164,59 +154,90 @@ const useWhatsApp = () => {
         }
     }, []);
 
-    // Enviar mensagem
-    const sendMessage = useCallback(async (number, message) => {
+    // Configurar auto-reply
+    const configureAutoReply = useCallback(async (enabled, lojaId) => {
+        setLoading(true);
+        setError(null);
+        
         try {
-            const result = await whatsappService.sendMessage(number, message);
-            return result;
+            const result = await whatsappService.configureAutoReply(enabled, lojaId);
+            
+            if (result.success) {
+                return { success: true, message: result.message, settings: result.settings };
+            } else {
+                setError(result.error);
+                return { success: false, error: result.error };
+            }
+            
         } catch (error) {
+            setError(error.message);
             return { success: false, error: error.message };
+        } finally {
+            setLoading(false);
         }
     }, []);
 
-    // Listener para mudanças de status
+    // Obter estatísticas
+    const getAutoReplyStats = useCallback(async () => {
+        try {
+            const result = await whatsappService.getAutoReplyStats();
+            return result;
+        } catch (error) {
+            return { 
+                success: false, 
+                error: error.message,
+                stats: {
+                    autoReplyEnabled: false,
+                    messagesSent: 0,
+                    lastMessageTime: null,
+                    loja_id: null,
+                    isConnected: false
+                }
+            };
+        }
+    }, []);
+
+    // Listener para mudanças de status via service
     useEffect(() => {
-        const removeListener = whatsappService.addListener((newStatus) => {
-            // Force update by creating new object
-            setStatus({
-                ...newStatus,
-                timestamp: newStatus.timestamp || new Date().toISOString()
-            });
-            setError(null);
+        const unsubscribe = whatsappService.addListener((newStatus) => {
+            setStatus(newStatus);
         });
 
-        // Inicialização
+        // Verificar status inicial
         refreshStatus();
 
-        // Cleanup
         return () => {
-            removeListener();
+            unsubscribe();
             whatsappService.stopPolling();
         };
     }, [refreshStatus]);
 
+    // Propriedades derivadas do status
+    const isConnected = status?.isConnected || false;
+    const hasQRCode = status?.hasQRCode || false;
+    const qrCode = status?.qrCode || null;
+    const state = status?.state || 'disconnected';
+
     return {
-        // Estado
+        // Estados
         status,
         loading,
         error,
         serviceAvailable,
         
+        // Estados derivados
+        isConnected,
+        hasQRCode,
+        qrCode,
+        state,
+        
         // Ações
         connect,
         disconnect,
-        pause,
-        resume,
         clearSession,
-        sendMessage,
-        refreshStatus,
-        checkService,
-        
-        // Informações derivadas
-        isConnected: status.isConnected,
-        hasQRCode: status.hasQRCode,
-        qrCode: status.qrCode,
-        state: status.state
+        configureAutoReply,
+        getAutoReplyStats,
+        refreshStatus
     };
 };
 

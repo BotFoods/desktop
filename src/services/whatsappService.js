@@ -108,16 +108,23 @@ class WhatsAppService {
     /**
      * Conecta ao WhatsApp
      */
-    async connect() {
+    async connect(lojaId) {
         try {
+            const body = {};
+            if (lojaId) {
+                body.loja_id = lojaId;
+            }
+
             const response = await fetch(`${this.serviceUrl}/api/whatsapp/connect`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
                 signal: AbortSignal.timeout(15000)
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -142,19 +149,26 @@ class WhatsAppService {
     /**
      * Desconecta do WhatsApp
      */
-    async disconnect() {
+    async disconnect(lojaId) {
         try {
             // Para polling primeiro
             this.stopPolling();
             
+            const body = {};
+            if (lojaId) {
+                body.loja_id = lojaId;
+            }
+            
             const response = await fetch(`${this.serviceUrl}/api/whatsapp/disconnect`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
                 signal: AbortSignal.timeout(10000)
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -185,18 +199,25 @@ class WhatsAppService {
     /**
      * Limpa sessão (logout)
      */
-    async clearSession() {
+    async clearSession(lojaId) {
         try {
             this.stopPolling();
+            
+            const body = {};
+            if (lojaId) {
+                body.loja_id = lojaId;
+            }
             
             const response = await fetch(`${this.serviceUrl}/api/whatsapp/clear-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
                 signal: AbortSignal.timeout(10000)
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -291,17 +312,23 @@ class WhatsAppService {
     /**
      * Envia mensagem (para expansão futura)
      */
-    async sendMessage(number, message) {
+    async sendMessage(number, message, lojaId) {
         try {
+            const body = { number, message };
+            if (lojaId) {
+                body.loja_id = lojaId;
+            }
+
             const response = await fetch(`${this.serviceUrl}/api/whatsapp/send-message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ number, message }),
+                body: JSON.stringify(body),
                 signal: AbortSignal.timeout(10000)
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
             }
 
             const data = await response.json();
@@ -315,6 +342,85 @@ class WhatsAppService {
             return {
                 success: false,
                 error: error.message
+            };
+        }
+    }
+
+    /**
+     * Configura auto-reply
+     */
+    async configureAutoReply(enabled, lojaId) {
+        try {
+            const body = { 
+                enabled,
+                storeId: lojaId,
+                linkPreviewEnabled: true
+            };
+            if (lojaId) {
+                body.loja_id = lojaId;
+            }
+
+            const response = await fetch(`${this.serviceUrl}/api/whatsapp/auto-reply/config`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+                signal: AbortSignal.timeout(10000)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            return {
+                success: true,
+                message: data.message || 'Configuração atualizada',
+                settings: data.settings
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Obtém estatísticas do auto-reply
+     */
+    async getAutoReplyStats() {
+        try {
+            const response = await fetch(`${this.serviceUrl}/api/whatsapp/auto-reply/stats`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(10000)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            return {
+                success: true,
+                stats: data.stats
+            };
+
+        } catch (error) {
+            return {
+                success: false,
+                error: error.message,
+                stats: {
+                    autoReplyEnabled: false,
+                    messagesSent: 0,
+                    lastMessageTime: null,
+                    loja_id: null,
+                    isConnected: false
+                }
             };
         }
     }
