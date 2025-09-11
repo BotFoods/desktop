@@ -22,6 +22,7 @@ const WhatsAppController = ({ showMessage }) => {
     const { user } = useAuth();
     const [showClearModal, setShowClearModal] = useState(false);
     const [operationState, setOperationState] = useState('idle'); // idle, connecting, generating_qr, clearing_session
+    const [refreshLoading, setRefreshLoading] = useState(false); // Loading específico para o botão refresh
     const [autoReplyEnabled, setAutoReplyEnabled] = useState(false);
     const [autoReplyStats, setAutoReplyStats] = useState({
         messagesSent: 0,
@@ -41,6 +42,7 @@ const WhatsAppController = ({ showMessage }) => {
         configureAutoReply,
         getAutoReplyStats,
         refreshStatus,
+        clearError,
         isConnected,
         hasQRCode,
         qrCode,
@@ -200,6 +202,23 @@ const WhatsAppController = ({ showMessage }) => {
         }
     };
 
+    // Função personalizada para refresh com loading local
+    const handleRefresh = async () => {
+        setRefreshLoading(true);
+        clearError(); // Limpa erros anteriores quando o usuário tenta novamente
+        try {
+            await refreshStatus();
+            // Só mostra mensagem se o serviço estiver disponível após refresh
+            if (serviceAvailable) {
+                showMessage?.('Status atualizado com sucesso', 'success');
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar status:', error);
+        } finally {
+            setRefreshLoading(false);
+        }
+    };
+
     // Verifica se está em operação para desabilitar botões
     const isOperating = loading || operationState !== 'idle';
 
@@ -303,23 +322,82 @@ const WhatsAppController = ({ showMessage }) => {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold text-white flex items-center">
-                    <FaWhatsapp className="mr-2 text-green-500" />
-                    Controle WhatsApp
-                </h2>
-                <button
-                    onClick={refreshStatus}
-                    disabled={loading}
-                    className="p-2 text-gray-400 hover:text-white transition-colors"
-                    title="Atualizar Status"
-                >
-                    <FaSync className={`${loading ? 'animate-spin' : ''}`} />
-                </button>
-            </div>
+        <div className="w-full max-w-4xl mx-auto bg-gray-800 p-8 rounded-lg shadow-xl">
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex justify-between items-center">
+                    <h2 className="text-3xl font-bold text-white flex items-center">
+                        <FaWhatsapp className="mr-3 text-green-500" />
+                        Gerenciamento WhatsApp
+                    </h2>
+                    
+                    {/* Botão condicional: discreto quando conectado, visível quando há problemas */}
+                    {serviceAvailable ? (
+                        <button
+                            onClick={handleRefresh}
+                            disabled={refreshLoading}
+                            className="p-2 text-gray-400 hover:text-white transition-colors"
+                            title="Atualizar Status"
+                        >
+                            <FaSync className={`${refreshLoading ? 'animate-spin' : ''}`} />
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleRefresh}
+                            disabled={refreshLoading}
+                            className={`px-4 py-2 rounded transition-colors flex items-center ${
+                                refreshLoading 
+                                    ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            }`}
+                            title="Verificar Novamente"
+                        >
+                            {refreshLoading ? (
+                                <>
+                                    <FaSync className="animate-spin mr-2" />
+                                    Verificando...
+                                </>
+                            ) : (
+                                <>
+                                    <FaSync className="mr-2" />
+                                    Verificar Novamente
+                                </>
+                            )}
+                        </button>
+                    )}
+                </div>
 
+                {/* Indicador de Status do Serviço e Erros */}
+                {(!serviceAvailable || error) && (
+                    <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-4 flex items-center">
+                        <FaExclamationTriangle className="text-red-400 mr-3 flex-shrink-0" />
+                        <div>
+                            {!serviceAvailable ? (
+                                <>
+                                    <p className="text-red-200 font-medium">Serviço Indisponível</p>
+                                    <p className="text-red-300 text-sm">
+                                        O serviço WhatsApp não está rodando. Inicie o serviço primeiro.
+                                    </p>
+                                    {/* Adiciona mensagem de erro específica se houver */}
+                                    {error && (
+                                        <p className="text-red-300 text-sm mt-2 pt-2 border-t border-red-500/20">
+                                            <strong>Erro:</strong> {error}
+                                        </p>
+                                    )}
+                                </>
+                            ) : error ? (
+                                <>
+                                    <p className="text-red-200 font-medium">Erro de Conexão</p>
+                                    <p className="text-red-300 text-sm">{error}</p>
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
+                )}
+
+                {/* Conteúdo principal - só mostra quando o serviço está disponível */}
+                {serviceAvailable && (
+                    <>
             {/* Status Card */}
             <div className={`p-6 rounded-lg border ${statusInfo.bgColor} ${statusInfo.borderColor}`}>
                 <div className="flex items-start justify-between">
@@ -524,6 +602,9 @@ const WhatsAppController = ({ showMessage }) => {
             )}
 
             {/* Modal de Confirmação para Limpar Sessão */}
+                    </>
+                )}
+
             <ConfirmModal
                 isOpen={showClearModal}
                 onClose={() => setShowClearModal(false)}
@@ -535,6 +616,7 @@ const WhatsAppController = ({ showMessage }) => {
                 onConfirm={confirmClearSession}
                 loading={operationState === 'clearing_session'}
             />
+            </div>
         </div>
     );
 };
