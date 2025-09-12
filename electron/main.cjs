@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
+const { spawn, exec } = require('child_process');
 
 // Ocultar console em produção (Windows)
 if (process.platform === 'win32' && process.env.NODE_ENV === 'production') {
@@ -259,7 +260,58 @@ ipcMain.handle('printer:print-receipt', async (event, printerConfig, receiptData
   });
 });
 
-app.on('ready', createWindow);
+// Variável para controlar o processo do service
+let serviceProcess = null;
+
+// Função para iniciar o BotFood Service
+function startBotFoodService() {
+  try {
+    const isDev = process.env.NODE_ENV === 'development';
+    
+    if (isDev) {
+      // Em desenvolvimento, não inicia o service (assume que está rodando separadamente)
+      console.log('Modo desenvolvimento: service não será iniciado automaticamente');
+      return;
+    }
+
+    // Em produção, tenta iniciar o service
+    const servicePath = path.join(process.resourcesPath, 'service', 'botfood-service.exe');
+    console.log('Tentando iniciar service em:', servicePath);
+    
+    // Verificar se já existe um processo do service rodando
+    exec('tasklist /FI "IMAGENAME eq botfood-service.exe"', (error, stdout, stderr) => {
+      if (stdout.includes('botfood-service.exe')) {
+        console.log('Service já está rodando');
+        return;
+      }
+      
+      // Iniciar o service
+      serviceProcess = spawn(servicePath, [], {
+        detached: true,
+        stdio: 'ignore'
+      });
+      
+      serviceProcess.on('error', (err) => {
+        console.error('Erro ao iniciar service:', err);
+      });
+      
+      serviceProcess.on('spawn', () => {
+        console.log('BotFood Service iniciado com sucesso');
+      });
+      
+      // Permitir que o processo continue rodando independentemente
+      serviceProcess.unref();
+    });
+    
+  } catch (error) {
+    console.error('Erro ao tentar iniciar service:', error);
+  }
+}
+
+app.on('ready', () => {
+  createWindow();
+  startBotFoodService();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
