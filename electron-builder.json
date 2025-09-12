@@ -1,49 +1,33 @@
 {
-  "appId": "com.botfoods.desktop",
-  "productName": "BotFoods Desktop",
+  "$schema": "[https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json](https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json)",
+  "appId": "com.botfood.pdv",
+  "productName": "BotFood PDV",
   "directories": {
-    "output": "dist_electron"
+    "output": "release/",
+    "buildResources": "electron/build"
   },
   "files": [
     "dist/**/*",
     "electron/**/*"
   ],
-  "mac": {
-    "category": "public.app-category.business",
-    "icon": "public/botfood-icon.png",
-    "target": ["zip"]
-  },
+  "extraResources": [
+    {
+      "from": "../service/dist",
+      "to": "service",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ],
   "win": {
-    "icon": "public/botfood-icon.png",
-    "target": [
-      {
-        "target": "nsis",
-        "arch": ["x64", "ia32"]
-      },
-      {
-        "target": "portable",
-        "arch": ["x64"]
-      }
-    ]
-  },
-  "linux": {
-    "icon": "public/botfood-icon.png",
-    "target": ["AppImage", "deb"],
-    "category": "Office"
+    "icon": "electron/build/icon.ico",
+    "target": "nsis"
   },
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "artifactName": "BotFoods-Desktop-${version}-Setup.${ext}"
-  },
-  "portable": {
-    "artifactName": "BotFoods-Desktop-${version}-Portable.exe"
-  },
-  "publish": {
-    "provider": "github",
-    "owner": "BotFoods",
-    "repo": "desktop"
+    "runAfterFinish": true,
+    "include": "electron/build/installer.nsh"
   }
 }
