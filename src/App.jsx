@@ -3,6 +3,7 @@ import { BrowserRouter, HashRouter, Route, Routes, Navigate, useNavigate } from 
 import { AuthProvider } from './services/AuthContext';
 import { NotificationProvider } from './services/NotificationContext';
 import Header from './components/Header';
+import OrderNotification from './components/OrderNotification';
 import Home from './pages/Home';
 import Caixa from './pages/Caixa';
 import Cadastros from './pages/Cadastros';
@@ -31,6 +32,7 @@ const AppRoutes = () => {
     <AuthProvider navigate={navigate}>
       <NotificationProvider>
         <div className="bg-gray-900 text-white min-h-screen">
+          <OrderNotification />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/checkout" element={<Checkout />} />

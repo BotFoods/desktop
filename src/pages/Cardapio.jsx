@@ -110,62 +110,13 @@ const Cardapio = () => {
 
   // Função para lidar com o pedido finalizado com sucesso
   const handleOrderSuccess = (orderData) => {
-    // Gerar um número de pedido aleatório (normalmente viria do backend)
-    const orderNumber = Math.floor(100000 + Math.random() * 900000).toString();
-    
     // Preparar detalhes do pedido para o modal de sucesso
     setOrderDetails({
-      orderNumber,
+      orderNumber: orderData.pedido_id, // Usar o ID retornado pela API
       total: orderData.total,
       paymentMethod: orderData.paymentMethod,
       contatoLoja: contatoLoja
     });
-    
-    // Integração com sistema de delivery - criar pedido para acompanhamento
-    try {
-      const deliveryOrderId = `cardapio_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-      
-      const deliveryOrder = {
-        id: deliveryOrderId,
-        timestamp: new Date().toISOString(),
-        status: 'aguardando_confirmacao',
-        totalAmount: orderData.total,
-        itemCount: orderData.products.reduce((sum, item) => sum + item.quantity, 0),
-        customer: {
-          nome: orderData.address?.name || 'Cliente Cardápio',
-          telefone: orderData.address?.phone || '',
-          endereco: orderData.address ? 
-            `${orderData.address.street}, ${orderData.address.number || 'S/N'} - ${orderData.address.neighborhood}, ${orderData.address.city}/${orderData.address.state}` :
-            'Endereço via Cardápio',
-          id_cliente: null
-        },
-        items: orderData.products.map(item => ({
-          nome: item.product.name,
-          quantidade: item.quantity,
-          preco_unitario: parseFloat(item.product.price),
-          subtotal: parseFloat(item.product.price) * item.quantity
-        })),
-        description: orderData.products.map(item => item.product.name).slice(0, 2).join(', ') + 
-                    (orderData.products.length > 2 ? '...' : ''),
-        source: 'cardapio', // Identificar que veio do cardápio
-        paymentMethod: orderData.paymentMethod,
-        orderNumber: orderNumber
-      };
-      
-      // Adicionar ao localStorage do sistema de delivery
-      const DELIVERY_ORDERS_STORAGE_KEY = 'pdv_delivery_aguardando';
-      const currentOrders = localStorage.getItem(DELIVERY_ORDERS_STORAGE_KEY);
-      const ordersArray = currentOrders ? JSON.parse(currentOrders) : [];
-      ordersArray.push(deliveryOrder);
-      localStorage.setItem(DELIVERY_ORDERS_STORAGE_KEY, JSON.stringify(ordersArray));
-      
-      // Disparar evento para notificar outros componentes
-      const event = new Event('delivery-orders-updated');
-      window.dispatchEvent(event);
-      
-    } catch (error) {
-      // Continua o fluxo normal mesmo se houver erro na integração
-    }
     
     // Fechar o modal de checkout e abrir o modal de sucesso
     setIsModalOpen(false);
@@ -335,6 +286,7 @@ const Cardapio = () => {
           onDecreaseQuantity={handleDecreaseQuantity} // Passa a função de diminuir
           onRemoveProduct={handleRemoveProduct} // Passa a função de remover
           onOrderSuccess={handleOrderSuccess} // Passa a função para lidar com pedido finalizado
+          id={id} // Passa o id da loja
         />
         
         {/* Modal de sucesso do pedido */}

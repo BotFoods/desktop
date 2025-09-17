@@ -12,7 +12,8 @@ const CheckoutModal = ({
   onIncreaseQuantity, 
   onDecreaseQuantity, 
   onRemoveProduct,
-  onOrderSuccess 
+  onOrderSuccess,
+  id // Novo prop para o id da loja 
 }) => {
   const [cep, setCep] = useState('');
   const [customerInfo, setCustomerInfo] = useState({
@@ -112,54 +113,65 @@ const CheckoutModal = ({
     }
     setErrorMessage(''); // Limpa erro se tudo estiver ok
 
-    const orderData = {
-      // Mapear corretamente os produtos e quantidades
-      products: selectedProducts.map(item => ({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        quantity: item.quantity, // Incluir quantidade
+    // Estrutura o pedido para o endpoint /pedidos/online
+    const pedidoParaApi = {
+      loja_id: id, // O id da loja vindo da URL
+      cliente: {
+        nome: customerInfo.name,
+        telefone: customerInfo.phone,
+        endereco: {
+          rua: address.street,
+          numero: address.number,
+          bairro: address.neighborhood,
+          cidade: address.city,
+          estado: address.state,
+          cep: cep,
+          complemento: address.complement,
+        },
+      },
+      itens: selectedProducts.map(item => ({
+        produto_id: item.product.id,
+        nome: item.product.name,
+        quantidade: item.quantity,
+        preco_unitario: parseFloat(item.product.price),
+        observacoes: '', // Campo para futuras implementações
       })),
-      total,
-      address: { ...address, ...customerInfo },
-      paymentMethod,
-      number: wid, 
-      id: contatoLoja
+      tipo_pagamento: paymentMethod,
+      observacoes: '', // Campo geral para observações do pedido
+      total: total,
+      tipo_pedido: 'ONLINE_CARDAPIO', // Identificador da origem
     };
 
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/orders`, {
+      const response = await fetch(`${API_BASE_URL}/api/pedidos/online`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify(pedidoParaApi),
       });
 
       if (response.ok) {
-        // Em vez de abrir o WhatsApp e fechar o modal aqui,
-        // vamos notificar o componente pai sobre o sucesso do pedido
-        // e deixar que ele gerencie o fluxo de UI
+        const responseData = await response.json();
+        
         if (onOrderSuccess) {
           onOrderSuccess({
-            total,
-            address: { ...address, ...customerInfo },
-            paymentMethod,
-            products: selectedProducts,
+            pedido_id: responseData.pedido_id,
+            total: total,
+            paymentMethod: paymentMethod,
           });
         } else {
-          // Fallback para o comportamento anterior se onOrderSuccess não estiver definido
-          const whatsappUrl = `https://wa.me/${contatoLoja}`;
-          window.open(whatsappUrl, '_blank');
+          // Fallback caso a prop não seja passada
+          alert('Pedido enviado com sucesso!');
           onClose();
-          onRemoveProduct();
         }
       } else {
-        setErrorMessage('Houve um erro ao registrar seu pedido. Tente novamente.'); // Informar erro ao usuário
+        const errorData = await response.json();
+        setErrorMessage(errorData.message || 'Houve um erro ao registrar seu pedido. Tente novamente.');
       }
     } catch (error) {
-      setErrorMessage('Houve um erro de comunicação ao registrar seu pedido. Verifique sua conexão e tente novamente.'); // Informar erro de rede
+      setErrorMessage('Houve um erro de comunicação ao registrar seu pedido. Verifique sua conexão e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -363,8 +375,7 @@ const CheckoutModal = ({
               className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 flex items-center justify-center gap-2 font-semibold text-lg disabled:opacity-70"
               disabled={loading || selectedProducts.length === 0} // Desabilita se carregando ou vazio
             >
-              <FaWhatsapp />
-              {loading ? 'Enviando...' : `Ir para WhatsApp (R$ ${total.toFixed(2)})`} 
+              {loading ? 'Enviando...' : `Finalizar Pedido (R$ ${total.toFixed(2)})`} 
             </button>
           </div>
         )}

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'; // Adicionado useCallback
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import pubsubService from './pubsubService';
 
 const AuthContext = createContext();
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -20,6 +21,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token'); // Mudado para localStorage
     lastValidatedToken.current = null; // Limpa o último token validado
     setIsInitialized(true); // Marca como inicializado após logout
+    
+    // Parar escuta do PubSub
+    pubsubService.stopListening().catch(error => {
+      console.error('Erro ao parar escuta do PubSub:', error);
+    });
     
     // Só redirecionar para login se não estiver na página de login e não for cardapio ou checkout
     if (location.pathname !== '/login' && !location.pathname.startsWith('/cardapio') && !location.pathname.startsWith('/checkout')) {
@@ -65,6 +71,11 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken); // Garante que o token no estado é o validado
         lastValidatedToken.current = storedToken; // Atualiza o último token validado
         setIsInitialized(true); // Marca como inicializado após validação bem-sucedida
+        
+        // Iniciar escuta do PubSub se houver fila_pedidos
+        if (data.user_data?.fila_pedidos && !pubsubService.getIsListening()) {
+          initializePubSub(data.user_data);
+        }
       } else {
         setAuthError('Sessão expirada ou inválida');
         logout();
@@ -75,7 +86,68 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsValidating(false);
     }
-  }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências  // useEffect para validar sessão quando o token muda ou a localização muda (exceto login/cardapio)
+  }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências
+
+  // Função para inicializar PubSub e registrar handlers
+  const initializePubSub = useCallback(async (userData) => {
+    try {
+      // Verificar se o usuário tem permissão para receber pedidos online
+      if (!userData.permissoes?.receber_pedidos_online) {
+        console.log('Usuário não tem permissão para receber pedidos online');
+        return;
+      }
+
+      if (!userData.fila_pedidos) {
+        console.log('Usuário não possui fila_pedidos configurada');
+        return;
+      }
+
+      // Passar todos os dados do usuário para o pubsubService
+      await pubsubService.startListening(userData.fila_pedidos, userData);
+      
+      // Registrar handler para novos pedidos
+      const handleNewOrder = (pedido) => {
+        console.log('Novo pedido recebido:', pedido);
+        // Aqui você pode adicionar lógica para:
+        // - Mostrar notificação
+        // - Emitir som
+        // - Atualizar lista de pedidos na interface
+        // - Etc.
+        
+        // Exemplo: mostrar notificação do sistema
+        if (window.electronAPI && window.electronAPI.showNotification) {
+          window.electronAPI.showNotification({
+            title: 'Novo Pedido!',
+            body: `Pedido #${pedido.id} recebido`,
+            icon: 'path/to/icon.png'
+          });
+        }
+      };
+      
+      pubsubService.addMessageHandler(handleNewOrder);
+    } catch (error) {
+      console.error('Erro ao inicializar PubSub:', error);
+    }
+  }, []);
+
+  // Função para login (exemplo, você já tem isso no Login.jsx, mas centralizar pode ser bom)
+  const login = useCallback((userData, authToken) => {
+    localStorage.setItem('token', authToken); // Mudado para localStorage
+    setToken(authToken);
+    setUser(userData);
+    setAuthError(null);
+    setIsInitialized(true); // Marca como inicializado após login
+    lastValidatedToken.current = authToken; // Define o token como validado
+    
+    // Inicializar PubSub se houver fila_pedidos
+    if (userData?.fila_pedidos) {
+      initializePubSub(userData);
+    }
+    
+    navigate('/caixa'); // ou para a rota desejada após login
+  }, [navigate, initializePubSub]);
+
+  // useEffect para validar sessão quando o token muda ou a localização muda (exceto login/cardapio)
   useEffect(() => {
     if (token) {
       // Se temos um token, tentamos validar a sessão.
@@ -90,17 +162,6 @@ export const AuthProvider = ({ children }) => {
       setIsInitialized(true);
     }
   }, [token, location.pathname, validateSession, navigate]);
-
-  // Função para login (exemplo, você já tem isso no Login.jsx, mas centralizar pode ser bom)
-  const login = useCallback((userData, authToken) => {
-    localStorage.setItem('token', authToken); // Mudado para localStorage
-    setToken(authToken);
-    setUser(userData);
-    setAuthError(null);
-    setIsInitialized(true); // Marca como inicializado após login
-    lastValidatedToken.current = authToken; // Define o token como validado
-    navigate('/caixa'); // ou para a rota desejada após login
-  }, [navigate]);
   // O valor fornecido pelo contexto
   const contextValue = {
     user,
