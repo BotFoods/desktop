@@ -148,20 +148,10 @@ class PubSubService {
       }
       
       if (data.success && data.notifications && data.notifications.length > 0) {
-        console.log(`Recebidas ${data.notifications.length} notificações do service`);
-        
         // Processar cada notificação
         data.notifications.forEach(notification => {
           this.processNotification(notification);
         });
-      }
-
-      // Log de debug ocasional (a cada 10 consultas)
-      if (Math.random() < 0.1) {
-        console.log('Polling status:', data.status);
-        if (data.user_session) {
-          console.log('User session:', data.user_session);
-        }
       }
     } catch (error) {
       console.error('Erro ao consultar notificações:', error);
@@ -174,7 +164,11 @@ class PubSubService {
    */
   processNotification(notification) {
     try {
-      console.log('Processando notificação:', notification.pedido.id_venda);
+      // Log temporário para debug da notificação
+      console.log('Notificação recebida:', notification);
+      
+      // Adicionar pedido à fila de delivery automaticamente
+      this.addToDeliveryQueue(notification.pedido);
       
       // Notificar todos os handlers registrados
       this.messageHandlers.forEach(handler => {
@@ -186,6 +180,98 @@ class PubSubService {
       });
     } catch (error) {
       console.error('Erro ao processar notificação:', error);
+    }
+  }
+
+  /**
+   * Adiciona o pedido recebido à fila de delivery
+   */
+  addToDeliveryQueue(pedido) {
+    try {
+      // Log temporário para debug
+      console.log('Dados do pedido recebido:', pedido);
+      console.log('dados_cliente:', pedido.dados_cliente);
+      console.log('produtos:', pedido.produtos);
+      
+      const DELIVERY_ORDERS_STORAGE_KEY = 'pdv_delivery_aguardando';
+      
+      // Buscar pedidos existentes
+      const existingOrders = JSON.parse(localStorage.getItem(DELIVERY_ORDERS_STORAGE_KEY) || '[]');
+      
+      // Verificar se o pedido já existe (evitar duplicatas)
+      const pedidoExiste = existingOrders.some(order => order.id === pedido.id_venda);
+      if (pedidoExiste) {
+        console.log(`Pedido ${pedido.id_venda} já existe na fila de delivery`);
+        return;
+      }
+
+      // Processar itens para garantir estrutura correta
+      let processedItems = [];
+      const rawItems = pedido.produtos || [];
+      
+      if (Array.isArray(rawItems)) {
+        processedItems = rawItems.map((item) => ({
+          id: item.produto_id || item.id || Math.random().toString(36).substr(2, 9),
+          nome: item.nome || 'Produto sem nome',
+          name: item.nome || 'Produto sem nome',
+          quantidade: parseInt(item.quantidade || 1),
+          quantity: parseInt(item.quantidade || 1),
+          preco: parseFloat(item.preco_unitario || 0),
+          price: parseFloat(item.preco_unitario || 0),
+          subtotal: parseFloat(item.preco_unitario || 0) * parseInt(item.quantidade || 1),
+          observacoes: item.observacoes || '',
+          categoria: item.categoria || ''
+        }));
+      }
+      
+      // Construir endereço completo
+      const enderecoCompleto = pedido.dados_cliente?.endereco ? 
+        `${pedido.dados_cliente.endereco.rua}, ${pedido.dados_cliente.endereco.numero} - ${pedido.dados_cliente.endereco.bairro}, ${pedido.dados_cliente.endereco.cidade}/${pedido.dados_cliente.endereco.estado}` :
+        'Endereço não informado';
+      
+      const deliveryOrder = {
+        id: pedido.id_venda?.toString() || `pedido_${Date.now()}`,
+        customer: {
+          nome: pedido.dados_cliente?.nome || 'Cliente não identificado',
+          name: pedido.dados_cliente?.nome || 'Cliente não identificado',
+          telefone: pedido.dados_cliente?.telefone || '',
+          phone: pedido.dados_cliente?.telefone || '',
+          endereco: enderecoCompleto,
+          address: enderecoCompleto
+        },
+        items: processedItems,
+        itemCount: processedItems.length,
+        total: parseFloat(pedido.total_venda || 0),
+        totalAmount: parseFloat(pedido.total_venda || 0),
+        status: 'aguardando_confirmacao',
+        source: 'cardapio',
+        created_at: pedido.timestamp || new Date().toISOString(),
+        timestamp: pedido.timestamp || new Date().toISOString(),
+        payment_method: pedido.pagamento?.tipo || 'N/A',
+        description: pedido.observacoes || 'Pedido via cardápio online',
+        observacoes: pedido.observacoes || '',
+        // Campos adicionais para compatibilidade
+        delivery_fee: 0,
+        estimated_time: '30-45 min',
+        loja_id: pedido.loja_id,
+        tipo: pedido.tipo || 'ONLINE_CARDAPIO',
+        status_venda: pedido.status_venda || 'PENDENTE'
+      };
+
+      // Adicionar o novo pedido
+      const updatedOrders = [...existingOrders, deliveryOrder];
+      
+      // Salvar no localStorage
+      localStorage.setItem(DELIVERY_ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+      
+      // Disparar evento para atualizar a interface
+      const event = new Event('delivery-orders-updated');
+      window.dispatchEvent(event);
+      
+      console.log(`Pedido ${pedido.id_venda} adicionado à fila de delivery`);
+      
+    } catch (error) {
+      console.error('Erro ao adicionar pedido à fila de delivery:', error);
     }
   }
 

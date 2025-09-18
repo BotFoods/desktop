@@ -134,11 +134,13 @@ const DeliveryOrders = () => {
 
   const loadDeliveryOrders = () => {
     const ordersData = localStorage.getItem(DELIVERY_ORDERS_STORAGE_KEY);
+    
     if (ordersData) {
       try {
         const parsedOrders = JSON.parse(ordersData);
         setOrders(parsedOrders);
       } catch (e) {
+        console.error('Erro ao fazer parse dos pedidos:', e);
         setOrders([]);
       }
     } else {
@@ -205,25 +207,40 @@ const DeliveryOrders = () => {
   };
 
   const formatCurrency = (value) => {
+    // Verificar se o valor é válido
+    if (value === null || value === undefined || isNaN(value)) {
+      return 'R$ 0,00';
+    }
+    
+    // Garantir que é um número
+    const numericValue = parseFloat(value) || 0;
+    
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(numericValue);
   };
 
   const getElapsedTime = (timestamp) => {
-    const now = new Date();
-    const orderTime = new Date(timestamp);
-    const diffMs = now - orderTime;
-    const diffMins = Math.floor(diffMs / 60000);
+    if (!timestamp) return 'N/A';
     
-    if (diffMins < 1) return 'Agora';
-    if (diffMins === 1) return '1 min';
-    if (diffMins < 60) return `${diffMins} mins`;
-    
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours === 1) return '1 hora';
-    return `${diffHours} horas`;
+    try {
+      const now = new Date();
+      const orderTime = new Date(timestamp);
+      const diffMs = now - orderTime;
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Agora';
+      if (diffMins === 1) return '1 min';
+      if (diffMins < 60) return `${diffMins} mins`;
+      
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours === 1) return '1 hora';
+      return `${diffHours} horas`;
+    } catch (error) {
+      console.error('Erro ao calcular tempo decorrido:', error);
+      return 'N/A';
+    }
   };
 
   const getStatusColor = (status) => {
@@ -557,7 +574,7 @@ const DeliveryOrders = () => {
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <h4 className="font-bold text-white text-sm">
-                                      #{order.id.split('_')[1].slice(-4)}
+                                      #{order.id?.toString()?.split('_')?.[1]?.slice(-4) || order.id?.toString()?.slice(-4) || 'N/A'}
                                     </h4>
                                     {order.source === 'cardapio' && (
                                       <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
@@ -583,15 +600,15 @@ const DeliveryOrders = () => {
                               <div className="space-y-1">
                                 <div className="flex items-center text-xs text-gray-300">
                                   <FaUser className="mr-1 text-blue-400" size={10} />
-                                  <span className="truncate font-medium">{order.customer.nome}</span>
+                                  <span className="truncate font-medium">{order.customer?.nome || order.customer?.name || 'Cliente não identificado'}</span>
                                 </div>
                                 <div className="flex items-center text-xs text-gray-300">
                                   <FaPhone className="mr-1 text-green-400" size={10} />
-                                  <span>{order.customer.telefone}</span>
+                                  <span>{order.customer?.telefone || order.customer?.phone || 'Sem telefone'}</span>
                                 </div>
                                 <div className="flex items-start text-xs text-gray-300">
                                   <FaMapMarkerAlt className="mr-1 text-red-400 mt-0.5 flex-shrink-0" size={10} />
-                                  <span className="truncate">{order.customer.endereco}</span>
+                                  <span className="truncate">{order.customer?.endereco || order.customer?.address || 'Sem endereço'}</span>
                                 </div>
                               </div>
 
@@ -687,7 +704,7 @@ const DeliveryOrders = () => {
                             <div>
                               <div className="flex items-center gap-2">
                                 <div className="text-sm font-medium text-white">
-                                  #{order.id.split('_')[1].slice(-4)}
+                                  #{order.id?.toString()?.split('_')?.[1]?.slice(-4) || order.id?.toString()?.slice(-4) || 'N/A'}
                                 </div>
                                 {order.source === 'cardapio' && (
                                   <span className="bg-green-600 text-white text-xs px-2 py-0.5 rounded-full font-medium">
@@ -705,15 +722,15 @@ const DeliveryOrders = () => {
                           <div>
                             <div className="text-sm font-medium text-white flex items-center">
                               <FaUser className="mr-2 text-blue-400" size={12} />
-                              {order.customer.nome}
+                              {order.customer?.nome || order.customer?.name || 'Cliente não identificado'}
                             </div>
                             <div className="text-sm text-gray-400 flex items-center">
                               <FaPhone className="mr-2 text-green-400" size={12} />
-                              {order.customer.telefone}
+                              {order.customer?.telefone || order.customer?.phone || 'Sem telefone'}
                             </div>
                             <div className="text-xs text-gray-500 flex items-start mt-1">
                               <FaMapMarkerAlt className="mr-2 text-red-400 mt-0.5" size={10} />
-                              <span className="truncate max-w-xs">{order.customer.endereco}</span>
+                              <span className="truncate max-w-xs">{order.customer?.endereco || order.customer?.address || 'Sem endereço'}</span>
                             </div>
                           </div>
                         </td>
@@ -804,7 +821,7 @@ const DeliveryOrders = () => {
                 <div>
                   <h2 className="text-2xl font-bold flex items-center">
                     <FaMotorcycle className="mr-3 text-orange-500" />
-                    Delivery #{selectedOrder.id.split('_')[1].slice(-4)}
+                    Delivery #{selectedOrder.id?.toString()?.split('_')?.[1]?.slice(-4) || selectedOrder.id?.toString()?.slice(-4) || 'N/A'}
                   </h2>
                   <p className="text-gray-400 mt-1">
                     Pedido feito {getElapsedTime(selectedOrder.timestamp)} atrás
@@ -849,15 +866,15 @@ const DeliveryOrders = () => {
                 <div className="bg-gray-700 rounded-lg p-4 space-y-3">
                   <div className="flex items-center">
                     <FaUser className="mr-3 text-blue-400" />
-                    <span>{selectedOrder.customer.nome}</span>
+                    <span>{selectedOrder.customer?.nome || selectedOrder.customer?.name || 'Cliente não identificado'}</span>
                   </div>
                   <div className="flex items-center">
                     <FaPhone className="mr-3 text-green-400" />
-                    <span>{selectedOrder.customer.telefone}</span>
+                    <span>{selectedOrder.customer?.telefone || selectedOrder.customer?.phone || 'Sem telefone'}</span>
                   </div>
                   <div className="flex items-start">
                     <FaMapMarkerAlt className="mr-3 text-red-400 mt-1" />
-                    <span>{selectedOrder.customer.endereco}</span>
+                    <span>{selectedOrder.customer?.endereco || selectedOrder.customer?.address || 'Sem endereço'}</span>
                   </div>
                 </div>
               </div>
@@ -866,16 +883,20 @@ const DeliveryOrders = () => {
               <div className="mb-6">
                 <h3 className="text-lg font-bold mb-3">Itens do Pedido</h3>
                 <div className="bg-gray-700 rounded-lg p-4">
-                  {selectedOrder.items.map((item, index) => (
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? selectedOrder.items.map((item, index) => (
                     <div key={index} className="flex justify-between items-center py-2 border-b border-gray-600 last:border-b-0">
                       <div>
-                        <span className="font-medium">{item.quantidade}x {item.nome}</span>
+                        <span className="font-medium">{item.quantidade || item.quantity || 1}x {item.nome || item.name || 'Produto'}</span>
                       </div>
                       <span className="text-green-400 font-medium">
-                        {formatCurrency(item.subtotal)}
+                        {formatCurrency(item.subtotal || item.price || 0)}
                       </span>
                     </div>
-                  ))}
+                  )) : (
+                    <div className="text-gray-400 text-center py-4">
+                      Nenhum item encontrado
+                    </div>
+                  )}
                   <div className="flex justify-between items-center pt-3 mt-3 border-t border-gray-600">
                     <span className="text-lg font-bold">Total:</span>
                     <span className="text-xl font-bold text-green-400">
