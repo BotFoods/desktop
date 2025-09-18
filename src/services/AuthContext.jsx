@@ -108,19 +108,33 @@ export const AuthProvider = ({ children }) => {
       // Registrar handler para novos pedidos
       const handleNewOrder = (pedido) => {
         console.log('Novo pedido recebido:', pedido);
-        // Aqui você pode adicionar lógica para:
-        // - Mostrar notificação
-        // - Emitir som
-        // - Atualizar lista de pedidos na interface
-        // - Etc.
         
-        // Exemplo: mostrar notificação do sistema
+        // Formatar valor para notificação
+        const formatCurrency = (value) => {
+          const numericValue = parseFloat(value) || 0;
+          return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+          }).format(numericValue);
+        };
+        
+        // Usar campos corretos baseados na estrutura real
+        const customerName = pedido.dados_cliente?.nome || 'Cliente';
+        const orderValue = formatCurrency(pedido.total_venda || 0);
+        const orderId = pedido.id_venda?.toString()?.slice(-4) || 'N/A';
+        
+        // Mostrar notificação do sistema
         if (window.electronAPI && window.electronAPI.showNotification) {
           window.electronAPI.showNotification({
-            title: 'Novo Pedido!',
-            body: `Pedido #${pedido.id} recebido`,
+            title: 'Novo Pedido Delivery!',
+            body: `Pedido #${orderId} de ${customerName} - ${orderValue}`,
             icon: 'path/to/icon.png'
           });
+        }
+        
+        // Emitir som de notificação se possível
+        if (window.electronAPI && window.electronAPI.playNotificationSound) {
+          window.electronAPI.playNotificationSound();
         }
       };
       
