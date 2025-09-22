@@ -292,10 +292,10 @@ const Header = ({ categories = [], onSelectCategory = () => {} }) => {
                                   <div>
                                     <p className="font-semibold text-white flex items-center">
                                       <FaMotorcycle className="text-orange-500 mr-2" /> 
-                                      Delivery #{order.id.split('_')[1].slice(-4)}
+                                      Delivery #{order.id?.toString()?.split('_')?.[1]?.slice(-4) || order.id?.toString()?.slice(-4) || 'N/A'}
                                     </p>
                                     <p className="text-sm text-gray-300 mt-1">
-                                      {order.customer.nome}
+                                      {order.customer?.nome || order.customer?.name || 'Cliente não identificado'}
                                     </p>
                                     <p className="text-xs text-gray-400 mt-1">
                                       {order.customer.endereco}

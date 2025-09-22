@@ -102,12 +102,21 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
+      // Verificar se já está ouvindo a mesma fila para evitar reinicialização desnecessária
+      if (pubsubService.getIsListening() && pubsubService.filaPedidos === userData.fila_pedidos) {
+        console.log('PubSub já está configurado para esta fila');
+        return;
+      }
+
+      // Limpar handlers existentes antes de registrar novos
+      pubsubService.clearMessageHandlers();
+
       // Passar todos os dados do usuário para o pubsubService
       await pubsubService.startListening(userData.fila_pedidos, userData);
       
       // Registrar handler para novos pedidos
       const handleNewOrder = (pedido) => {
-        console.log('Novo pedido recebido:', pedido);
+        console.log('AuthContext: Novo pedido recebido:', pedido);
         
         // Formatar valor para notificação
         const formatCurrency = (value) => {
@@ -123,13 +132,23 @@ export const AuthProvider = ({ children }) => {
         const orderValue = formatCurrency(pedido.total_venda || 0);
         const orderId = pedido.id_venda?.toString()?.slice(-4) || 'N/A';
         
+        console.log('AuthContext: Dados extraídos da notificação:', {
+          customerName,
+          orderValue,
+          orderId,
+          pedido_completo: pedido
+        });
+        
         // Mostrar notificação do sistema
         if (window.electronAPI && window.electronAPI.showNotification) {
+          console.log('AuthContext: Mostrando notificação Electron');
           window.electronAPI.showNotification({
             title: 'Novo Pedido Delivery!',
             body: `Pedido #${orderId} de ${customerName} - ${orderValue}`,
             icon: 'path/to/icon.png'
           });
+        } else {
+          console.log('AuthContext: ElectronAPI não disponível para notificação');
         }
         
         // Emitir som de notificação se possível
