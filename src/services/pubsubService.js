@@ -11,6 +11,7 @@ class PubSubService {
     this.serviceUrl = 'http://localhost:3000'; // URL do service
     this.userData = null; // Armazenar dados completos do usuário
     this.sessionId = null; // ID da sessão retornado pelo service
+    this.processedNotifications = new Set(); // Cache para evitar duplicatas
   }
 
   /**
@@ -164,6 +165,18 @@ class PubSubService {
    */
   processNotification(notification) {
     try {
+      // Criar chave única para a notificação
+      const notificationKey = `${notification.pedido?.id_venda}_${notification.timestamp}`;
+      
+      // Verificar se já foi processada
+      if (this.processedNotifications.has(notificationKey)) {
+        console.log(`Notificação ${notificationKey} já foi processada, ignorando`);
+        return;
+      }
+      
+      // Marcar como processada
+      this.processedNotifications.add(notificationKey);
+      
       // Log temporário para debug da notificação
       console.log('Notificação recebida:', notification);
       
@@ -171,13 +184,23 @@ class PubSubService {
       this.addToDeliveryQueue(notification.pedido);
       
       // Notificar todos os handlers registrados
-      this.messageHandlers.forEach(handler => {
+      console.log(`Notificando ${this.messageHandlers.length} handlers registrados`);
+      this.messageHandlers.forEach((handler, index) => {
         try {
+          console.log(`Executando handler ${index + 1}`);
           handler(notification.pedido);
         } catch (error) {
-          console.error('Erro no handler de notificação:', error);
+          console.error(`Erro no handler ${index + 1}:`, error);
         }
       });
+      
+      // Limpar notificações antigas do cache (manter apenas 100 mais recentes)
+      if (this.processedNotifications.size > 100) {
+        const notificationsArray = Array.from(this.processedNotifications);
+        const toKeep = notificationsArray.slice(-50); // Manter as 50 mais recentes
+        this.processedNotifications.clear();
+        toKeep.forEach(key => this.processedNotifications.add(key));
+      }
     } catch (error) {
       console.error('Erro ao processar notificação:', error);
     }
@@ -329,6 +352,14 @@ class PubSubService {
     if (index > -1) {
       this.messageHandlers.splice(index, 1);
     }
+  }
+
+  /**
+   * Remove todos os handlers
+   */
+  clearMessageHandlers() {
+    console.log(`Limpando ${this.messageHandlers.length} handlers existentes`);
+    this.messageHandlers = [];
   }
 
   /**
