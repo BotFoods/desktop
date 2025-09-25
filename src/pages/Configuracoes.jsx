@@ -40,7 +40,7 @@ const Configuracoes = () => {
             case 'whatsapp':
                 return (
                     <div className="w-full max-w-2xl">
-                        <div className="mb-6 text-center">
+                        {/* <div className="mb-6 text-center">
                             <h1 className="text-3xl font-bold text-white flex items-center justify-center mb-2">
                                 <FaWhatsapp className="mr-3 text-green-500" />
                                 WhatsApp Business
@@ -49,7 +49,7 @@ const Configuracoes = () => {
                                 <FaCog className="text-blue-400" />
                                 <span>Controlado via Service Electron</span>
                             </div>
-                        </div>
+                        </div> */}
                         
                         <WhatsAppController showMessage={showMessage} />
                         
