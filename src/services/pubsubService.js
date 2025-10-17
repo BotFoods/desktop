@@ -21,7 +21,6 @@ class PubSubService {
    */
   async startListening(filaPedidos, userData = null) {
     if (this.isListening && this.filaPedidos === filaPedidos) {
-      console.log(`Já está fazendo polling da fila: ${filaPedidos}`);
       return;
     }
 
@@ -40,11 +39,6 @@ class PubSubService {
       // Iniciar polling
       this.startPolling();
       
-      console.log(`Iniciado polling da fila: ${filaPedidos} a cada ${this.pollingFrequency}ms`);
-      if (userData) {
-        console.log(`Usuário configurado: ${userData.nome} (ID: ${userData.id}) da loja ${userData.loja_id}`);
-        console.log(`Sessão: ${this.sessionId}`);
-      }
     } catch (error) {
       console.error('Erro ao iniciar escuta:', error);
       throw error;
@@ -79,8 +73,6 @@ class PubSubService {
       // Armazenar o session_id retornado
       this.sessionId = data.session_id;
       
-      console.log('Service inscrito com sucesso:', data.message);
-      console.log('Session ID:', this.sessionId);
     } catch (error) {
       console.error('Erro ao inscrever service:', error);
       throw error;
@@ -170,24 +162,18 @@ class PubSubService {
       
       // Verificar se já foi processada
       if (this.processedNotifications.has(notificationKey)) {
-        console.log(`Notificação ${notificationKey} já foi processada, ignorando`);
         return;
       }
       
       // Marcar como processada
       this.processedNotifications.add(notificationKey);
       
-      // Log temporário para debug da notificação
-      console.log('Notificação recebida:', notification);
-      
       // Adicionar pedido à fila de delivery automaticamente
       this.addToDeliveryQueue(notification.pedido);
       
       // Notificar todos os handlers registrados
-      console.log(`Notificando ${this.messageHandlers.length} handlers registrados`);
       this.messageHandlers.forEach((handler, index) => {
         try {
-          console.log(`Executando handler ${index + 1}`);
           handler(notification.pedido);
         } catch (error) {
           console.error(`Erro no handler ${index + 1}:`, error);

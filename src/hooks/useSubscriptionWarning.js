@@ -1,46 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../services/AuthContext';
+import { useNotifications } from '../services/NotificationContext';
 
 export const useSubscriptionWarning = () => {
-  const [subscriptionData, setSubscriptionData] = useState(null);
   const [shouldShowWarning, setShouldShowWarning] = useState(false);
   const { token, user } = useAuth();
-  const API_BASE_URL = import.meta.env.VITE_API_URL;
+  const { assinatura: subscriptionData } = useNotifications();
 
   useEffect(() => {
-    const checkSubscriptionStatus = async () => {
-      try {
-        if (!token || !user) {
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/pagamentos/minha-assinatura`, {
-          headers: {
-            'Authorization': `${token}`,
-            'Content-Type': 'application/json'
-          },
-          credentials: 'include'
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const data = result.success ? result.data : result;
-          setSubscriptionData(data);
-          
-          // Verificar se deve mostrar o aviso
-          const shouldShow = evaluateWarningConditions(data);
-          setShouldShowWarning(shouldShow);
-        }
-      } catch (error) {
-      }
-    };
-
-    checkSubscriptionStatus();
-    // Verificar a cada 5 minutos
-    const interval = setInterval(checkSubscriptionStatus, 300000);
-
-    return () => clearInterval(interval);
-  }, [token, user, API_BASE_URL]);
+    if (subscriptionData) {
+      // Verificar se deve mostrar o aviso baseado nos dados do contexto
+      const shouldShow = evaluateWarningConditions(subscriptionData);
+      setShouldShowWarning(shouldShow);
+    }
+  }, [subscriptionData]);
 
   const evaluateWarningConditions = (data) => {
     if (!data) return false;

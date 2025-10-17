@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaStore, FaUser, FaLock, FaSignInAlt, FaExternalLinkAlt } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
+import { useNotifications } from '../services/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo_chatgpt.png';
 import DownloadButton from '../components/DownloadButton';
+import StoreSetupProgress from '../components/StoreSetupProgress';
+import SetupTimeoutFallback from '../components/SetupTimeoutFallback';
 
 const STORAGE_KEY = 'botfoods_loja';
 
@@ -13,8 +16,11 @@ const Login = () => {
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
+  const [setupTimeout, setSetupTimeout] = useState(false);
   const [lojaSalva, setLojaSalva] = useState(false);
   const { setUser, setToken } = useAuth();
+  const { verificarAssinatura } = useNotifications();
   const navigate = useNavigate();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
   
@@ -73,6 +79,28 @@ const Login = () => {
     setLoading(true);
     
     try {
+      // NOVA ESTRATÉGIA: Verificar primeiro se a loja precisa de configuração
+      // sem fazer o login completo ainda
+      const preCheckResponse = await fetch(`${API_BASE_URL}/api/check-store-setup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ loja, usuario }),
+        credentials: 'include',
+      });
+
+      const preCheckData = await preCheckResponse.json();
+      
+      // Se precisa de configuração, mostrar a tela IMEDIATAMENTE
+      if (preCheckData.needs_setup === true || preCheckData.requires_setup === true) {
+        setIsFirstTimeSetup(true);
+        setLoading(false);
+        return;
+      }
+      
+      // Se não precisa de configuração, fazer login normal
+      const startTime = Date.now();
       const response = await fetch(`${API_BASE_URL}/api/login`, {
         method: 'POST',
         headers: {
@@ -88,10 +116,47 @@ const Login = () => {
       });
       
       const data = await response.json();
-        if (data.auth) {
-        localStorage.setItem('token', data.token); // Mudado para localStorage
+      
+      // Verificar se é uma resposta indicando configuração inicial necessária
+      const needsSetup = (
+        data.requires_setup || 
+        data.needs_setup ||
+        data.first_time_setup ||
+        data.creating_queue ||
+        data.setting_up ||
+        data.queue_created === true || // Nova flag da API
+        (response.status === 202) ||
+        (response.status === 201) ||
+        (data.message && (
+          data.message.includes('configuração') ||
+          data.message.includes('primeira vez') ||
+          data.message.includes('setup') ||
+          data.message.includes('fila') ||
+          data.message.includes('topic') ||
+          data.message.includes('criando') ||
+          data.message.includes('Configuração inicial')
+        ))
+      );
+      
+      if (needsSetup) {
+        // Entrar no modo de configuração inicial
+        setIsFirstTimeSetup(true);
+        setLoading(false);
+        return;
+      }
+      
+      if (data.auth) {
+        localStorage.setItem('token', data.token);
         setUser(data.user_data);
         setToken(data.token);
+        
+        // Verificar assinatura uma vez no login
+        try {
+          await verificarAssinatura();
+        } catch (subscriptionError) {
+          console.warn('Erro ao verificar assinatura no login:', subscriptionError);
+        }
+        
         navigate('/caixa');
         
         if (lojaSalva) {
@@ -103,9 +168,79 @@ const Login = () => {
     } catch (err) {
       setError('Falha na conexão com o servidor. Por favor, verifique sua internet e tente novamente.');
     } finally {
-      setLoading(false);
+      if (!isFirstTimeSetup) {
+        setLoading(false);
+      }
     }
   };
+
+  // Handler para quando a configuração for concluída
+  const handleSetupComplete = async (loginData) => {
+    // loginData já contém o resultado do login real feito pelo StoreSetupProgress
+    
+    localStorage.setItem('token', loginData.token);
+    setUser(loginData.user_data);
+    setToken(loginData.token);
+    
+    // Verificar assinatura
+    try {
+      await verificarAssinatura();
+    } catch (subscriptionError) {
+      console.warn('Erro ao verificar assinatura no login:', subscriptionError);
+    }
+    
+    // Salvar loja se necessário
+    if (lojaSalva) {
+      localStorage.setItem(STORAGE_KEY, loja);
+    }
+    
+    // Navegar para o caixa
+    navigate('/caixa');
+  };
+
+  // Handler para timeout da configuração inicial  
+  const handleSetupTimeout = () => {
+    setIsFirstTimeSetup(false);
+    setSetupTimeout(true);
+  };
+
+  // Handler para retry após timeout
+  const handleRetry = () => {
+    setSetupTimeout(false);
+    setError('');
+    handleSubmit({ preventDefault: () => {} });
+  };
+
+  // Handler para voltar ao login
+  const handleBackToLogin = () => {
+    setSetupTimeout(false);
+    setIsFirstTimeSetup(false);
+    setLoading(false);
+    setError('');
+  };
+
+  // Mostrar tela de timeout se necessário
+  if (setupTimeout) {
+    return (
+      <SetupTimeoutFallback 
+        storeName={loja}
+        onRetry={handleRetry}
+        onBackToLogin={handleBackToLogin}
+      />
+    );
+  }
+
+  // Mostrar tela de configuração inicial se necessário
+  if (isFirstTimeSetup) {
+    return (
+      <StoreSetupProgress 
+        storeName={loja}
+        onTimeout={handleSetupTimeout}
+        onComplete={handleSetupComplete}
+        credentials={{ loja, usuario, senha }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">

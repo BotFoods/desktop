@@ -9,6 +9,7 @@ import {
   useElements
 } from '@stripe/react-stripe-js';
 import { useAuth } from '../services/AuthContext';
+import { useNotifications } from '../services/NotificationContext';
 import StatusAssinatura from '../components/StatusAssinatura';
 import { 
   FaLock, 
@@ -333,6 +334,7 @@ const PaymentSetupForm = ({
 // Componente principal
 const ConfiguracaoPagamento = () => {
   const { user } = useAuth();
+  const { refreshAssinatura } = useNotifications();
   const navigate = useNavigate();
   const [subscriptionData, setSubscriptionData] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
@@ -410,7 +412,7 @@ const ConfiguracaoPagamento = () => {
     loadUserData();
   }, [API_BASE_URL, user]);
 
-  const handleSuccess = (data) => {
+  const handleSuccess = async (data) => {
     setSuccess(true);
     // Atualizar dados da assinatura
     if (data.subscription) {
@@ -418,6 +420,13 @@ const ConfiguracaoPagamento = () => {
         ...prev,
         payment_method_configured: true
       }));
+    }
+    
+    // Refresh no contexto de notificações para atualizar o estado global
+    try {
+      await refreshAssinatura();
+    } catch (error) {
+      console.error('Erro ao atualizar contexto de assinatura:', error);
     }
   };
 
