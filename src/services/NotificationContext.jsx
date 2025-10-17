@@ -17,20 +17,24 @@ export const NotificationProvider = ({ children }) => {
     const { token, user } = useAuth();
     const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-    // Verificar status da assinatura periodicamente
+    // Verificar status da assinatura apenas uma vez no login
     useEffect(() => {
-        if (token && user) {
+        if (token && user && !assinatura) {
+            // Verificar apenas uma vez quando o usuário loggar
             verificarAssinatura();
-            const interval = setInterval(verificarAssinatura, 300000); // 5 minutos
-            return () => clearInterval(interval);
         }
     }, [token, user]);
 
-    const verificarAssinatura = async () => {
+    const verificarAssinatura = async (forceRefresh = false) => {
         try {
             // Verificar se o token existe e é válido
             if (!token || !user) {
                 return;
+            }
+
+            // Se já temos dados e não é refresh forçado, não fazer nova requisição
+            if (assinatura && !forceRefresh) {
+                return assinatura;
             }
 
             const response = await fetch(`${API_BASE_URL}/api/pagamentos/minha-assinatura`, {
@@ -46,15 +50,19 @@ export const NotificationProvider = ({ children }) => {
                 const data = result.success ? result.data : result;
                 setAssinatura(data);
                 verificarNotificacoesAssinatura(data);
+                return data;
             } else if (response.status === 401) {
                 // Não mostrar erro 401 como erro crítico
                 setAssinatura(null);
+                return null;
             } else {
                 throw new Error(`Erro ${response.status}: ${response.statusText}`);
             }
         } catch (error) {
+            console.error('NotificationContext: Erro ao verificar assinatura:', error);
             // Não definir assinatura como null em caso de erro de rede
             // para evitar notificações falsas
+            return null;
         }
     };
 
@@ -166,6 +174,10 @@ export const NotificationProvider = ({ children }) => {
         return notifications.filter(n => n.persistent && !n.read);
     };
 
+    const refreshAssinatura = async () => {
+        return await verificarAssinatura(true);
+    };
+
     const value = {
         notifications,
         assinatura,
@@ -175,7 +187,8 @@ export const NotificationProvider = ({ children }) => {
         clearAll,
         getUnreadCount,
         getPersistentNotifications,
-        verificarAssinatura
+        verificarAssinatura,
+        refreshAssinatura // Nova função para refresh manual
     };
 
     return (

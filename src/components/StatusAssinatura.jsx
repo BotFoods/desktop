@@ -1,49 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../services/AuthContext';
+import { useNotifications } from '../services/NotificationContext';
 import { FaCheckCircle, FaExclamationTriangle, FaCreditCard, FaCalendarAlt, FaClock } from 'react-icons/fa';
 
 const StatusAssinatura = () => {
-    const [assinatura, setAssinatura] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const { token } = useAuth();
-    const API_BASE_URL = import.meta.env.VITE_API_URL;
+    const { assinatura, refreshAssinatura } = useNotifications();
 
+    // Usar dados do contexto ao invés de fazer request próprio
     useEffect(() => {
-        buscarAssinatura();
-    }, []);
+        if (!assinatura && token) {
+            // Se não temos dados no contexto, tentar buscar uma vez
+            refreshData();
+        }
+    }, [token]);
 
-    const buscarAssinatura = async () => {
+    const refreshData = async () => {
         try {
             setLoading(true);
-            
-            if (!token) {
-                setError('Usuário não autenticado');
-                return;
-            }
-
-            const response = await fetch(`${API_BASE_URL}/api/pagamentos/minha-assinatura`, {
-                headers: {
-                    'Authorization': `${token}`,
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include'
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                // A API retorna os dados dentro de result.data quando success é true
-                const subscriptionData = result.success ? result.data : result;
-                setAssinatura(subscriptionData);
-                setError(null);
-            } else if (response.status === 401) {
-                setError('Sessão expirada. Faça login novamente.');
-            } else if (response.status === 404) {
-                setAssinatura(null);
-                setError(null);
-            } else {
-                throw new Error(`Erro ${response.status}: ${response.statusText}`);
-            }
+            setError(null);
+            await refreshAssinatura();
         } catch (err) {
             setError('Erro ao carregar informações da assinatura');
         } finally {
