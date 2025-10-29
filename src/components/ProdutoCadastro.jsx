@@ -169,7 +169,7 @@ const ProdutoCadastro = () => {
             const data = await response.json();
 
             if (data.success) {
-                const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria, disponibilidade: 1 };
+                const newProduct = { id: data.id, nome, descricao, preco, id_categoria: idCategoria, category_id: idCategoria, disponibilidade: 1 };
                 
                 setProdutos((prevProdutos) => {
                     const updatedProdutos = { ...prevProdutos };
@@ -183,7 +183,9 @@ const ProdutoCadastro = () => {
                         updatedProdutos[categoryName].push({
                             ...newProduct,
                             name: nome,  // Add name property for display
-                            price: preco // Add price property for display
+                            price: preco, // Add price property for display
+                            category_id: parseInt(idCategoria, 10),
+                            id_categoria: parseInt(idCategoria, 10)
                         });
                     }
                     return updatedProdutos;
@@ -229,18 +231,18 @@ const ProdutoCadastro = () => {
                 'Content-Type': 'application/json',
                 authorization: `${token}`
             },
-            credentials: 'include',            body: JSON.stringify({
-                id: editProduct.id,
+            credentials: 'include',
+            body: JSON.stringify({
                 nome: editProduct.nome || editProduct.name,
-                descricao: editProduct.descricao,
+                descricao: editProduct.descricao || '',
                 preco: precoFormatado,
-                loja_id: user.loja_id, // SEGURANÇA: Usar loja_id do usuário logado
-                id_categoria: editProduct.id_categoria
+                id_categoria: editProduct.id_categoria,
+                disponibilidade: editProduct.disponibilidade || 1
             })
         };
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/produtos/atualizar/${editProduct.id}`, options);
+            const response = await fetch(`${API_BASE_URL}/api/produtos/${editProduct.id}?loja_id=${user.loja_id}`, options);
             const data = await response.json();
 
             if (data.success) {
@@ -258,7 +260,10 @@ const ProdutoCadastro = () => {
                                 name: editProduct.nome || editProduct.name,
                                 descricao: editProduct.descricao,
                                 preco: precoFormatado,
-                                price: precoFormatado
+                                price: precoFormatado,
+                                category_id: editProduct.id_categoria,
+                                id_categoria: editProduct.id_categoria,
+                                disponibilidade: editProduct.disponibilidade || 1
                             };
                             break;
                         }
@@ -269,11 +274,13 @@ const ProdutoCadastro = () => {
 
                 showMessage('Produto atualizado com sucesso!');
                 setIsEditModalOpen(false);
+                setEditProduct(null);
             } else {
                 showMessage(data.message || 'Erro ao atualizar produto', 'error');
             }
         } catch (error) {
-            showMessage('Erro ao atualizar produto', 'error');
+            console.error('Erro ao atualizar produto:', error);
+            showMessage('Erro ao atualizar produto. Verifique sua conexão.', 'error');
         } finally {
             setLoading(false);
         }
@@ -339,7 +346,13 @@ const ProdutoCadastro = () => {
 
     const handleEditProduto = (categoria, index) => {
         const product = produtos[categoria][index];
-        setEditProduct({ ...product });
+        // Mapeia category_id para id_categoria e adiciona compatibilidade com ambos
+        setEditProduct({
+            ...product,
+            id_categoria: product.category_id || product.id_categoria,
+            preco: product.price || product.preco,
+            nome: product.name || product.nome
+        });
         setIsEditModalOpen(true);
     };
 
@@ -635,8 +648,11 @@ const ProdutoCadastro = () => {
 
             {isEditModalOpen && editProduct && (
                 <Modal
-                    isOpen={isEditModalOpen}
-                    onClose={() => setIsEditModalOpen(false)}
+                    isOpen={isEditModalOpen && editProduct !== null}
+                    onClose={() => {
+                        setIsEditModalOpen(false);
+                        setEditProduct(null);
+                    }}
                     title="Editar Produto"
                     icon={<FaEdit />}
                     width="max-w-xl"
@@ -648,7 +664,7 @@ const ProdutoCadastro = () => {
                             </label>
                             <input
                                 type="text"
-                                value={editProduct.nome || editProduct.name || ''}
+                                value={editProduct?.nome || editProduct?.name || ''}
                                 onChange={(e) => setEditProduct({ ...editProduct, nome: e.target.value, name: e.target.value })}
                                 placeholder="Nome do Produto"
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
@@ -662,7 +678,7 @@ const ProdutoCadastro = () => {
                                 Descrição
                             </label>
                             <textarea
-                                value={editProduct.descricao || ''}
+                                value={editProduct?.descricao || ''}
                                 onChange={(e) => setEditProduct({ ...editProduct, descricao: e.target.value })}
                                 placeholder="Descrição do Produto"
                                 className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
@@ -681,7 +697,7 @@ const ProdutoCadastro = () => {
                                 </span>
                                 <input
                                     type="text"
-                                    value={editProduct.price || editProduct.preco || ''}
+                                    value={editProduct?.price || editProduct?.preco || ''}
                                     onChange={(e) => {
                                         const value = e.target.value.replace(/[^0-9,]/g, '');
                                         setEditProduct({ ...editProduct, price: value, preco: value })
@@ -693,9 +709,31 @@ const ProdutoCadastro = () => {
                             </div>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">
+                                Categoria <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                                value={editProduct?.id_categoria || ''}
+                                onChange={(e) => setEditProduct({ ...editProduct, id_categoria: parseInt(e.target.value, 10) })}
+                                className="w-full p-3 rounded-lg bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200"
+                                disabled={loading}
+                            >
+                                <option value="">Selecione uma Categoria</option>
+                                {categorias.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.categoria}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         <div className="flex space-x-3 pt-2">
                             <button
-                                onClick={() => setIsEditModalOpen(false)}
+                                onClick={() => {
+                                    setIsEditModalOpen(false);
+                                    setEditProduct(null);
+                                }}
                                 className="w-1/2 p-3 rounded-lg bg-gray-600 hover:bg-gray-700 text-white font-medium transition-colors duration-200"
                                 disabled={loading}
                             >

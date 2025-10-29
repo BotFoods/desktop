@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'; // Adicionado useCallback
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import pubsubService from './pubsubService';
+import notificationPollingService from './notificationPollingService';
 
 const AuthContext = createContext();
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -15,16 +15,18 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const lastValidatedToken = useRef(localStorage.getItem('token') || null); // Mudado para localStorage
+  const pubsubInitializedRef = useRef(false); // Rastrear se PubSub foi inicializado
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token'); // Mudado para localStorage
-    lastValidatedToken.current = null; // Limpa o último token validado
-    setIsInitialized(true); // Marca como inicializado após logout
+    localStorage.removeItem('token');
+    lastValidatedToken.current = null;
+    pubsubInitializedRef.current = false;
+    setIsInitialized(true);
     
-    // Parar escuta do PubSub
-    pubsubService.stopListening().catch(error => {
-      console.error('Erro ao parar escuta do PubSub:', error);
+    // Parar polling de notificações
+    notificationPollingService.stopListening().catch(error => {
+      console.error('Erro ao parar polling:', error.message);
     });
     
     // Só redirecionar para login se não estiver na página de login e não for cardapio ou checkout
@@ -72,8 +74,9 @@ export const AuthProvider = ({ children }) => {
         lastValidatedToken.current = storedToken; // Atualiza o último token validado
         setIsInitialized(true); // Marca como inicializado após validação bem-sucedida
         
-        // Iniciar escuta do PubSub se houver fila_pedidos
-        if (data.user_data?.fila_pedidos && !pubsubService.getIsListening()) {
+        // Iniciar escuta do PubSub se houver fila_pedidos E se não foi inicializado ainda
+        if (data.user_data?.fila_pedidos && !pubsubInitializedRef.current) {
+          pubsubInitializedRef.current = true;
           initializePubSub(data.user_data);
         }
       } else {
@@ -88,37 +91,38 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isValidating, location.pathname, user, logout]); // Adicionado user e logout às dependências
 
-  // Função para inicializar PubSub e registrar handlers
+  // Função para inicializar polling de notificações
   const initializePubSub = useCallback(async (userData) => {
     try {
-      // Verificar se o usuário tem permissão para receber pedidos online
+      console.log('[🚀 AuthContext] Inicializando polling de notificações');
+      
+      // Verificar permissão
       if (!userData.permissoes?.receber_pedidos_online) {
-        console.log('Usuário não tem permissão para receber pedidos online');
+        console.log('[⚠️ AuthContext] Usuário sem permissão para receber pedidos online');
         return;
       }
 
       if (!userData.fila_pedidos) {
-        console.log('Usuário não possui fila_pedidos configurada');
+        console.log('[⚠️ AuthContext] Usuário sem fila_pedidos configurada');
         return;
       }
 
-      // Verificar se já está ouvindo a mesma fila para evitar reinicialização desnecessária
-      if (pubsubService.getIsListening() && pubsubService.filaPedidos === userData.fila_pedidos) {
-        console.log('PubSub já está configurado para esta fila');
+      // Verificar se já está ouvindo
+      if (notificationPollingService.getIsListening()) {
+        console.log('[⚠️ AuthContext] Polling já está ativo');
         return;
       }
 
-      // Limpar handlers existentes antes de registrar novos
-      pubsubService.clearMessageHandlers();
+      // Limpar handlers existentes
+      notificationPollingService.clearMessageHandlers();
 
-      // Passar todos os dados do usuário para o pubsubService
-      await pubsubService.startListening(userData.fila_pedidos, userData);
+      await notificationPollingService.startListening(userData.fila_pedidos, userData);
+      console.log('[✅ AuthContext] Polling iniciado com sucesso');
       
       // Registrar handler para novos pedidos
       const handleNewOrder = (pedido) => {
-        console.log('AuthContext: Novo pedido recebido:', pedido);
+        console.log('[🔔 AuthContext] Handler recebeu pedido:', pedido.id_venda);
         
-        // Formatar valor para notificação
         const formatCurrency = (value) => {
           const numericValue = parseFloat(value) || 0;
           return new Intl.NumberFormat('pt-BR', {
@@ -127,39 +131,33 @@ export const AuthProvider = ({ children }) => {
           }).format(numericValue);
         };
         
-        // Usar campos corretos baseados na estrutura real
         const customerName = pedido.dados_cliente?.nome || 'Cliente';
         const orderValue = formatCurrency(pedido.total_venda || 0);
         const orderId = pedido.id_venda?.toString()?.slice(-4) || 'N/A';
         
-        console.log('AuthContext: Dados extraídos da notificação:', {
-          customerName,
-          orderValue,
+        console.log('[🔔 AuthContext] Disparando notificação Electron:', {
           orderId,
-          pedido_completo: pedido
+          customerName,
+          orderValue
         });
         
-        // Mostrar notificação do sistema
-        if (window.electronAPI && window.electronAPI.showNotification) {
-          console.log('AuthContext: Mostrando notificação Electron');
+        if (window.electronAPI?.showNotification) {
           window.electronAPI.showNotification({
             title: 'Novo Pedido Delivery!',
             body: `Pedido #${orderId} de ${customerName} - ${orderValue}`,
             icon: 'path/to/icon.png'
           });
-        } else {
-          console.log('AuthContext: ElectronAPI não disponível para notificação');
         }
         
-        // Emitir som de notificação se possível
-        if (window.electronAPI && window.electronAPI.playNotificationSound) {
+        if (window.electronAPI?.playNotificationSound) {
           window.electronAPI.playNotificationSound();
         }
       };
       
-      pubsubService.addMessageHandler(handleNewOrder);
+      notificationPollingService.addMessageHandler(handleNewOrder);
+      console.log('[✅ AuthContext] Handler de Electron registrado');
     } catch (error) {
-      console.error('Erro ao inicializar PubSub:', error);
+      console.error('[❌ AuthContext] Erro ao inicializar polling:', error.message);
     }
   }, []);
 

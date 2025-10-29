@@ -20,16 +20,15 @@ import Cardapio from './pages/Cardapio';
 import Delivery from './pages/Delivery';
 import DeliveryOrders from './pages/DeliveryOrders';
 import Configuracoes from './pages/Configuracoes';
+import MetodosPagamento from './pages/MetodosPagamento';
 
 const AppRoutes = () => {
-  const navigate = useNavigate();
-
   useEffect(() => {
     document.body.classList.add('dark');
   }, []);
 
   return (
-    <AuthProvider navigate={navigate}>
+    <AuthProvider>
       <NotificationProvider>
         <div className="bg-gray-900 text-white min-h-screen">
           <OrderNotification />
@@ -122,6 +121,14 @@ const AppRoutes = () => {
                 <PrivateRoute>
                   <Header />
                   <Configuracoes />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/configuracoes/metodos-pagamento"
+              element={
+                <PrivateRoute>
+                  <MetodosPagamento />
                 </PrivateRoute>
               }
             />

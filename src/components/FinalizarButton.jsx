@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
 import { FaCheckCircle } from 'react-icons/fa';
@@ -8,13 +8,58 @@ import LoadingSpinner from './LoadingSpinner';
 import useApiError from '../hooks/useApiError';
 import { apiPost } from '../services/ApiService';
 import printManager from '../services/printManager';
+import { listarMetodosPagamento } from '../services/MetodosPagamentoService';
 
 const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children, onVendaFinalizada }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+  const [metodosPagamento, setMetodosPagamento] = useState([]);
+  const [loadingMetodos, setLoadingMetodos] = useState(false);
   const { user, token } = useAuth();
   const { errorInfo, handleApiError, closeError } = useApiError();
+
+  // Carregar métodos de pagamento ao montar o componente
+  useEffect(() => {
+    const carregarMetodos = async () => {
+      if (!token) return;
+      
+      try {
+        setLoadingMetodos(true);
+        const response = await listarMetodosPagamento(token);
+        
+        // Verificar se a resposta tem a estrutura esperada
+        if (response && response.data && Array.isArray(response.data)) {
+          setMetodosPagamento(response.data);
+        } else if (Array.isArray(response)) {
+          setMetodosPagamento(response);
+        } else {
+          console.error('Formato de resposta inválido:', response);
+          // Fallback para métodos padrões
+          setMetodosPagamento([
+            { id: 1, metodo: 'Dinheiro', descricao: 'Pagamento em espécie', ativo: true },
+            { id: 2, metodo: 'Cartão de Crédito', descricao: 'Pagamento com cartão de crédito', ativo: true },
+            { id: 3, metodo: 'Cartão de Débito', descricao: 'Pagamento com cartão de débito', ativo: true },
+            { id: 4, metodo: 'PIX', descricao: 'Pagamento via PIX', ativo: true }
+          ]);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar métodos de pagamento:', error);
+        showAlert('Erro ao carregar métodos de pagamento. Usando padrões.', 'warning');
+        // Fallback para métodos padrões
+        setMetodosPagamento([
+          { id: 1, metodo: 'Dinheiro', descricao: 'Pagamento em espécie', ativo: true },
+          { id: 2, metodo: 'Cartão de Crédito', descricao: 'Pagamento com cartão de crédito', ativo: true },
+          { id: 3, metodo: 'Cartão de Débito', descricao: 'Pagamento com cartão de débito', ativo: true },
+          { id: 4, metodo: 'PIX', descricao: 'Pagamento via PIX', ativo: true }
+        ]);
+      } finally {
+        setLoadingMetodos(false);
+      }
+    };
+
+    carregarMetodos();
+  }, [token]);
 
   // Função para mostrar alerta
   const showAlert = (message, type = 'info', title = 'Atenção') => {
@@ -38,7 +83,8 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
   const closeModal = () => {
     setIsModalOpen(false);
   };
-  const handleOptionClick = async (option) => {
+  
+  const handleOptionClick = async (metodoPagamento) => {
     setIsProcessing(true);
     const userId = user.id;
 
@@ -47,16 +93,15 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
       produto_id: produto.id_produto,
       quantidade: produto.quantidade,
       preco_unitario: produto.preco_unitario,
-      valor_desconto_item: produto.valor_desconto_item || 0, // Assuming valor_desconto_item might exist on produto
+      valor_desconto_item: produto.valor_desconto_item || 0,
     }));
 
-    // Prepare 'pagamentos' for the payload
+    // Prepare 'pagamentos' for the payload usando o ID do método selecionado
     const pagamentosPayload = [
       {
-        metodo_pagamento_id: option === 'Crédito' ? 1 : option === 'Débito' ? 2 : 3, // Example IDs, ensure they match backend
+        metodo_pagamento_id: metodoPagamento.id,
         valor_pago: pdv.pdv.venda.total_venda,
-        valor_troco: 0.0, // Assuming troco is handled or calculated elsewhere if necessary
-        // autorizacao_cartao is optional and not used by the new SP
+        valor_troco: 0.0,
       },
     ];    const vendaData = {
       usuarioId: userId,
@@ -81,7 +126,7 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
             vendaId: data.cupomId,
             produtos: pdv.pdv.venda.produtos,
             total: pdv.pdv.venda.total_venda,
-            forma_pagamento: option,
+            forma_pagamento: metodoPagamento.metodo, // Usar nome do método
             cliente: pdv.pdv.venda.dados_cliente,
             vendedor: pdv.pdv.caixa.operador?.nome || 'Sistema',
             mesa: pdv.pdv.venda.mesa,
@@ -167,43 +212,45 @@ const FinalizarButton = ({ pdv, loja_id, setPdv, setOrders, className, children,
       
       {isModalOpen && (
         <div className="fixed inset-0 flex items-center justify-center z-50 text-white">
-          <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>          <div className="bg-gray-800 p-6 rounded-lg shadow-xl z-10 w-96">
-            <h2 className="text-xl font-bold mb-6 text-center border-b pb-2 border-gray-700">Escolha a forma de pagamento</h2>
-            {isProcessing && (
+          <div className="bg-black bg-opacity-75 absolute inset-0" onClick={closeModal}></div>
+          <div className="bg-gray-800 p-6 rounded-lg shadow-xl z-10 w-96 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-6 text-center border-b pb-2 border-gray-700">
+              Escolha a forma de pagamento
+            </h2>
+            
+            {(isProcessing || loadingMetodos) && (
               <div className="mb-4">
                 <LoadingSpinner 
                   size="md"
-                  message="Processando pagamento..."
+                  message={loadingMetodos ? "Carregando métodos..." : "Processando pagamento..."}
                   className="text-center"
                 />
               </div>
             )}
+            
+            {!loadingMetodos && metodosPagamento.length === 0 && (
+              <p className="text-center text-gray-400 mb-4">
+                Nenhum método de pagamento disponível.
+              </p>
+            )}
+            
             <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => handleOptionClick('Crédito')}
-                disabled={isProcessing}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
-              >
-                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Crédito'}
-              </button>
-              <button
-                onClick={() => handleOptionClick('Débito')}
-                disabled={isProcessing}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
-              >
-                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Débito'}
-              </button>
-              <button
-                onClick={() => handleOptionClick('Pix')}
-                disabled={isProcessing}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
-              >
-                {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : 'Pix'}
-              </button>
+              {metodosPagamento.map((metodo) => (
+                <button
+                  key={metodo.id}
+                  onClick={() => handleOptionClick(metodo)}
+                  disabled={isProcessing || loadingMetodos}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
+                  title={metodo.descricao}
+                >
+                  {isProcessing ? <LoadingSpinner size="sm" showMessage={false} /> : metodo.metodo}
+                </button>
+              ))}
+              
               <button
                 onClick={closeModal}
                 disabled={isProcessing}
-                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out"
+                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition duration-150 ease-in-out col-span-2"
               >
                 Cancelar
               </button>

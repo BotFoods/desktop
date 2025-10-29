@@ -111,32 +111,17 @@ const Configuracoes = () => {
                         {/* Separador */}
                         <div className="border-t border-gray-600 mb-6 pt-6">
                             <h3 className="text-white font-semibold mb-4 text-center">Métodos do PDV Local</h3>
+                            <p className="text-gray-400 text-sm text-center mb-4">
+                                Configure os métodos de pagamento aceitos no seu estabelecimento.
+                            </p>
                         </div>
                         
-                        <div className="space-y-4 mb-6">
-                            <div className="flex items-center p-3 bg-gray-700 rounded-lg">
-                                <input type="checkbox" id="credito" className="mr-3 h-5 w-5" defaultChecked />
-                                <label htmlFor="credito" className="text-white flex-grow">Cartão de Crédito</label>
-                            </div>
-                            
-                            <div className="flex items-center p-3 bg-gray-700 rounded-lg">
-                                <input type="checkbox" id="debito" className="mr-3 h-5 w-5" defaultChecked />
-                                <label htmlFor="debito" className="text-white flex-grow">Cartão de Débito</label>
-                            </div>
-                            
-                            <div className="flex items-center p-3 bg-gray-700 rounded-lg">
-                                <input type="checkbox" id="pix" className="mr-3 h-5 w-5" defaultChecked />
-                                <label htmlFor="pix" className="text-white flex-grow">PIX</label>
-                            </div>
-                            
-                            <div className="flex items-center p-3 bg-gray-700 rounded-lg">
-                                <input type="checkbox" id="dinheiro" className="mr-3 h-5 w-5" defaultChecked />
-                                <label htmlFor="dinheiro" className="text-white flex-grow">Dinheiro</label>
-                            </div>
-                        </div>
-                        
-                        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded transition duration-150 ease-in-out">
-                            Salvar Configurações
+                        <button 
+                            onClick={() => navigate('/configuracoes/metodos-pagamento')}
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out flex items-center justify-center"
+                        >
+                            <FaCreditCard className="mr-2" />
+                            Gerenciar Métodos de Pagamento
                         </button>
                     </div>
                 );

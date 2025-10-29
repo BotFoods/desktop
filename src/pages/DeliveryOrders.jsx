@@ -20,11 +20,17 @@ import AlertModal from '../components/AlertModal';
 import Header from '../components/Header';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { printManager } from '../services/printManager';
+import { useAuth } from '../services/AuthContext';
+import { apiGet, apiPost } from '../services/ApiService';
+import { verificarCaixaAberto } from '../services/CaixaService';
+import { listarMetodosPagamento } from '../services/MetodosPagamentoService';
 import '../styles/kanban.css';
 
 const DELIVERY_ORDERS_STORAGE_KEY = 'pdv_delivery_aguardando';
 
 const DeliveryOrders = () => {
+  const { token, user } = useAuth();
+  
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -45,6 +51,8 @@ const DeliveryOrders = () => {
     return saved ? JSON.parse(saved) : false;
   }); // Flag para confirmação automática
   const [showSettings, setShowSettings] = useState(false); // Modal de configurações
+  const [metodosPagamento, setMetodosPagamento] = useState([]);
+  const [metodoPagamentoPadrao, setMetodoPagamentoPadrao] = useState(null);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,6 +93,7 @@ const DeliveryOrders = () => {
 
   useEffect(() => {
     loadDeliveryOrders();
+    carregarMetodosPagamento();
     
     // Set up event listener for order updates
     const handleOrdersUpdated = () => {
@@ -101,6 +110,38 @@ const DeliveryOrders = () => {
       clearInterval(interval);
     };
   }, []);
+
+  // Carregar métodos de pagamento
+  const carregarMetodosPagamento = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await listarMetodosPagamento(token);
+      
+      // Verificar se a resposta tem a estrutura esperada
+      let data = [];
+      if (response && response.data && Array.isArray(response.data)) {
+        data = response.data;
+      } else if (Array.isArray(response)) {
+        data = response;
+      } else {
+        console.error('[Delivery] Formato de resposta inválido:', response);
+      }
+      
+      setMetodosPagamento(data);
+      
+      // Definir método padrão (primeiro da lista ou Dinheiro se existir)
+      if (data.length > 0) {
+        const dinheiro = data.find(m => m.metodo.toLowerCase().includes('dinheiro'));
+        setMetodoPagamentoPadrao(dinheiro || data[0]);
+      }
+    } catch (error) {
+      console.error('[Delivery] Erro ao carregar métodos de pagamento:', error);
+      // Fallback para Dinheiro
+      setMetodoPagamentoPadrao({ id: 1, metodo: 'Dinheiro' });
+      setMetodosPagamento([]);
+    }
+  };
 
   // Se chegou de uma notificação, abrir detalhes automaticamente
   useEffect(() => {
@@ -333,6 +374,103 @@ const DeliveryOrders = () => {
       if (!printed) {
         return; // Não atualiza o status se a impressão falhou
       }
+      
+      // **GATILHO: Contabilizar venda ao CONFIRMAR pedido WhatsApp**
+      // Usar a MESMA rota que vendas de balcão: /api/vendas/registrar
+      (async () => {
+        try {
+          console.log('[Delivery] 🎯 Iniciando contabilização de pedido WhatsApp', {
+            order_id: order.id,
+            source: order.source,
+            status_anterior: order.status,
+            status_novo: newStatus
+          });
+          
+          // 1. Buscar caixa aberto
+          const caixaData = await verificarCaixaAberto(user.id, token, user.loja_id);
+          
+          if (!caixaData.success || !caixaData.caixas || caixaData.caixas.length === 0) {
+            console.error('[Delivery] ❌ Nenhum caixa aberto encontrado');
+            showAlert('Erro: Nenhum caixa aberto. Abra um caixa antes de confirmar pedidos.', 'error', 'Caixa Fechado');
+            return;
+          }
+          
+          const caixaAberto = caixaData.caixas[0];
+          console.log('[Delivery] 💰 Caixa aberto encontrado:', caixaAberto.id);
+          
+          // 2. Preparar itens no formato esperado pela API de vendas
+          const itens = order.items.map(item => ({
+            produto_id: item.id,
+            quantidade: item.quantidade || item.quantity || 1,
+            preco_unitario: parseFloat(item.preco || item.price || 0),
+            valor_desconto_item: 0
+          }));
+          
+          // 3. Preparar pagamentos usando método padrão do sistema
+          if (!metodoPagamentoPadrao) {
+            console.error('[Delivery] ❌ Nenhum método de pagamento disponível');
+            showAlert('Erro: Configure os métodos de pagamento antes de confirmar pedidos.', 'error', 'Configuração Necessária');
+            return;
+          }
+          
+          const pagamentos = [{
+            metodo_pagamento_id: metodoPagamentoPadrao.id,
+            valor_pago: parseFloat(order.totalAmount || order.total || 0),
+            valor_troco: 0
+          }];
+          
+          console.log('[Delivery] 💳 Usando método de pagamento:', {
+            id: metodoPagamentoPadrao.id,
+            nome: metodoPagamentoPadrao.metodo
+          });
+          
+          // 4. Definir venda_origem_id para "Delivery Próprio"
+          // Conforme database: ID 4 = "Delivery Próprio"
+          const vendaOrigemId = 4;
+          
+          const payload = {
+            usuarioId: user.id,
+            caixaId: caixaAberto.id,
+            lojaId: user.loja_id,
+            vendaOrigemId: vendaOrigemId,
+            clienteId: null,
+            cpfCnpjCliente: null,
+            cupomDesconto: 0,
+            itens: itens,
+            pagamentos: pagamentos
+          };
+          
+          console.log('[Delivery] 📦 Payload para /api/vendas/registrar:', payload);
+          
+          const data = await apiPost('/api/vendas/registrar', payload, token);
+          
+          if (data.success) {
+            console.log('[Delivery] ✅ Pedido contabilizado com sucesso:', {
+              cupom_id: data.cupomId,
+              numero_cupom_fiscal: data.numeroCupomFiscal
+            });
+            showAlert(
+              `Pedido contabilizado! Cupom: ${data.numeroCupomFiscal}`, 
+              'success', 
+              'Venda Registrada'
+            );
+          } else {
+            console.error('[Delivery] ⚠️ Erro na contabilização:', data);
+            showAlert(
+              `Erro ao contabilizar: ${data.error || data.message || 'Erro desconhecido'}`, 
+              'error', 
+              'Erro de Contabilização'
+            );
+          }
+        } catch (error) {
+          console.error('[Delivery] ❌ Erro ao contabilizar pedido WhatsApp:', error);
+          showAlert(
+            `Erro ao contabilizar pedido: ${error.message}`, 
+            'error', 
+            'Erro'
+          );
+        }
+      })();
     }
     
     const updatedOrders = orders.map(order => 
