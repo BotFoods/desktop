@@ -188,7 +188,7 @@ export const NotificationProvider = ({ children }) => {
         getUnreadCount,
         getPersistentNotifications,
         verificarAssinatura,
-        refreshAssinatura // Nova função para refresh manual
+        refreshAssinatura
     };
 
     return (

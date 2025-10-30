@@ -1,14 +1,22 @@
 // desktop/src/components/OrderNotification.jsx
 import { useState, useEffect } from 'react';
-import pubsubService from '../services/pubsubService';
+import notificationPollingService from '../services/notificationPollingService';
 import { FaBell, FaTimes } from 'react-icons/fa';
 
 const OrderNotification = () => {
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
+    console.log('[🎯 OrderNotification] Componente montado');
+    
     // Handler para novos pedidos
     const handleNewOrder = (pedido) => {
+      console.log('[🔔 OrderNotification] Handler chamado com pedido:', {
+        id: pedido.id || pedido.id_venda,
+        cliente: pedido.cliente?.nome || pedido.dados_cliente?.nome || 'undefined',
+        total: pedido.total || pedido.total_venda
+      });
+      
       const notification = {
         id: Date.now(),
         pedido,
@@ -16,20 +24,27 @@ const OrderNotification = () => {
         isNew: true
       };
 
-      setNotifications(prev => [...prev, notification]);
+      setNotifications(prev => {
+        console.log('[➕ OrderNotification] Adicionando notificação. Total antes:', prev.length);
+        return [...prev, notification];
+      });
 
       // Auto remove após 10 segundos
       setTimeout(() => {
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setNotifications(prev => {
+          console.log('[➖ OrderNotification] Removendo notificação após timeout');
+          return prev.filter(n => n.id !== notification.id);
+        });
       }, 10000);
     };
 
     // Registrar handler
-    pubsubService.addMessageHandler(handleNewOrder);
+    notificationPollingService.addMessageHandler(handleNewOrder);
 
     // Cleanup
     return () => {
-      pubsubService.removeMessageHandler(handleNewOrder);
+      console.log('[🧹 OrderNotification] Componente desmontado - removendo handler');
+      notificationPollingService.removeMessageHandler(handleNewOrder);
     };
   }, []);
 
