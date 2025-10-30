@@ -262,13 +262,17 @@ const Configuracoes = () => {
                                 </button>
                             )}
                             <button 
-                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                                disabled
+                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed relative group"
+                                title="Em desenvolvimento"
                             >
                                 <FaStore className="text-xl" />
                                 <span>Dados da Loja</span>
                             </button>
                             <button 
-                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                                disabled
+                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed relative group"
+                                title="Em desenvolvimento"
                             >
                                 <FaReceipt className="text-xl" />
                                 <span>Cupom Fiscal</span>
@@ -280,19 +284,25 @@ const Configuracoes = () => {
                         </h3>
                         <div className="space-y-2">
                             <button 
-                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                                disabled
+                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed relative group"
+                                title="Em desenvolvimento"
                             >
                                 <FaTags className="text-xl" />
                                 <span>Etiquetas</span>
                             </button>
                             <button 
-                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                                disabled
+                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed relative group"
+                                title="Em desenvolvimento"
                             >
                                 <FaDatabase className="text-xl" />
                                 <span>Backup</span>
                             </button>
                             <button 
-                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors hover:bg-gray-700 hover:text-white"
+                                disabled
+                                className="flex items-center w-full space-x-3 p-3 rounded-lg transition-colors opacity-50 cursor-not-allowed relative group"
+                                title="Em desenvolvimento"
                             >
                                 <FaCog className="text-xl" />
                                 <span>PDV Avançado</span>
