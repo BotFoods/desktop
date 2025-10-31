@@ -94,22 +94,21 @@ export const AuthProvider = ({ children }) => {
   // Função para inicializar polling de notificações
   const initializePubSub = useCallback(async (userData) => {
     try {
-      console.log('[🚀 AuthContext] Inicializando polling de notificações');
+      console.log('Inicializando polling de notificações');
       
       // Verificar permissão
       if (!userData.permissoes?.receber_pedidos_online) {
-        console.log('[⚠️ AuthContext] Usuário sem permissão para receber pedidos online');
+        console.log('Usuário sem permissão para receber pedidos online');
         return;
       }
 
       if (!userData.fila_pedidos) {
-        console.log('[⚠️ AuthContext] Usuário sem fila_pedidos configurada');
+        console.log('Usuário sem fila_pedidos configurada');
         return;
       }
 
       // Verificar se já está ouvindo
       if (notificationPollingService.getIsListening()) {
-        console.log('[⚠️ AuthContext] Polling já está ativo');
         return;
       }
 
@@ -117,11 +116,10 @@ export const AuthProvider = ({ children }) => {
       notificationPollingService.clearMessageHandlers();
 
       await notificationPollingService.startListening(userData.fila_pedidos, userData);
-      console.log('[✅ AuthContext] Polling iniciado com sucesso');
+      console.log('Polling iniciado');
       
       // Registrar handler para novos pedidos
       const handleNewOrder = (pedido) => {
-        console.log('[🔔 AuthContext] Handler recebeu pedido:', pedido.id_venda);
         
         const formatCurrency = (value) => {
           const numericValue = parseFloat(value) || 0;
@@ -134,12 +132,6 @@ export const AuthProvider = ({ children }) => {
         const customerName = pedido.dados_cliente?.nome || 'Cliente';
         const orderValue = formatCurrency(pedido.total_venda || 0);
         const orderId = pedido.id_venda?.toString()?.slice(-4) || 'N/A';
-        
-        console.log('[🔔 AuthContext] Disparando notificação Electron:', {
-          orderId,
-          customerName,
-          orderValue
-        });
         
         if (window.electronAPI?.showNotification) {
           window.electronAPI.showNotification({
@@ -155,7 +147,6 @@ export const AuthProvider = ({ children }) => {
       };
       
       notificationPollingService.addMessageHandler(handleNewOrder);
-      console.log('[✅ AuthContext] Handler de Electron registrado');
     } catch (error) {
       console.error('[❌ AuthContext] Erro ao inicializar polling:', error.message);
     }
