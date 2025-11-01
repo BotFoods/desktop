@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../services/AuthContext';
+import usePermissions from '../hooks/usePermissions';
 import { useNavigate } from 'react-router-dom';
 import AlertModal from './AlertModal';
 import ApiErrorModal from './ApiErrorModal';
@@ -14,6 +15,7 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
     const [observacoesInput, setObservacoesInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { token, user } = useAuth();
+    const { hasPermission } = usePermissions();
     const { errorInfo, handleApiError, closeError } = useApiError();
     const navigate = useNavigate();
     
@@ -44,6 +46,11 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
     };
 
     const handleOpenModal = () => {
+        // Verificar permissão antes de abrir modal
+        if (!hasPermission('caixa')) {
+            showAlert('Você não tem permissão para fechar o caixa.', 'error', 'Acesso Negado');
+            return;
+        }
         setIsModalOpen(true);
     };
 
@@ -96,6 +103,11 @@ const FecharCaixaButton = ({ pdv, className, children }) => {
             setIsLoading(false);
         }
     };
+
+    // Não renderizar botão se não tiver permissão
+    if (!hasPermission('caixa')) {
+        return null;
+    }
 
     return (
         <>

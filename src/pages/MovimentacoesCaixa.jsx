@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
+import usePermissions from '../hooks/usePermissions';
 import Header from '../components/Header';
 import { FaSearch, FaSpinner, FaArrowUp, FaArrowDown, FaExclamationTriangle, FaPlus, FaMinus, FaWallet, FaFileInvoiceDollar } from 'react-icons/fa';
 import InformarcoesRodape from '../components/InformacoesRodape';
@@ -7,9 +8,11 @@ import ApiErrorModal from '../components/ApiErrorModal';
 import useApiError from '../hooks/useApiError';
 import { apiGet } from '../services/ApiService';
 import AccessDeniedPage from '../components/AccessDeniedPage';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const MovimentacoesCaixa = () => {
   const { token, user } = useAuth(); // Removido validateSession redundante
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
   const [movimentacoes, setMovimentacoes] = useState([]);
   const [filteredMovimentacoes, setFilteredMovimentacoes] = useState([]);
@@ -179,6 +182,18 @@ const MovimentacoesCaixa = () => {
     return tipo && typeof tipo === 'string' && (tipo.startsWith('ENTRADA_') || tipo === 'ENTRADA');
   };
 
+  // Verificar permissão de visualizar relatórios de caixa
+  if (!permissoesLoading && !hasPermission('caixa_relatorios')) {
+    return (
+      <AccessDeniedPage
+        requiredPermission="caixa_relatorios"
+        isOwnerOnly={false}
+        pageName="Movimentações de Caixa"
+        originalError="Você não tem permissão para visualizar relatórios de caixa"
+      />
+    );
+  }
+
   // Se o acesso foi negado, mostrar página de acesso negado
   if (accessDenied.isBlocked) {
     return (
@@ -188,6 +203,19 @@ const MovimentacoesCaixa = () => {
         pageName={accessDenied.pageName}
         originalError={accessDenied.originalError}
       />
+    );
+  }
+
+  // Loading de permissões
+  if (permissoesLoading) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message="Carregando permissões..."
+        />
+      </div>
     );
   }
 

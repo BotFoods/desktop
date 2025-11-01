@@ -1,54 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
+import { useAuth } from '../services/AuthContext';
 
 /**
  * Hook personalizado para gerenciar permissões do usuário
+ * Utiliza o AuthContext para evitar requisições desnecessárias
+ * As permissões são carregadas no login e armazenadas em localStorage
  */
 const usePermissions = () => {
-  const [permissions, setPermissions] = useState({});
-  const [userInfo, setUserInfo] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const token = localStorage.getItem('token');
-
-  // Buscar permissões do usuário logado
-  const fetchPermissions = useCallback(async () => {
-    if (!token) {
-      setLoading(false);
-      setError('Token não disponível');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch(`${API_BASE_URL}/api/permissoes/minhas`, {
-        headers: {
-          authorization: token
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data.permissoes || {});
-        setUserInfo(data.usuario || {});
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Erro ao carregar permissões');
-      }
-    } catch (err) {
-      setError('Erro de conexão ao carregar permissões');
-    } finally {
-      setLoading(false);
-    }
-  }, [token, API_BASE_URL]);
-
-  useEffect(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
+  const { permissoes, user, isValidating } = useAuth();
 
   /**
    * Verifica se o usuário tem uma permissão específica
@@ -56,23 +15,32 @@ const usePermissions = () => {
    * @returns {boolean} - Se tem permissão ou não
    */
   const hasPermission = useCallback((activityName) => {
-    // Owner sempre tem acesso total (verificar valores 1, true, "1", "true")
-    const isOwnerCheck = userInfo.is_owner === 1 || userInfo.is_owner === true || userInfo.is_owner === "1" || userInfo.is_owner === "true";
+    // Owner sempre tem acesso total
+    const isOwnerCheck = user?.is_owner === 1 || user?.is_owner === true || user?.is_owner === "1" || user?.is_owner === "true";
     
     if (isOwnerCheck) {
       return true;
     }
 
-    // Buscar a atividade em todos os módulos
-    for (const module of Object.values(permissions)) {
-      const activity = module.find(act => act.nome === activityName);
-      if (activity) {
-        return activity.permitido === 1 || activity.permitido === true;
+    // Verificar na lista simples de permissões (formato novo)
+    if (permissoes?.lista) {
+      return Boolean(permissoes.lista[activityName]);
+    }
+
+    // Fallback: verificar no formato antigo (se existir)
+    if (permissoes && typeof permissoes === 'object') {
+      for (const module of Object.values(permissoes)) {
+        if (Array.isArray(module)) {
+          const activity = module.find(act => act.nome === activityName);
+          if (activity) {
+            return activity.permitido === 1 || activity.permitido === true;
+          }
+        }
       }
     }
 
     return false;
-  }, [permissions, userInfo.is_owner]);
+  }, [permissoes, user?.is_owner]);
 
   /**
    * Verifica se o usuário tem permissão para qualquer atividade de um módulo
@@ -80,28 +48,37 @@ const usePermissions = () => {
    * @returns {boolean} - Se tem acesso ao módulo
    */
   const hasModuleAccess = useCallback((moduleName) => {
-    // Owner sempre tem acesso total (verificar valores 1, true, "1", "true")
-    if (userInfo.is_owner === 1 || userInfo.is_owner === true || userInfo.is_owner === "1" || userInfo.is_owner === "true") {
+    // Owner sempre tem acesso total
+    const isOwnerCheck = user?.is_owner === 1 || user?.is_owner === true || user?.is_owner === "1" || user?.is_owner === "true";
+    
+    if (isOwnerCheck) {
       return true;
     }
 
-    const modulePermissions = permissions[moduleName];
-    if (!modulePermissions) {
-      return false;
+    // Verificar no formato novo
+    if (permissoes?.porModulo && permissoes.porModulo[moduleName]) {
+      return permissoes.porModulo[moduleName].length > 0;
     }
 
-    // Verificar se tem pelo menos uma permissão no módulo
-    return modulePermissions.some(activity => activity.permitido === 1 || activity.permitido === true);
-  }, [permissions, userInfo.is_owner]);
+    // Fallback: formato antigo
+    if (permissoes?.[moduleName]) {
+      const modulePermissions = permissoes[moduleName];
+      if (Array.isArray(modulePermissions)) {
+        return modulePermissions.some(activity => activity.permitido === 1 || activity.permitido === true);
+      }
+    }
+
+    return false;
+  }, [permissoes, user?.is_owner]);
 
   /**
    * Verifica se o usuário é owner
    * @returns {boolean} - Se é owner
    */
   const isOwner = useCallback(() => {
-    const result = userInfo.is_owner === 1 || userInfo.is_owner === true || userInfo.is_owner === "1" || userInfo.is_owner === "true";
+    const result = user?.is_owner === 1 || user?.is_owner === true || user?.is_owner === "1" || user?.is_owner === "true";
     return result;
-  }, [userInfo.is_owner]);
+  }, [user?.is_owner]);
 
   /**
    * Obter todas as permissões de um módulo específico
@@ -109,8 +86,14 @@ const usePermissions = () => {
    * @returns {Array} - Lista de permissões do módulo
    */
   const getModulePermissions = useCallback((moduleName) => {
-    return permissions[moduleName] || [];
-  }, [permissions]);
+    // Formato novo
+    if (permissoes?.porModulo) {
+      return permissoes.porModulo[moduleName] || [];
+    }
+
+    // Fallback: formato antigo
+    return permissoes?.[moduleName] || [];
+  }, [permissoes]);
 
   /**
    * Verificar múltiplas permissões ao mesmo tempo
@@ -131,23 +114,79 @@ const usePermissions = () => {
   }, [hasPermission]);
 
   /**
-   * Recarregar permissões
+   * Verifica se pode acessar funcionalidade exclusiva de owner
+   * @param {string} activityName - Nome da atividade
+   * @returns {boolean}
    */
-  const refreshPermissions = useCallback(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
+  const canAccessOwnerOnly = useCallback((activityName) => {
+    // Owner sempre pode
+    if (isOwner()) return true;
+
+    // Verificar se a atividade é owner-only
+    const activity = permissoes?.detalhes?.find(p => p.nome === activityName);
+    if (!activity) return false;
+
+    // Se não for owner-only, verificar permissão normal
+    return !activity.is_owner_only && hasPermission(activityName);
+  }, [permissoes, isOwner, hasPermission]);
+
+  /**
+   * Retorna lista de todos os nomes de permissões ativas
+   * @returns {string[]}
+   */
+  const getAllPermissionNames = useCallback(() => {
+    if (permissoes?.lista) {
+      return Object.keys(permissoes.lista).filter(key => permissoes.lista[key]);
+    }
+    return [];
+  }, [permissoes]);
+
+  /**
+   * Retorna lista de módulos disponíveis
+   * @returns {string[]}
+   */
+  const getAvailableModules = useCallback(() => {
+    if (permissoes?.porModulo) {
+      return Object.keys(permissoes.porModulo);
+    }
+    
+    // Fallback: formato antigo
+    if (permissoes && typeof permissoes === 'object') {
+      return Object.keys(permissoes).filter(key => Array.isArray(permissoes[key]));
+    }
+    
+    return [];
+  }, [permissoes]);
 
   return {
-    permissions,
-    userInfo,
-    loading,
-    error,
+    // Dados
+    permissions: permissoes, // Alias para compatibilidade
+    permissoes,
+    userInfo: user, // Alias para compatibilidade
+    user,
+    loading: isValidating,
+    error: null, // Não há erro no AuthContext
+    
+    // Verificações básicas
     hasPermission,
     hasModuleAccess,
     isOwner,
+    
+    // Obter permissões
     getModulePermissions,
+    
+    // Verificações múltiplas
     hasPermissions,
-    refreshPermissions
+    
+    // Owner checks
+    canAccessOwnerOnly,
+    
+    // Utilidades
+    getAllPermissionNames,
+    getAvailableModules,
+    
+    // Não precisa mais de refresh, o AuthContext gerencia
+    refreshPermissions: () => console.log('Permissões são gerenciadas pelo AuthContext')
   };
 };
 

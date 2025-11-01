@@ -9,10 +9,13 @@ import { useNavigate } from 'react-router-dom';
 import FinalizarButton from '../components/FinalizarButton';
 import AlertModal from '../components/AlertModal';
 import LoadingSpinner from '../components/LoadingSpinner';
+import usePermissions from '../hooks/usePermissions';
+import AccessDeniedPage from '../components/AccessDeniedPage';
 
 const DELIVERY_STORAGE_KEY = 'pdv_delivery';
 
 const Delivery = () => {  const { validateSession, token, user } = useAuth();
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   const navigate = useNavigate();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -515,17 +518,22 @@ const Delivery = () => {  const { validateSession, token, user } = useAuth();
 
   const categories = Object.keys(products);
 
-  // Mostrar loading durante a inicialização
-  if (isInitializing) {
+  // Verificar permissões primeiro
+  if (permissoesLoading || isInitializing) {
     return (
       <div className="bg-gray-900 text-white flex flex-col min-h-screen">
         <LoadingSpinner 
           fullScreen={true}
           size="xl"
-          message="Verificando caixa e carregando produtos..."
+          message={permissoesLoading ? 'Verificando permissões...' : 'Verificando caixa e carregando produtos...'}
         />
       </div>
     );
+  }
+
+  // Bloquear acesso se não tiver permissão
+  if (!hasPermission('delivery')) {
+    return <AccessDeniedPage />;
   }
 
   return (

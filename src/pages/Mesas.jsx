@@ -6,16 +6,15 @@ import AddMesaModal from '../components/AddMesaModal';
 // Importando ícones adicionais para as ações de desativar/ativar
 import { FaBan, FaCheck, FaEllipsisV, FaUser, FaChair, FaArrowRight } from 'react-icons/fa';
 import AlertModal from '../components/AlertModal';
-import ApiErrorModal from '../components/ApiErrorModal';
 import AccessDeniedPage from '../components/AccessDeniedPage';
-import useApiError from '../hooks/useApiError';
+import usePermissions from '../hooks/usePermissions';
 import { apiGet, apiPost, apiPut } from '../services/ApiService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/mesas.css';
 
 const Mesas = () => {
   const { token, user } = useAuth();
-  const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   const [mesas, setMesas] = useState([]);
   const navigate = useNavigate();
 
@@ -47,12 +46,6 @@ const Mesas = () => {
       if (data.success) {
         setMesas(data.mesas);
         setApiError('');
-      } else if (data._isApiError && data._status === 403) {
-        // Usar o novo sistema para erros de permissão com bloqueio de página
-        await handleApiError(data._response || data, 'Erro ao carregar mesas', {
-          blockPage: true,
-          pageName: 'mesas'
-        });
       } else if (data.auth === false) {
         navigate('/login');
       } else {
@@ -65,7 +58,7 @@ const Mesas = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, navigate, user, handleApiError]);
+  }, [token, navigate, user]);
 
   useEffect(() => {
     if (user && user.loja_id) { // Ensure user and loja_id are available before fetching
@@ -168,9 +161,6 @@ const Mesas = () => {
         fetchMesas(); 
         setIsModalOpen(false); 
         setApiError(''); 
-      } else if (data._isApiError && data._status === 403) {
-        // Usar o novo sistema para erros de permissão
-        await handleApiError(data._response || data, 'Erro ao adicionar mesa');
       } else if (data.auth === false) {
         setApiError('Acesso negado. Por favor, faça login novamente.');
       } else {
@@ -233,9 +223,6 @@ const Mesas = () => {
           mesa.id === mesaId ? { ...mesa, ativo: false } : mesa
         ));
         showAlert(data.message || "Mesa desativada com sucesso!", "success");
-      } else if (data._isApiError && data._status === 403) {
-        // Usar o novo sistema para erros de permissão
-        await handleApiError(data._response || data, 'Erro ao desativar mesa');
       } else {
         showAlert(data.error || data.message || "Erro ao desativar mesa", "error");
       }
@@ -265,9 +252,6 @@ const Mesas = () => {
           mesa.id === mesaId ? { ...mesa, ativo: true } : mesa
         ));
         showAlert(data.message || "Mesa ativada com sucesso!", "success");
-      } else if (data._isApiError && data._status === 403) {
-        // Usar o novo sistema para erros de permissão
-        await handleApiError(data._response || data, 'Erro ao ativar mesa');
       } else {
         showAlert(data.error || data.message || "Erro ao ativar mesa", "error");
       }
@@ -292,16 +276,22 @@ const Mesas = () => {
     return Boolean(mesa.ativo); // Para casos booleanos ou outros tipos
   };
 
-  // Se o acesso foi negado, mostrar página de acesso negado
-  if (accessDenied.isBlocked) {
+  // Mostrar loading enquanto verifica permissões
+  if (permissoesLoading) {
     return (
-      <AccessDeniedPage
-        requiredPermission={accessDenied.requiredPermission}
-        isOwnerOnly={accessDenied.isOwnerOnly}
-        pageName={accessDenied.pageName}
-        originalError={accessDenied.originalError}
-      />
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message="Verificando permissões..."
+        />
+      </div>
     );
+  }
+
+  // Bloquear acesso se não tiver permissão
+  if (!hasPermission('mesas')) {
+    return <AccessDeniedPage />;
   }
 
   return (
@@ -531,17 +521,6 @@ const Mesas = () => {
         title={alertInfo.title}
         message={alertInfo.message}
         type={alertInfo.type}
-      />
-
-      {/* Modal de erro da API */}
-      <ApiErrorModal
-        isOpen={errorInfo.isOpen}
-        onClose={closeError}
-        title={errorInfo.title}
-        message={errorInfo.message}
-        type={errorInfo.type}
-        requiredPermission={errorInfo.requiredPermission}
-        isOwnerOnly={errorInfo.isOwnerOnly}
       />
     </div>
   );

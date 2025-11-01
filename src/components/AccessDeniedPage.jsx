@@ -12,7 +12,7 @@ const AccessDeniedPage = ({
   customMessage = null 
 }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-xl border border-gray-700 p-8 text-center">
         {/* Ícone Principal */}
         <div className="mb-6">

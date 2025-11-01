@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FaEdit, FaTrash, FaUndo, FaPlus, FaUser, FaUserPlus, FaLock, FaEnvelope, FaIdCard, FaUserTie } from 'react-icons/fa';
+import { FaEdit, FaTrash, FaUndo, FaPlus, FaUser, FaUserPlus, FaLock, FaEnvelope, FaIdCard, FaUserTie, FaInfoCircle, FaShoppingCart } from 'react-icons/fa';
 import { useAuth } from '../services/AuthContext';
 import Modal from './Modal';
 import ProtectedRoute from './ProtectedRoute';
@@ -20,6 +20,7 @@ const PessoaCadastro = () => {
     const [isFormModalOpen, setIsFormModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editUser, setEditUser] = useState(null);
+    const [acessoPedidosOnline, setAcessoPedidosOnline] = useState(false);
     const loggedUser = user;
     const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -152,7 +153,8 @@ const PessoaCadastro = () => {
                 usuario,
                 senha,
                 funcao_id: funcao,
-                loja_id: loggedUser.loja_id
+                loja_id: loggedUser.loja_id,
+                acesso_pedidos_online: acessoPedidosOnline
             })
         };        try {
             const response = await fetch(`${API_BASE_URL}/api/usuarios/cadastrar?id_loja=${user.loja_id}`, options);
@@ -178,7 +180,18 @@ const PessoaCadastro = () => {
                 setUsuario('');
                 setSenha('');
                 setFuncao('1');
-                showMessage(data.message || 'Usuário cadastrado com sucesso!');
+                setAcessoPedidosOnline(false);
+                
+                // Exibir mensagem com informação sobre transferência de acesso
+                if (data.acesso_transferido) {
+                    showMessage(
+                        `✓ ${data.message}\n⚠️ O usuário "${data.usuario_anterior.nome}" não receberá mais pedidos online.`,
+                        'warning'
+                    );
+                } else {
+                    showMessage(data.message || 'Usuário cadastrado com sucesso!');
+                }
+                
                 setIsFormModalOpen(false);
             } else {
                 showMessage(data.message || 'Erro ao cadastrar usuário', 'error');
@@ -198,6 +211,7 @@ const PessoaCadastro = () => {
             email: userToEdit.email,
             usuario: userToEdit.usuario,
             funcao_id: userToEdit.funcao_id,
+            acesso_pedidos_online: userToEdit.acesso_pedidos_online || false,
             senha: '' // Campo para nova senha
         });
         setIsEditModalOpen(true);
@@ -228,7 +242,8 @@ const PessoaCadastro = () => {
             nome: editUser.nome,
             email: editUser.email,
             usuario: editUser.usuario,
-            funcao_id: editUser.funcao_id
+            funcao_id: editUser.funcao_id,
+            acesso_pedidos_online: editUser.acesso_pedidos_online || false
         };
 
         // Incluir senha apenas se foi fornecida
@@ -254,7 +269,17 @@ const PessoaCadastro = () => {
                         ? { ...user, ...editUser } 
                         : user
                 ));
-                showMessage('Usuário atualizado com sucesso!');
+                
+                // Exibir mensagem com informação sobre transferência de acesso
+                if (data.acesso_transferido) {
+                    showMessage(
+                        `✓ ${data.message}\n⚠️ O usuário "${data.usuario_anterior.nome}" não receberá mais pedidos online.`,
+                        'warning'
+                    );
+                } else {
+                    showMessage('Usuário atualizado com sucesso!');
+                }
+                
                 setIsEditModalOpen(false);
             } else {
                 showMessage(data.message || 'Erro ao atualizar usuário', 'error');
@@ -326,6 +351,7 @@ const PessoaCadastro = () => {
         setUsuario('');
         setSenha('');
         setFuncao('1');
+        setAcessoPedidosOnline(false);
         setIsFormModalOpen(true);
     };
 
@@ -464,6 +490,37 @@ const PessoaCadastro = () => {
                         </div>
                     </div>
                     
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="acesso-pedidos" className="flex items-center text-sm font-medium text-gray-300">
+                                <FaShoppingCart className="mr-2 text-blue-400" />
+                                Acesso aos Pedidos Online
+                            </label>
+                            <div className="relative group">
+                                <FaInfoCircle className="text-gray-400 hover:text-blue-400 cursor-help transition-colors duration-200" />
+                                <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-xs text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-700">
+                                    <div className="font-semibold text-blue-400 mb-1">ℹ️ Acesso Exclusivo</div>
+                                    Apenas UM usuário por loja pode ter acesso aos pedidos online. Ao ativar para este usuário, o acesso será removido automaticamente de qualquer outro usuário que o possua.
+                                    <div className="absolute top-full right-4 -mt-1 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer w-full p-3 rounded-lg bg-gray-700 border border-gray-600 hover:border-blue-500 transition-all duration-200">
+                            <input
+                                id="acesso-pedidos"
+                                type="checkbox"
+                                checked={acessoPedidosOnline}
+                                onChange={(e) => setAcessoPedidosOnline(e.target.checked)}
+                                className="sr-only peer"
+                                disabled={loading}
+                            />
+                            <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span className="ml-3 text-sm font-medium text-gray-300">
+                                {acessoPedidosOnline ? 'Usuário receberá pedidos online' : 'Usuário não receberá pedidos online'}
+                            </span>
+                        </label>
+                    </div>
+                    
                     <button 
                         type="submit" 
                         className={`w-full p-3 rounded-lg flex items-center justify-center transition-all duration-200 ${
@@ -491,9 +548,15 @@ const PessoaCadastro = () => {
                 </form>
                 {message && (
                     <div className={`mt-4 p-3 rounded-lg text-center transition-all duration-300 ${
-                        messageType === 'error' ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+                        messageType === 'error' 
+                            ? 'bg-red-500/20 text-red-300' 
+                            : messageType === 'warning'
+                            ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                            : 'bg-green-500/20 text-green-300'
                     }`}>
-                        {message}
+                        <div className="whitespace-pre-line text-left">
+                            {message}
+                        </div>
                     </div>
                 )}
             </Modal>
@@ -525,6 +588,7 @@ const PessoaCadastro = () => {
                                     <th className="py-3 px-4 text-left border-b border-gray-600">Email</th>
                                     <th className="py-3 px-4 text-left border-b border-gray-600">Usuário</th>
                                     <th className="py-3 px-4 text-left border-b border-gray-600">Função</th>
+                                    <th className="py-3 px-4 text-center border-b border-gray-600">Pedidos Online</th>
                                     <th className="py-3 px-4 text-center border-b border-gray-600">Ações</th>
                                 </tr>
                             </thead>
@@ -543,6 +607,16 @@ const PessoaCadastro = () => {
                                             }`}>
                                                 {Array.isArray(funcoes) ? funcoes.find(f => f.id === user.funcao_id)?.descricao || 'N/A' : 'N/A'}
                                             </span>
+                                        </td>
+                                        <td className="py-3 px-4 border-b border-gray-700 text-center">
+                                            {user.acesso_pedidos_online ? (
+                                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                                                    <FaShoppingCart className="mr-1" />
+                                                    Ativo
+                                                </span>
+                                            ) : (
+                                                <span className="text-gray-500 text-xs">-</span>
+                                            )}
                                         </td>
                                         <td className="py-3 px-4 border-b border-gray-700 flex justify-center gap-2">
                                             <button 
@@ -725,6 +799,37 @@ const PessoaCadastro = () => {
                                     disabled={loading}
                                 />
                             </div>
+                        </div>
+                        
+                        <div className="relative">
+                            <div className="flex items-center justify-between mb-2">
+                                <label htmlFor="edit-acesso-pedidos" className="flex items-center text-sm font-medium text-gray-300">
+                                    <FaShoppingCart className="mr-2 text-blue-400" />
+                                    Acesso aos Pedidos Online
+                                </label>
+                                <div className="relative group">
+                                    <FaInfoCircle className="text-gray-400 hover:text-blue-400 cursor-help transition-colors duration-200" />
+                                    <div className="absolute right-0 bottom-full mb-2 w-64 p-3 bg-gray-900 text-xs text-gray-300 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-700">
+                                        <div className="font-semibold text-blue-400 mb-1">ℹ️ Acesso Exclusivo</div>
+                                        Apenas UM usuário por loja pode ter acesso aos pedidos online. Ao ativar para este usuário, o acesso será removido automaticamente de qualquer outro usuário que o possua.
+                                        <div className="absolute top-full right-4 -mt-1 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer w-full p-3 rounded-lg bg-gray-700 border border-gray-600 hover:border-blue-500 transition-all duration-200">
+                                <input
+                                    id="edit-acesso-pedidos"
+                                    type="checkbox"
+                                    checked={editUser.acesso_pedidos_online || false}
+                                    onChange={(e) => setEditUser({ ...editUser, acesso_pedidos_online: e.target.checked })}
+                                    className="sr-only peer"
+                                    disabled={loading}
+                                />
+                                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                <span className="ml-3 text-sm font-medium text-gray-300">
+                                    {editUser.acesso_pedidos_online ? 'Usuário receberá pedidos online' : 'Usuário não receberá pedidos online'}
+                                </span>
+                            </label>
                         </div>
                         
                         <div className="flex space-x-3 pt-2">

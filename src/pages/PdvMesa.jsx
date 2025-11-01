@@ -7,9 +7,12 @@ import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
 import { verificarCaixaAberto } from '../services/CaixaService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import usePermissions from '../hooks/usePermissions';
+import AccessDeniedPage from '../components/AccessDeniedPage';
 
 const PdvMesa = () => {
   const { validateSession, token, user } = useAuth();
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   const { mesaId } = useParams(); // mesaId from useParams is a string
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -315,17 +318,22 @@ const PdvMesa = () => {
   };
   const categories = Object.keys(products);
 
-  // Mostrar loading durante a inicialização
-  if (isInitializing) {
+  // Verificar permissões primeiro
+  if (permissoesLoading || isInitializing) {
     return (
       <div className="bg-gray-900 text-white flex flex-col min-h-screen">
         <LoadingSpinner 
           fullScreen={true}
           size="xl"
-          message={`Carregando Mesa ${mesaId}...`}
+          message={permissoesLoading ? 'Verificando permissões...' : `Carregando Mesa ${mesaId}...`}
         />
       </div>
     );
+  }
+
+  // Bloquear acesso se não tiver permissão
+  if (!hasPermission('mesas')) {
+    return <AccessDeniedPage />;
   }
 
   return (

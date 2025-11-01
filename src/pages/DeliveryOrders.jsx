@@ -24,12 +24,16 @@ import { useAuth } from '../services/AuthContext';
 import { apiGet, apiPost } from '../services/ApiService';
 import { verificarCaixaAberto } from '../services/CaixaService';
 import { listarMetodosPagamento } from '../services/MetodosPagamentoService';
+import usePermissions from '../hooks/usePermissions';
+import AccessDeniedPage from '../components/AccessDeniedPage';
+import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/kanban.css';
 
 const DELIVERY_ORDERS_STORAGE_KEY = 'pdv_delivery_aguardando';
 
 const DeliveryOrders = () => {
   const { token, user } = useAuth();
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -537,6 +541,24 @@ const DeliveryOrders = () => {
   const handleBackClick = () => {
     navigate(-1);
   };
+
+  // Verificar permissões primeiro
+  if (permissoesLoading) {
+    return (
+      <div className="bg-gray-900 text-white flex flex-col min-h-screen">
+        <LoadingSpinner 
+          fullScreen={true}
+          size="xl"
+          message="Verificando permissões..."
+        />
+      </div>
+    );
+  }
+
+  // Bloquear acesso se não tiver permissão
+  if (!hasPermission('delivery')) {
+    return <AccessDeniedPage />;
+  }
 
   return (
     <div className="bg-gray-900 text-white min-h-screen">

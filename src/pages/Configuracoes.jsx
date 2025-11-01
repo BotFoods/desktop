@@ -20,8 +20,11 @@ const Configuracoes = () => {
     const [isEditingPhoneNumber, setIsEditingPhoneNumber] = useState(false);
     const [activeSection, setActiveSection] = useState('whatsapp');
     const { token, user } = useAuth();
-    const { isOwner } = usePermissions();
+    const { isOwner, hasPermission } = usePermissions();
     const navigate = useNavigate();
+    
+    // Verificar permissões específicas
+    const temImpressoras = hasPermission('impressoras');
     
     // Função para exibir mensagens
     const showMessage = (message, type = 'info') => {
@@ -71,7 +74,16 @@ const Configuracoes = () => {
                 );
             
             case 'impressora':
-                return <PrinterManager showMessage={showMessage} />;
+                return temImpressoras ? <PrinterManager showMessage={showMessage} /> : (
+                    <div className="w-full max-w-2xl bg-gray-800 p-8 rounded-lg shadow-xl">
+                        <h1 className="text-3xl font-bold mb-4 text-center text-white">
+                            Acesso Negado
+                        </h1>
+                        <p className="text-gray-400 text-center">
+                            Você não tem permissão para acessar as configurações de impressoras.
+                        </p>
+                    </div>
+                );
             
             case 'pagamento':
                 return (
@@ -209,17 +221,19 @@ const Configuracoes = () => {
                                 <FaWhatsapp className="text-xl" />
                                 <span>WhatsApp</span>
                             </button>
-                            <button 
-                                onClick={() => setActiveSection('impressora')}
-                                className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
-                                    activeSection === 'impressora' 
-                                        ? 'bg-blue-600 text-white' 
-                                        : 'hover:bg-gray-700 hover:text-white'
-                                }`}
-                            >
-                                <FaPrint className="text-xl" />
-                                <span>Impressora</span>
-                            </button>
+                            {temImpressoras && (
+                                <button 
+                                    onClick={() => setActiveSection('impressora')}
+                                    className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
+                                        activeSection === 'impressora' 
+                                            ? 'bg-blue-600 text-white' 
+                                            : 'hover:bg-gray-700 hover:text-white'
+                                    }`}
+                                >
+                                    <FaPrint className="text-xl" />
+                                    <span>Impressora</span>
+                                </button>
+                            )}
                             <button 
                                 onClick={() => setActiveSection('pagamento')}
                                 className={`flex items-center w-full space-x-3 p-3 rounded-lg transition-colors ${
