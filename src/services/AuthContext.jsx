@@ -9,6 +9,11 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null); // Mudado para localStorage
+  const [permissoes, setPermissoes] = useState(() => {
+    // Inicializar permissões do localStorage
+    const stored = localStorage.getItem('permissoes');
+    return stored ? JSON.parse(stored) : { lista: {}, detalhes: [], porModulo: {} };
+  });
   const [isValidating, setIsValidating] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false); // Novo estado para controlar inicialização
   const [authError, setAuthError] = useState(null); // Adicionado para mensagens de erro
@@ -19,7 +24,9 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
+    setPermissoes({ lista: {}, detalhes: [], porModulo: {} });
     localStorage.removeItem('token');
+    localStorage.removeItem('permissoes');
     lastValidatedToken.current = null;
     pubsubInitializedRef.current = false;
     setIsInitialized(true);
@@ -72,6 +79,13 @@ export const AuthProvider = ({ children }) => {
         setUser(data.user_data);
         setToken(storedToken); // Garante que o token no estado é o validado
         lastValidatedToken.current = storedToken; // Atualiza o último token validado
+        
+        // Armazenar permissões se disponíveis
+        if (data.user_data?.permissoes) {
+          setPermissoes(data.user_data.permissoes);
+          localStorage.setItem('permissoes', JSON.stringify(data.user_data.permissoes));
+        }
+        
         setIsInitialized(true); // Marca como inicializado após validação bem-sucedida
         
         // Iniciar escuta do PubSub se houver fila_pedidos E se não foi inicializado ainda
@@ -96,8 +110,10 @@ export const AuthProvider = ({ children }) => {
     try {
       console.log('Inicializando polling de notificações');
       
-      // Verificar permissão
-      if (!userData.permissoes?.receber_pedidos_online) {
+      // Verificar permissão (usando estrutura nova)
+      const temPermissao = userData.permissoes?.lista?.receber_pedidos_online || 
+                          userData.permissoes?.receber_pedidos_online; // Fallback para formato antigo
+      if (!temPermissao) {
         console.log('Usuário sem permissão para receber pedidos online');
         return;
       }
@@ -161,6 +177,12 @@ export const AuthProvider = ({ children }) => {
     setIsInitialized(true); // Marca como inicializado após login
     lastValidatedToken.current = authToken; // Define o token como validado
     
+    // Armazenar permissões
+    if (userData?.permissoes) {
+      setPermissoes(userData.permissoes);
+      localStorage.setItem('permissoes', JSON.stringify(userData.permissoes));
+    }
+    
     // Inicializar PubSub se houver fila_pedidos
     if (userData?.fila_pedidos) {
       initializePubSub(userData);
@@ -184,10 +206,25 @@ export const AuthProvider = ({ children }) => {
       setIsInitialized(true);
     }
   }, [token, location.pathname, validateSession, navigate]);
+  // Função auxiliar para verificar permissões
+  const hasPermission = useCallback((permissionName) => {
+    if (!permissoes?.lista) return false;
+    return Boolean(permissoes.lista[permissionName]);
+  }, [permissoes]);
+
+  // Função para obter permissões de um módulo específico
+  const getModulePermissions = useCallback((moduleName) => {
+    if (!permissoes?.porModulo) return [];
+    return permissoes.porModulo[moduleName] || [];
+  }, [permissoes]);
+
   // O valor fornecido pelo contexto
   const contextValue = {
     user,
     token,
+    permissoes, // Expondo permissões completas
+    hasPermission, // Função helper para verificar permissões
+    getModulePermissions, // Função helper para obter permissões por módulo
     isValidating,
     isInitialized, // Novo estado disponível para componentes
     authError, // Adicionado para disponibilizar mensagens de erro

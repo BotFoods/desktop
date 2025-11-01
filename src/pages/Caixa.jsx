@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../services/AuthContext';
+import usePermissions from '../hooks/usePermissions';
 import Header from '../components/Header';
 import PdvActions from '../components/PdvActions';
 import CategoryMenu from '../components/CategoryMenu';
@@ -14,6 +15,7 @@ import useApiError from '../hooks/useApiError';
 
 const Caixa = () => {
   const { validateSession, token, setToken, user } = useAuth(); 
+  const { hasPermission, loading: permissoesLoading } = usePermissions();
   const { errorInfo, accessDenied, handleApiError, closeError } = useApiError();
   const [products, setProducts] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -332,6 +334,18 @@ const Caixa = () => {
     }
   };
   
+  // Verificar permissão de caixa
+  if (!permissoesLoading && !hasPermission('caixa')) {
+    return (
+      <AccessDeniedPage
+        requiredPermission="caixa"
+        isOwnerOnly={false}
+        pageName="Caixa"
+        originalError="Você não tem permissão para acessar o módulo de caixa"
+      />
+    );
+  }
+
   // Se o acesso foi negado, mostrar página de acesso negado
   if (accessDenied.isBlocked) {
     return (
@@ -344,14 +358,14 @@ const Caixa = () => {
     );
   }
 
-  // Mostrar loading durante a inicialização
-  if (isInitializing) {
+  // Mostrar loading durante a inicialização ou carregamento de permissões
+  if (isInitializing || permissoesLoading) {
     return (
       <div className="bg-gray-900 text-white flex flex-col min-h-screen">
         <LoadingSpinner 
           fullScreen={true}
           size="xl"
-          message="Verificando caixa aberto..."
+          message={permissoesLoading ? "Carregando permissões..." : "Verificando caixa aberto..."}
         />
       </div>
     );
